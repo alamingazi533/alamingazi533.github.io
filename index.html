@@ -1223,8 +1223,8 @@
     <span class="stat-label">মোট আবেদন</span>
   </div>
   <div class="stat-item">
-    <span class="stat-num" id="responseStatNum">—</span>
-    <span class="stat-label">গড় রেসপন্স টাইম</span>
+    <span class="stat-num" id="ongoingStatNum">—</span>
+    <span class="stat-label">কাজ চলছে</span>
   </div>
   <div class="stat-item">
     <span class="stat-num" id="ratingStatNum">৪.৮★</span>
@@ -2464,11 +2464,14 @@ function loadStats(){
       if(!data.success) return;
       const solvedEl = document.getElementById('solvedStatNum');
       const totalAppEl = document.getElementById('totalAppStatNum');
-      const responseEl = document.getElementById('responseStatNum');
+      const ongoingEl = document.getElementById('ongoingStatNum');
       const bigVisitEl = document.getElementById('bigVisitNum');
-      if(solvedEl) solvedEl.textContent = toBengaliNumber(data.solvedCount || 0);
-      if(totalAppEl) totalAppEl.textContent = toBengaliNumber(data.totalApplications || 0);
-      if(responseEl) responseEl.textContent = formatResponseDuration(data.avgResponseMinutes);
+      const solved = data.solvedCount || 0;
+      const totalApp = data.totalApplications || 0;
+      const ongoing = Math.max(totalApp - solved, 0);
+      if(solvedEl) solvedEl.textContent = toBengaliNumber(solved);
+      if(totalAppEl) totalAppEl.textContent = toBengaliNumber(totalApp);
+      if(ongoingEl) ongoingEl.textContent = toBengaliNumber(ongoing);
       if(bigVisitEl) bigVisitEl.textContent = toBengaliNumber(data.visitorCount || 0);
     })
     .catch(()=>{
