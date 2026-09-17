@@ -420,7 +420,8 @@ function applyCurrentFilter(){
     filtered = filtered.filter(r =>
       (r.fullName || '').toLowerCase().includes(q) ||
       (r.phone || '').includes(q) ||
-      (r.appId || '').toLowerCase().includes(q)
+      (r.appId || '').toLowerCase().includes(q) ||
+      (r.platform || '').toLowerCase().includes(q)
     );
   }
   renderList(filtered);
@@ -1203,6 +1204,7 @@ function renderList(rows){
         '<div class="info-grid">' +
           '<div class="info-item"><span class="ic">📅</span><div><span class="lbl">তারিখ</span><span class="val">' + esc(row.date) + '</span></div></div>' +
           '<div class="info-item"><span class="ic">📱</span><div><span class="lbl">ফোন</span><span class="val">' + esc(row.phone) + '</span></div></div>' +
+          (row.platform ? '<div class="info-item"><span class="ic">🌐</span><div><span class="lbl">প্ল্যাটফর্ম</span><span class="val">' + esc(row.platform) + '</span></div></div>' : '') +
           (row.email ? '<div class="info-item"><span class="ic">📧</span><div><span class="lbl">ইমেইল</span><span class="val">' + esc(row.email) + '</span></div></div>' : '') +
           '<div class="info-item"><span class="ic">📍</span><div><span class="lbl">ঠিকানা</span><span class="val">' + esc(row.division) + ', ' + esc(row.district) + (row.areaDetail ? ' - ' + esc(row.areaDetail) : '') + '</span></div></div>' +
           '<div class="info-item"><span class="ic">💳</span><div><span class="lbl">পেমেন্ট</span><span class="val">' + esc(row.paymentMethod) + ' • TxnID: ' + esc(row.txnId) + ' • ' + esc(row.senderNumber) + '</span></div></div>' +

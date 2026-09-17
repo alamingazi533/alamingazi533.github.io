@@ -2466,6 +2466,16 @@
     <input type="file" id="applicantPhoto" accept="image/*" required>
     <img id="photoPreview" class="photo-preview" alt="ছবি প্রিভিউ">
 
+    <label for="platform">কোন প্ল্যাটফর্মের সমস্যা? <span class="req">*</span></label>
+    <select id="platform" required>
+      <option value="">নির্বাচন করুন</option>
+      <option value="Facebook">Facebook</option>
+      <option value="Instagram">Instagram</option>
+      <option value="TikTok">TikTok</option>
+      <option value="YouTube">YouTube</option>
+      <option value="অন্যান্য">অন্যান্য</option>
+    </select>
+
     <label for="idLink">আপনার আইডি / প্রোফাইল / চ্যানেল লিংক (Facebook/Instagram/TikTok/YouTube) <span class="req">*</span></label>
     <input type="url" id="idLink" required placeholder="https://facebook.com/... বা Instagram/TikTok/YouTube লিংক">
 
@@ -2742,6 +2752,7 @@
       </div>
       <img class="r-applicant-photo" id="r-applicant-photo" src="" alt="আবেদনকারীর ছবি" style="display:none;">
     </div>
+    <div class="r-row"><span class="label">প্ল্যাটফর্ম</span><span class="value" id="r-platform"></span></div>
     <div class="r-row"><span class="label">আইডি/প্রোফাইল লিংক</span><span class="value" id="r-idlink"></span></div>
     <div class="r-row"><span class="label">তারিখ ও সময়</span><span class="value" id="r-date"></span></div>
 
@@ -3509,7 +3520,7 @@ newCaptcha();
 
 // ============ ধাপে ধাপে ফর্ম নেভিগেশন ============
 const stepFields = {
-  1: ['fullName', 'phone', 'applicantPhoto', 'idLink', 'dob', 'gender', 'email'],
+  1: ['fullName', 'phone', 'applicantPhoto', 'platform', 'idLink', 'dob', 'gender', 'email'],
   2: ['division', 'district', 'upazila', 'areaDetail', 'comment', 'screenshot'],
   3: ['paymentMethod', 'txnId', 'senderNumber', 'captchaAns']
 };
@@ -3626,7 +3637,7 @@ if(backToTopBtn){
 
 // ============ ড্রাফট অটো-সেভ ============
 const DRAFT_KEY = 'fbFormDraftV1';
-const draftFieldIds = ['fullName','phone','idLink','dob','gender','email','division','district','upazila','areaDetail','comment','paymentMethod','txnId','senderNumber'];
+const draftFieldIds = ['fullName','phone','platform','idLink','dob','gender','email','division','district','upazila','areaDetail','comment','paymentMethod','txnId','senderNumber'];
 
 function saveDraft(){
   const draft = {};
@@ -3679,7 +3690,7 @@ function restoreDraft(){
   const hasData = Object.values(draft).some(v => v && String(v).trim());
   if(!hasData) return;
 
-  ['fullName','phone','idLink','dob','gender','email','areaDetail','comment','txnId','senderNumber'].forEach(id=>{
+  ['fullName','phone','platform','idLink','dob','gender','email','areaDetail','comment','txnId','senderNumber'].forEach(id=>{
     if(draft[id]) document.getElementById(id).value = draft[id];
   });
 
@@ -3775,6 +3786,7 @@ form.addEventListener('submit', async (e)=>{
     dob: document.getElementById('dob').value.trim(),
     gender: document.getElementById('gender').value.trim(),
     email: document.getElementById('email').value.trim(),
+    platform: document.getElementById('platform').value.trim(),
     idLink: document.getElementById('idLink').value.trim(),
     division: divisionSelect.options[divisionSelect.selectedIndex]?.text || '',
     district: districtSelect.options[districtSelect.selectedIndex]?.text || '',
@@ -3877,6 +3889,7 @@ form.addEventListener('submit', async (e)=>{
     document.getElementById('r-payment').textContent = payload.paymentMethod || '-';
     document.getElementById('r-txn').textContent = payload.txnId || '-';
     document.getElementById('r-sender').textContent = payload.senderNumber || '-';
+    document.getElementById('r-platform').textContent = payload.platform || '-';
     document.getElementById('r-idlink').textContent = payload.idLink || '-';
     const rPhotoEl = document.getElementById('r-applicant-photo');
     if(payload.photoBase64){
