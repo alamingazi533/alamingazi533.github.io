@@ -1,8 +1,8 @@
 {
   "name": "ফেসবুক সমস্যা সমাধান সেবা",
   "short_name": "FB সমাধান",
-  "start_url": "index.html",
-  "scope": "index.html",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#FBF6EA",
   "theme_color": "#1F3B2C",
