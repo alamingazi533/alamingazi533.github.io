@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>টেস্ট পেজ</title>
+<style>
+  body{font-family:sans-serif; padding:16px; background:#f5f2e8; color:#222;}
+  button{width:100%; padding:16px; font-size:16px; font-weight:bold; margin:8px 0; border-radius:8px; border:none; background:#1F3B2C; color:#fff;}
+  input{width:100%; padding:12px; font-size:16px; box-sizing:border-box; margin:6px 0; border-radius:6px; border:1px solid #ccc;}
+  pre{white-space:pre-wrap; word-break:break-all; background:#fff; border:1px solid #ccc; border-radius:8px; padding:12px; font-size:13px; margin-top:8px;}
+  .label{font-weight:bold; margin-top:16px;}
+  hr{margin:24px 0; border:none; border-top:2px solid #ccc;}
+  .section-title{font-size:18px; font-weight:bold; color:#1F3B2C;}
+</style>
+</head>
+<body>
+
+<h2>Apps Script টেস্ট পেজ</h2>
+<p>এই পেজটা যাচাই আর পাসওয়ার্ড রিসেট করার জন্য — সরাসরি আসল উত্তর দেখাবে।</p>
+
+<div class="label">পুরনো পাসওয়ার্ড (টেস্টের জন্য, যা মনে আছে তাই দিন):</div>
+<input type="text" id="pw" placeholder="আপনার অ্যাডমিন পাসওয়ার্ড">
+
+<button onclick="testGet()">GET টেস্ট (getStats)</button>
+<button onclick="testPostList()">POST টেস্ট (action=list)</button>
+
+<div class="label">ফলাফল:</div>
+<pre id="out">এখনো কিছু টেস্ট করা হয়নি।</pre>
+
+<hr>
+
+<div class="section-title">🔑 পাসওয়ার্ড রিসেট করুন</div>
+<p>এটা আপনার রেজিস্টার্ড ইমেইলে (alamingazi533@gmail.com) একটা ৬-সংখ্যার কোড পাঠাবে। কোড দিয়ে নতুন পাসওয়ার্ড সেট করতে পারবেন।</p>
+
+<button onclick="sendCode()">১) ইমেইলে কোড পাঠান</button>
+
+<div class="label">২) কোড ও নতুন পাসওয়ার্ড দিন:</div>
+<input type="text" id="otp" placeholder="৬-সংখ্যার কোড" inputmode="numeric">
+<input type="text" id="newPw" placeholder="নতুন পাসওয়ার্ড (সহজ কিছু, যেমন শুধু ছোট হাতের অক্ষর/সংখ্যা)">
+
+<button onclick="setNewPw()">৩) নতুন পাসওয়ার্ড সেট করুন</button>
+
+<div class="label">রিসেট ফলাফল:</div>
+<pre id="resetOut">এখনো কিছু করা হয়নি।</pre>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTc7Kg6lsjmY8nGyqcI5AsZxwNZxliQQ78r6Lr_YrWE0I4GPQQ1JhW0ssT2t9yjy4/exec";
+const out = document.getElementById('out');
+const resetOut = document.getElementById('resetOut');
+
+function show(el, label, data){
+  el.textContent = label + '\n\n' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+}
+
+async function testGet(){
+  out.textContent = 'GET পাঠানো হচ্ছে...';
+  try{
+    const res = await fetch(SCRIPT_URL + '?action=getStats');
+    const text = await res.text();
+    show(out, 'GET রেসপন্স (status ' + res.status + '):', text);
+  }catch(err){
+    show(out, 'GET এরর:', String(err));
+  }
+}
+
+async function testPostList(){
+  const pw = document.getElementById('pw').value;
+  out.textContent = 'POST পাঠানো হচ্ছে...';
+  try{
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'list', password: pw })
+    });
+    const text = await res.text();
+    show(out, 'POST রেসপন্স (status ' + res.status + '):', text);
+  }catch(err){
+    show(out, 'POST এরর:', String(err));
+  }
+}
+
+async function sendCode(){
+  resetOut.textContent = 'কোড পাঠানো হচ্ছে...';
+  try{
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'sendResetCode' })
+    });
+    const text = await res.text();
+    show(resetOut, 'কোড পাঠানোর ফলাফল:', text);
+  }catch(err){
+    show(resetOut, 'এরর:', String(err));
+  }
+}
+
+async function setNewPw(){
+  const otp = document.getElementById('otp').value.trim();
+  const newPw = document.getElementById('newPw').value;
+  if(!otp || !newPw){
+    resetOut.textContent = 'কোড এবং নতুন পাসওয়ার্ড দুটোই দিন।';
+    return;
+  }
+  resetOut.textContent = 'পরিবর্তন করা হচ্ছে...';
+  try{
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'resetPassword', otp: otp, newPassword: newPw })
+    });
+    const text = await res.text();
+    show(resetOut, 'পাসওয়ার্ড পরিবর্তনের ফলাফল:', text);
+  }catch(err){
+    show(resetOut, 'এরর:', String(err));
+  }
+}
+</script>
+</body>
+</html>
