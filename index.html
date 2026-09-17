@@ -2026,6 +2026,53 @@
     cursor:pointer;
   }
   .download-btn.show{display:block;}
+  .app-id-display{
+    display:none;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    background:var(--ok-bg);
+    border:1.5px dashed var(--ok-border);
+    border-radius:10px;
+    padding:12px 14px;
+    margin:12px 0;
+  }
+  .app-id-display.show{display:flex;}
+  .app-id-display-label{
+    font-size:12px;
+    color:var(--forest);
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .app-id-display-value{
+    font-size:16px;
+    font-weight:700;
+    color:var(--ok);
+    letter-spacing:.03em;
+    font-family:monospace;
+  }
+  .app-id-copy-btn{
+    margin-left:auto;
+    border:1px solid var(--gold);
+    background:transparent;
+    color:var(--forest);
+    border-radius:7px;
+    padding:6px 12px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .app-id-copy-btn:active{transform:scale(.97);}
+  .reading-progress-bar{
+    position:fixed;
+    top:0; left:0;
+    height:3px;
+    width:0%;
+    background:var(--gold);
+    z-index:9999;
+    transition:width .12s linear;
+  }
   #receipt{
     position:fixed;
     left:-9999px;
@@ -2331,6 +2378,7 @@
       </div>
 
       <div id="blogDetailWrap" class="blog-detail" style="display:none;">
+        <div class="reading-progress-bar" id="readingProgressBar"></div>
         <a class="blog-back-link" href="./">← হোমে ফিরুন</a>
         <div id="blogDetailContent">
           <p class="posts-empty">লোড হচ্ছে...</p>
@@ -2526,6 +2574,11 @@
       <button type="submit" id="submitBtn">রেজিস্ট্রেশন সম্পন্ন করুন</button>
     </div>
     <div class="status" id="status"></div>
+    <div class="app-id-display" id="appIdDisplay">
+      <span class="app-id-display-label">আপনার আবেদন নম্বর:</span>
+      <span class="app-id-display-value" id="appIdDisplayValue"></span>
+      <button type="button" class="app-id-copy-btn" id="appIdCopyBtn">📋 কপি করুন</button>
+    </div>
     <button type="button" class="download-btn" id="downloadBtn">রশিদ ডাউনলোড করুন (PDF)</button>
     <div class="whatsapp-note" id="whatsappNote">
       <p>উপরের বাটনে চাপলে রশিদ ডাউনলোড হবে এবং শেয়ার মেনু খুলবে — সেখান থেকে WhatsApp সিলেক্ট করে আমাদের 01764324313 নম্বরে পাঠিয়ে দিন। ধন্যবাদ 🙏</p>
@@ -3183,6 +3236,33 @@ const statusBox = document.getElementById('status');
 const submitBtn = document.getElementById('submitBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 
+// ============ আবেদন নম্বর কপি বাটন (রশিদ ডাউনলোড না করলেও নম্বর হাতে থাকুক) ============
+const appIdCopyBtn = document.getElementById('appIdCopyBtn');
+if(appIdCopyBtn){
+  appIdCopyBtn.addEventListener('click', async ()=>{
+    const val = document.getElementById('appIdDisplayValue').textContent.trim();
+    if(!val) return;
+    const showCopied = () => {
+      appIdCopyBtn.textContent = '✓ কপি হয়েছে';
+      setTimeout(()=>{ appIdCopyBtn.textContent = '📋 কপি করুন'; }, 2000);
+    };
+    try{
+      await navigator.clipboard.writeText(val);
+      showCopied();
+    }catch(err){
+      // পুরনো ব্রাউজারে clipboard API না থাকলে ফলব্যাক
+      const ta = document.createElement('textarea');
+      ta.value = val;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try{ document.execCommand('copy'); showCopied(); }catch(e){ /* নীরবে ব্যর্থ */ }
+      document.body.removeChild(ta);
+    }
+  });
+}
+
 // ============ জন্ম তারিখ: বয়স কমপক্ষে ১৩ বছর ============
 const dobInput = document.getElementById('dob');
 (function setDobLimits(){
@@ -3224,6 +3304,8 @@ function resetFormAfterDownload(){
   upazilaSelect.innerHTML = '<option value="">প্রথমে জেলা নির্বাচন করুন</option>';
   downloadBtn.classList.remove('show');
   document.getElementById('whatsappNote').classList.remove('show');
+  const appIdDisplayResetEl = document.getElementById('appIdDisplay');
+  if(appIdDisplayResetEl) appIdDisplayResetEl.classList.remove('show');
   statusBox.className = 'status';
   photoPreviewEl.classList.remove('show');
   newCaptcha();
@@ -3775,6 +3857,12 @@ form.addEventListener('submit', async (e)=>{
     }
 
     const now = new Date();
+    const appIdDisplayEl = document.getElementById('appIdDisplay');
+    const appIdDisplayValueEl = document.getElementById('appIdDisplayValue');
+    if(appIdDisplayEl && appIdDisplayValueEl){
+      appIdDisplayValueEl.textContent = appId;
+      appIdDisplayEl.classList.add('show');
+    }
     document.getElementById('r-id').textContent = appId;
     document.getElementById('r-date').textContent = now.toLocaleDateString('bn-BD') + ' ' + now.toLocaleTimeString('bn-BD');
     document.getElementById('r-name').textContent = payload.fullName || '-';
@@ -4204,6 +4292,26 @@ function initBlogRouter(){
   }
 }
 
+// ============ ব্লগ পোস্ট পড়ার সময় স্ক্রল প্রোগ্রেস বার ============
+(function initReadingProgressBar(){
+  const bar = document.getElementById('readingProgressBar');
+  if(!bar) return;
+  function update(){
+    const detailWrap = document.getElementById('blogDetailWrap');
+    if(!detailWrap || detailWrap.style.display === 'none'){
+      bar.style.width = '0%';
+      return;
+    }
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / docHeight) * 100)) : 0;
+    bar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+
 function showBlogArchive(cat){
   const archiveWrap = document.getElementById('blogArchiveWrap');
   const detailWrap = document.getElementById('blogDetailWrap');
@@ -4212,6 +4320,8 @@ function showBlogArchive(cat){
   const subEl = document.getElementById('blogArchiveSub');
   if(detailWrap) detailWrap.style.display = 'none';
   if(archiveWrap) archiveWrap.style.display = '';
+  const readingBarEl = document.getElementById('readingProgressBar');
+  if(readingBarEl) readingBarEl.style.width = '0%';
   const isCategory = cat && cat !== 'all';
   renderCategoryNav(isCategory ? cat : 'all');
   if(titleEl) titleEl.textContent = isCategory ? cat : 'সব আপডেট / পোস্ট';
