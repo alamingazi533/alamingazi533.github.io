@@ -377,8 +377,8 @@
     width:150px;
     height:150px;
     border-radius:20px;
-    object-fit:cover;
-    object-position:center 25%;
+    object-fit:contain;
+    background:#ffffff;
     border:4px solid #ffffff;
     box-shadow:0 10px 24px -6px rgba(0,0,0,0.5);
     margin:0 auto 14px;
@@ -2044,8 +2044,8 @@
     z-index:1;
   }
   #receipt .r-header img{
-    width:100px; height:100px; border-radius:16px; object-fit:cover;
-    object-position:center 25%;
+    width:100px; height:100px; border-radius:16px; object-fit:contain;
+    background:#ffffff;
     border:3px solid #E8C784;
     margin-bottom:10px;
   }
@@ -2116,7 +2116,7 @@
 <body>
 
 <nav class="site-nav">
-  <a class="site-brand" href="#top">FB সমাধান</a>
+  <a class="site-brand" href="#top">সোশ্যাল সমাধান</a>
   <div class="site-nav-links">
     <a href="#top" data-i18n="nav.home">হোম</a>
     <a href="?blog=all" data-i18n="nav.blog">ব্লগ</a>
@@ -2272,7 +2272,7 @@
 <div id="blogView" style="display:none;">
   <div class="blog-masthead">
     <div class="blog-masthead-inner">
-      <span class="blog-masthead-kicker">FB সমাধান ব্লগ</span>
+      <span class="blog-masthead-kicker">সোশ্যাল সমাধান ব্লগ</span>
       <p class="blog-masthead-desc">ফেসবুক আইডি/পেজ সমস্যা, রিকভারি ও মনিটাইজেশন নিয়ে নিয়মিত লেখা ও আপডেট</p>
     </div>
   </div>
@@ -2513,7 +2513,7 @@
 </main>
 
 <div class="pre-form-wrap" id="landingBottom">
-  <div class="faq-card">
+  <div class="faq-card" id="faqSection">
     <div class="section-label" style="margin-top:0;" data-i18n="faq.heading">সচরাচর জিজ্ঞাসিত প্রশ্ন</div>
 
     <div class="faq-item">
@@ -2588,14 +2588,15 @@
 
 <footer class="site-footer">
   <div class="site-footer-inner">
-    <p class="site-footer-brand" data-i18n="footer.brand">FB সমাধান</p>
-    <p class="site-footer-tag" data-i18n="footer.tag">ফেসবুক আইডি ও পেজ সংক্রান্ত সমস্যা সমাধানে বিশ্বস্ত সেবা — কেশবপুর, যশোর</p>
+    <p class="site-footer-brand" data-i18n="footer.brand">সোশ্যাল সমাধান</p>
+    <p class="site-footer-tag" data-i18n="footer.tag">ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব সংক্রান্ত সমস্যা সমাধানে বিশ্বস্ত সেবা — কেশবপুর, যশোর</p>
     <div class="site-footer-links">
       <a href="#top" data-i18n="nav.home">হোম</a>
       <a href="?blog=all" data-i18n="nav.blog">ব্লগ</a>
       <a href="#servicesSection" data-i18n="nav.services">সেবা</a>
       <a href="#reviewsSection" data-i18n="nav.reviews">রিভিউ</a>
       <a href="#contactSection" data-i18n="nav.contact">যোগাযোগ</a>
+      <a href="#faqSection" data-i18n="faq.q5">গোপনীয়তা নীতি</a>
     </div>
     <p class="site-footer-copy">© <span id="footerYear"></span> <span data-i18n="footer.copy">মোঃ আলামিন ইসলাম। সর্বস্বত্ব সংরক্ষিত।</span></p>
   </div>
@@ -2611,7 +2612,7 @@
   <div class="r-stamp">অনুমোদিত<br>✓</div>
   <div class="r-header">
     <img src="profile.jpg" alt="মোঃ আলামিন ইসলাম">
-    <div class="r-eyebrow">ফেসবুক সমস্যা সমাধান সেবা</div>
+    <div class="r-eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
     <div class="r-title">আবেদন রশিদ</div>
     <div class="r-sub">মোঃ আলামিন ইসলাম • গোপসেনা, কেশবপুর, যশোর</div>
   </div>
@@ -2822,8 +2823,8 @@ const I18N_EN = {
   'reviewForm.name': 'Your name (optional)',
   'reviewForm.text': 'Your feedback',
   'reviewForm.submit': 'Submit Review',
-  'footer.brand': 'FB Somadhan',
-  'footer.tag': 'A trusted service for solving Facebook ID and Page related problems — Keshabpur, Jessore',
+  'footer.brand': 'Social Somadhan',
+  'footer.tag': 'A trusted service for solving Facebook, Instagram, TikTok, and YouTube related problems — Keshabpur, Jessore',
   'footer.copy': 'Md Alamin Islam. All rights reserved.'
 };
 
@@ -4286,7 +4287,7 @@ function showBlogDetail(postId){
   if(commentSubmitBtnEl) commentSubmitBtnEl.addEventListener('click', ()=> submitPostComment(String(post.id)));
   loadPostComments(String(post.id));
 
-  document.title = post.title + ' | ফেসবুক সমস্যা সমাধান — যশোর';
+  document.title = post.title + ' | সোশ্যাল মিডিয়া সমস্যা সমাধান — যশোর';
   const metaDesc = document.querySelector('meta[name="description"]');
   if(metaDesc) metaDesc.setAttribute('content', blogExcerpt(post.content, 155));
 }
