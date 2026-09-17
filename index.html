@@ -3312,14 +3312,17 @@ checkBtn.addEventListener('click', async ()=>{
     const data = await res.json();
     checkResult.className = 'check-result show';
     if(data.found){
+      lastCheckedData = { id: id, name: data.name, date: data.date, status: data.status };
       checkResult.innerHTML =
         '<div class="cr-box cr-found">' +
         'নাম: <strong>' + data.name + '</strong><br>' +
         'আবেদনের তারিখ: ' + data.date + '<br>' +
         'বর্তমান অবস্থা: <span class="cr-status-badge">' + data.status + '</span>' +
         renderStatusSteps(data.status) +
+        '<button onclick="printStatusResult()" style="margin-top:12px; padding:8px 14px; border:1px solid var(--forest); border-radius:6px; background:transparent; color:var(--forest); font-size:13px; cursor:pointer;">🖨️ প্রিন্ট / সংরক্ষণ করুন</button>' +
         '</div>';
     }else{
+      lastCheckedData = null;
       checkResult.innerHTML = '<div class="cr-box cr-notfound">এই নম্বরে কোনো আবেদন পাওয়া যায়নি। নম্বরটি আবার যাচাই করুন।</div>';
     }
   }catch(err){
@@ -3331,6 +3334,39 @@ checkBtn.addEventListener('click', async ()=>{
     checkBtn.textContent = 'যাচাই করুন';
   }
 });
+
+// ============ আবেদনের অবস্থা প্রিন্ট/PDF হিসেবে সংরক্ষণের জন্য রিসিট তৈরি ============
+let lastCheckedData = null;
+function printStatusResult(){
+  if(!lastCheckedData) return;
+  const d = lastCheckedData;
+  const w = window.open('', '_blank', 'width=420,height=600');
+  if(!w) { alert('পপ-আপ ব্লক করা আছে, অনুগ্রহ করে অ্যালাউ করুন।'); return; }
+  const safeName = String(d.name).replace(/</g,'&lt;');
+  w.document.write(
+    '<html><head><meta charset="utf-8"><title>আবেদনের অবস্থা - ' + d.id + '</title>' +
+    '<style>' +
+    'body{font-family:"Hind Siliguri",Arial,sans-serif; padding:24px; color:#1f2d24;}' +
+    'h2{color:#1f5f3f; margin-bottom:4px;}' +
+    '.row{margin:10px 0; font-size:14.5px;}' +
+    '.label{color:#5a6b60; font-size:12px;}' +
+    '.badge{display:inline-block; padding:4px 12px; border-radius:999px; background:#1f5f3f; color:#fff; font-size:13px; margin-top:2px;}' +
+    'hr{border:none; border-top:1px solid #ddd; margin:16px 0;}' +
+    '.foot{font-size:11.5px; color:#8a9690; margin-top:20px;}' +
+    '</style></head><body>' +
+    '<h2>আবেদনের অবস্থা রিসিট</h2>' +
+    '<div class="foot">' + window.location.origin + window.location.pathname + '</div><hr>' +
+    '<div class="row"><div class="label">আবেদন নম্বর</div>' + d.id + '</div>' +
+    '<div class="row"><div class="label">নাম</div>' + safeName + '</div>' +
+    '<div class="row"><div class="label">আবেদনের তারিখ</div>' + d.date + '</div>' +
+    '<div class="row"><div class="label">বর্তমান অবস্থা</div><span class="badge">' + d.status + '</span></div>' +
+    '<hr><div class="foot">প্রিন্ট করার তারিখ: ' + new Date().toLocaleString('bn-BD') + '</div>' +
+    '</body></html>'
+  );
+  w.document.close();
+  w.focus();
+  setTimeout(()=>{ w.print(); }, 300);
+}
 
 function showStatus(type, msg){
   statusBox.className = 'status show ' + type;

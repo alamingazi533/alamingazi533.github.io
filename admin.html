@@ -292,6 +292,10 @@
       </div>
       <div class="dashboard" id="visitDashboard" style="margin-bottom:12px;"></div>
       <div id="deviceBreakdown" style="display:flex; gap:8px; margin-bottom:14px;"></div>
+      <div id="dailyTrendBlock" style="margin-bottom:14px; display:none;">
+        <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">গত ১৪ দিনের ভিজিট ট্রেন্ড</div>
+        <div id="dailyTrendChart" style="display:flex; align-items:flex-end; gap:3px; height:90px; padding-top:6px;"></div>
+      </div>
       <div id="topLocationsBlock" style="margin-bottom:14px; display:none;">
         <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">শীর্ষ লোকেশন</div>
         <div id="topLocationsList"></div>
@@ -976,6 +980,23 @@ function loadVisitStats(){
         '<div class="dash-item" style="flex:1;"><div class="num">📱 ' + data.mobile + '</div><div class="lbl">মোবাইল</div></div>' +
         '<div class="dash-item" style="flex:1;"><div class="num">💻 ' + data.desktop + '</div><div class="lbl">ডেস্কটপ</div></div>' +
         '<div class="dash-item" style="flex:1;"><div class="num">📟 ' + data.tablet + '</div><div class="lbl">ট্যাবলেট</div></div>';
+
+      const trendBlock = document.getElementById('dailyTrendBlock');
+      const trendChart = document.getElementById('dailyTrendChart');
+      if (data.dailyTrend && data.dailyTrend.length > 0) {
+        trendBlock.style.display = 'block';
+        const maxVal = Math.max.apply(null, data.dailyTrend.map(d => d.count), 1);
+        trendChart.innerHTML = data.dailyTrend.map(d => {
+          const h = maxVal > 0 ? Math.max(Math.round((d.count / maxVal) * 100), d.count > 0 ? 6 : 2) : 2;
+          return '<div title="' + d.date + ': ' + d.count + ' ভিজিট" ' +
+            'style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">' +
+            '<div style="width:100%; max-width:16px; height:' + h + '%; background:var(--forest); border-radius:3px 3px 0 0; min-height:2px;"></div>' +
+            '<div style="font-size:9px; color:var(--muted); margin-top:3px; writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap;">' + d.date + '</div>' +
+          '</div>';
+        }).join('');
+      } else {
+        trendBlock.style.display = 'none';
+      }
 
       const topLocBlock = document.getElementById('topLocationsBlock');
       const topLocList = document.getElementById('topLocationsList');
