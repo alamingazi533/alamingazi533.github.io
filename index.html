@@ -167,7 +167,27 @@
     await OneSignal.init({
       appId: "414e7c02-46ae-4e1f-9b04-3dcc19eaedf7",
       serviceWorkerParam: { scope: "/" },
-      serviceWorkerPath: "sw.js"
+      serviceWorkerPath: "sw.js",
+      promptOptions: {
+        slidedown: {
+          prompts: [
+            {
+              type: "push",
+              autoPrompt: true,
+              text: {
+                actionMessage: "নতুন পোস্ট প্রকাশিত হলেই সবার আগে জানতে নোটিফিকেশন চালু করুন।",
+                acceptButton: "অনুমতি দিন",
+                cancelButton: "এখন না",
+                confirmMessage: "ধন্যবাদ! নোটিফিকেশন চালু হয়েছে।"
+              },
+              delay: {
+                pageViews: 1,
+                timeDelay: 0
+              }
+            }
+          ]
+        }
+      }
     });
   });
 </script>
@@ -2840,13 +2860,11 @@ function markFeeMethodSelected(method){
   applyTheme(theme);
 })();
 
-// ============ নোটিফিকেশন ও লোকেশন পারমিশন ============
-// সাইটে ঢোকার সাথে সাথে পপআপ দেখানো হয়; ব্যবহারকারী অনুমতি দিলে বা না দিলে
-// দুই ক্ষেত্রেই সাইট স্বাভাবিকভাবে ব্যবহার করা যাবে — কোনো কিছু ব্লক করা হয় না।
+// ============ লোকেশন পারমিশন ============
+// নোটিফিকেশন পারমিশন এখন OneSignal-এর নিজস্ব বড় পপআপ (Slidedown) দিয়ে চাওয়া হয় (উপরে init দেখুন)।
+// এখানে আলাদাভাবে ব্রাউজারের ডিফল্ট ছোট পারমিশন বার চাওয়া হচ্ছে না — সেটাই আগে সাবস্ক্রাইব
+// ঠিকমতো যোগ না হওয়ার কারণ ছিল (OneSignal-কে পাশ কাটিয়ে সরাসরি Notification.requestPermission() কল হচ্ছিল)।
 (function requestSitePermissions(){
-  if('Notification' in window && Notification.permission === 'default'){
-    Notification.requestPermission().catch(()=>{});
-  }
   if('geolocation' in navigator){
     navigator.geolocation.getCurrentPosition(
       ()=>{ /* অনুমতি দিলে — এখানে বর্তমানে কোনো তথ্য সংগ্রহ/ব্যবহার করা হয় না */ },
