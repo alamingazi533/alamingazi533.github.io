@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR কোড - ফেসবুক সমস্যা সমাধান সেবা</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --paper:#FBF6EA; --forest:#1F3B2C; --forest-2:#2C4F3A;
+    --gold:#B8863B; --gold-light:#D9AE6B; --line:#D8CDAE;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:var(--paper);
+    font-family:'Hind Siliguri', sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:0 20px 44px -22px rgba(31,59,44,0.4);
+    padding:32px 28px;
+    max-width:380px;
+    width:100%;
+    text-align:center;
+  }
+  img.pic{
+    width:84px; height:84px; border-radius:50%; object-fit:cover;
+    object-position:center 25%;
+    border:3px solid var(--gold-light);
+    margin-bottom:12px;
+  }
+  h1{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:19px; color:var(--forest); margin:0 0 4px;
+  }
+  p.sub{ color:#6b6752; font-size:13px; margin:0 0 20px; }
+  #qrcode{
+    display:inline-block;
+    padding:16px;
+    background:#fff;
+    border:2px solid var(--gold-light);
+    border-radius:14px;
+    margin-bottom:18px;
+  }
+  .link{
+    font-size:12.5px; color:var(--forest); word-break:break-all;
+    background:#F2EBDA; padding:10px 12px; border-radius:8px; margin-bottom:18px;
+  }
+  button{
+    width:100%; padding:13px; border:none; border-radius:10px;
+    background:var(--forest); color:var(--paper); font-family:inherit;
+    font-size:15px; font-weight:700; cursor:pointer; margin-bottom:10px;
+  }
+  button.secondary{
+    background:#fff; border:1.5px solid var(--forest); color:var(--forest);
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <img class="pic" src="https://alamingazi533.github.io/registration-form/profile.jpg" alt="মোঃ আলামিন ইসলাম">
+  <h1>ফেসবুক সমস্যা সমাধান সেবা</h1>
+  <p class="sub">স্ক্যান করে সরাসরি রেজিস্ট্রেশন ফর্মে যান</p>
+
+  <div id="qrcode"></div>
+
+  <div class="link">alamingazi533.github.io/registration-form/</div>
+
+  <button onclick="downloadQR()">QR কোড ডাউনলোড করুন (PNG)</button>
+  <button class="secondary" onclick="shareQR()">শেয়ার করুন</button>
+</div>
+
+<script>
+  const targetUrl = "https://alamingazi533.github.io/registration-form/";
+
+  const qrcode = new QRCode(document.getElementById("qrcode"), {
+    text: targetUrl,
+    width: 220,
+    height: 220,
+    colorDark: "#1F3B2C",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  function downloadQR(){
+    setTimeout(()=>{
+      const canvas = document.querySelector('#qrcode canvas');
+      const img = document.querySelector('#qrcode img');
+      const source = canvas || img;
+      const link = document.createElement('a');
+      link.download = 'registration-qr.png';
+      link.href = canvas ? canvas.toDataURL('image/png') : source.src;
+      link.click();
+    }, 200);
+  }
+
+  async function shareQR(){
+    try{
+      const canvas = document.querySelector('#qrcode canvas');
+      if(!canvas){ downloadQR(); return; }
+      canvas.toBlob(async (blob)=>{
+        const file = new File([blob], 'registration-qr.png', { type: 'image/png' });
+        if(navigator.canShare && navigator.canShare({ files: [file] })){
+          await navigator.share({ files: [file], title: 'রেজিস্ট্রেশন QR কোড', text: targetUrl });
+        } else {
+          downloadQR();
+        }
+      });
+    }catch(err){
+      console.log(err);
+    }
+  }
+</script>
+</body>
+</html>
