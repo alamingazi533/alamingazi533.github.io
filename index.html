@@ -23,7 +23,7 @@
 <meta name="theme-color" content="#1F3B2C">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="সোশ্যাল মিডিয়া সমাধান">
+<meta name="apple-mobile-web-app-title" content="সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা">
 
 <meta name="description" content="ফেসবুক, ইনস্টাগ্রাম, টিকটক বা ইউটিউব আইডি/পেজ/চ্যানেল হ্যাক, সাসপেন্ড, ডিজেবল বা মনিটাইজেশন বন্ধ হয়ে গেছে? আইডি রিভিউ, পে-আউট অ্যাকাউন্ট, টিন সার্টিফিকেট, ব্যাংক অ্যাকাউন্ট সেটআপ ও যেকোনো সোশ্যাল মিডিয়া সমস্যা সমাধান — কেশবপুর, যশোরের মোঃ আলামিন ইসলামের কাছে রেজিস্ট্রেশন করুন।">
 <meta name="keywords" content="ফেসবুক আইডি হ্যাক সমাধান, ফেসবুক পেজ হ্যাক সমাধান, ফেসবুক আইডি ফিরিয়ে আনা, ফেসবুক পেজ ফিরিয়ে আনা, পেজ ডিজেবল সমাধান, আইডি ডিজেবল সমাধান, ফেসবুক সাসপেন্ড সমাধান, ফেসবুক আইডি লক সমাধান, ইনস্টাগ্রাম আইডি হ্যাক সমাধান, ইনস্টাগ্রাম আইডি ডিজেবল সমাধান, ইনস্টাগ্রাম আইডি ফিরিয়ে আনা, টিকটক আইডি হ্যাক সমাধান, টিকটক আইডি ব্যান সমাধান, ইউটিউব চ্যানেল হ্যাক সমাধান, ইউটিউব চ্যানেল সাসপেন্ড সমাধান, ইউটিউব মনিটাইজেশন সমস্যা, সোশ্যাল মিডিয়া আইডি সমাধান, মনিটাইজেশন সমস্যা, মনিটাইজেশন বন্ধ, ইন-স্ট্রিম এড সমস্যা, পে-আউট অ্যাকাউন্ট, পে-আউট ভুল নাম সংশোধন, টিন সার্টিফিকেট, ব্যাংক অ্যাকাউন্ট সেটআপ, ফেসবুক আইডি রিভিউ, ফেসবুক পেজ ফুল সেটআপ, কমিউনিটি স্ট্যান্ডার্ড ভায়োলেশন, কপিরাইট স্ট্রাইক সমাধান, ফেসবুক বিজনেস ম্যানেজার সমস্যা, এড অ্যাকাউন্ট ডিজেবল, ফেসবুক পেজ রেস্ট্রিকশন, ফেসবুক এক্সপার্ট, ফেসবুক সমস্যা সমাধান যশোর, ফেসবুক সমস্যা সমাধান কেশবপুর, ফেসবুক সমস্যা সমাধান বাংলাদেশ, সোশ্যাল মিডিয়া এক্সপার্ট যশোর, Facebook account disabled, Facebook account suspend, Facebook page hacked, Facebook ID recovery, Facebook page recovery, Facebook monetization off, Facebook business manager disabled, Facebook ad account disabled, Facebook copyright strike, Facebook community standard violation, Facebook help, meta help, meta business suite problem, Instagram account hacked, Instagram account disabled, Instagram account recovery, TikTok account hacked, TikTok account banned, YouTube channel hacked, YouTube channel suspended, YouTube monetization problem, social media help Bangladesh">
@@ -190,6 +190,32 @@
         }
       }
     });
+
+    // ============ ম্যানুয়াল নোটিফিকেশন বেল বাটন ============
+    // বড় পপআপ একবার বন্ধ করে দিলে OneSignal নিজে থেকে আর বারবার দেখায় না,
+    // তাই এই বাটন দিয়ে ভিজিটর যেকোনো সময় সাবস্ক্রাইব/আনসাবস্ক্রাইব করতে পারবে।
+    var notifyBtn = document.getElementById('notifyToggleBtn');
+    var notifyLabel = document.getElementById('notifyToggleLabel');
+    if (OneSignal.Notifications.permissionNative !== 'denied' && notifyBtn) {
+      notifyBtn.style.display = '';
+      function syncNotifyBtn(){
+        var optedIn = OneSignal.User.PushSubscription.optedIn;
+        notifyLabel.textContent = optedIn ? 'চালু আছে' : 'নোটিফিকেশন';
+      }
+      syncNotifyBtn();
+      OneSignal.User.PushSubscription.addEventListener('change', syncNotifyBtn);
+      notifyBtn.addEventListener('click', async function(){
+        try{
+          if (OneSignal.User.PushSubscription.optedIn) {
+            await OneSignal.User.PushSubscription.optOut();
+          } else if (OneSignal.Notifications.permission) {
+            await OneSignal.User.PushSubscription.optIn();
+          } else {
+            await OneSignal.Slidedown.promptPush({ force: true });
+          }
+        }catch(err){ /* নীরবে বাদ দেওয়া হলো */ }
+      });
+    }
   });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
@@ -366,10 +392,13 @@
   .site-nav .site-brand{
     font-family:'Noto Serif Bengali', serif;
     font-weight:700;
-    font-size:15.5px;
+    font-size:13px;
     letter-spacing:.01em;
     color:var(--forest);
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:150px;
     text-decoration:none;
     flex-shrink:0;
     padding-right:14px;
@@ -2216,7 +2245,7 @@
 <body>
 
 <nav class="site-nav">
-  <a class="site-brand" href="#top">সোশ্যাল সমাধান</a>
+  <a class="site-brand" href="#top">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</a>
   <div class="site-nav-links">
     <a href="#top" data-i18n="nav.home">হোম</a>
     <a href="?blog=all" data-i18n="nav.blog">ব্লগ</a>
@@ -2270,6 +2299,9 @@
     </div>
     <button type="button" class="icon-btn" id="langToggleBtn">
       🌐 <span id="langToggleLabel">EN</span>
+    </button>
+    <button type="button" class="icon-btn" id="notifyToggleBtn" style="display:none;">
+      🔔 <span id="notifyToggleLabel">নোটিফিকেশন</span>
     </button>
     <button type="button" class="icon-btn" id="themeToggleBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -2372,7 +2404,7 @@
 <div id="blogView" style="display:none;">
   <div class="blog-masthead">
     <div class="blog-masthead-inner">
-      <span class="blog-masthead-kicker">সোশ্যাল সমাধান ব্লগ</span>
+      <span class="blog-masthead-kicker">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা ব্লগ</span>
       <p class="blog-masthead-desc">ফেসবুক আইডি/পেজ সমস্যা, রিকভারি ও মনিটাইজেশন নিয়ে নিয়মিত লেখা ও আপডেট</p>
     </div>
   </div>
@@ -2736,7 +2768,7 @@
 
 <footer class="site-footer">
   <div class="site-footer-inner">
-    <p class="site-footer-brand" data-i18n="footer.brand">সোশ্যাল সমাধান</p>
+    <p class="site-footer-brand" data-i18n="footer.brand">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</p>
     <p class="site-footer-tag" data-i18n="footer.tag">ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব সংক্রান্ত সমস্যা সমাধানে বিশ্বস্ত সেবা — কেশবপুর, যশোর</p>
     <div class="site-footer-links">
       <a href="#top" data-i18n="nav.home">হোম</a>
@@ -2978,7 +3010,7 @@ const I18N_EN = {
   'reviewForm.name': 'Your name (optional)',
   'reviewForm.text': 'Your feedback',
   'reviewForm.submit': 'Submit Review',
-  'footer.brand': 'Social Somadhan',
+  'footer.brand': 'Social Media Problem Solution Service',
   'footer.tag': 'A trusted service for solving Facebook, Instagram, TikTok, and YouTube related problems — Keshabpur, Jessore',
   'footer.copy': 'Md Alamin Islam. All rights reserved.'
 };

@@ -1,6 +1,6 @@
 {
-  "name": "ফেসবুক সমস্যা সমাধান সেবা",
-  "short_name": "FB সমাধান",
+  "name": "সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা",
+  "short_name": "সমাধান সেবা",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
