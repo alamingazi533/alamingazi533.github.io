@@ -18,7 +18,66 @@
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json" id="siteManifestLink">
+<script>
+// ============ ডায়নামিক ম্যানিফেস্ট: হোম স্ক্রিনে অ্যাড করলে যেন বর্তমান লিংকই (?form=1, ?blog=... ইত্যাদি) মনে থাকে ============
+// সাধারণত Android/Chrome-এ "Add to Home Screen" করলে manifest.json-এর স্থির start_url থেকে অ্যাপ খোলে,
+// ফলে ?form=1-এর মতো কোয়েরি প্যারামিটার হারিয়ে যায়। এখানে manifest.json ফেচ করে তার start_url-কে
+// বর্তমান পেজের সম্পূর্ণ URL (কোয়েরি প্যারামিটারসহ) দিয়ে বদলে, একটা Blob URL বানিয়ে <link rel="manifest">-এ বসানো হচ্ছে,
+// যাতে যে লিংক থেকে হোম স্ক্রিনে অ্যাড করা হবে, শর্টকাটটা সেই নির্দিষ্ট লিংকই খুলবে।
+(function initDynamicManifest(){
+  try{
+    const hasQuery = window.location.search !== '';
+    const hasMeaningfulHash = window.location.hash !== '' && window.location.hash !== '#top';
+    if(!hasQuery && !hasMeaningfulHash) return; // একদম সাধারণ হোমপেজে আসল manifest.json/টাইটেল-ই থাকুক
+
+    // ============ লিংক অনুযায়ী শর্টকাটের নাম ও আইকন-কী ঠিক করা ============
+    function getRouteInfo(){
+      const params = new URLSearchParams(window.location.search);
+      const hash = window.location.hash;
+      if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
+      if(params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('blog')){
+        const cat = params.get('blog');
+        return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
+      }
+      if(hash === '#servicesSection') return { label: 'সেবাসমূহ', icon: 'services' };
+      if(hash === '#reviewsSection') return { label: 'রিভিউ', icon: 'reviews' };
+      if(hash === '#contactSection') return { label: 'যোগাযোগ', icon: 'contact' };
+      if(hash === '#faqSection') return { label: 'FAQ ও গোপনীয়তা নীতি', icon: 'faq' };
+      return { label: 'সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা', icon: null };
+    }
+    const route = getRouteInfo();
+
+    // iOS হোম স্ক্রিন এই মেটা ট্যাগ (বা <title>) থেকে শর্টকাটের নাম নেয়, manifest.json থেকে না
+    const appleTitleEl = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if(appleTitleEl) appleTitleEl.setAttribute('content', route.label);
+
+    // iOS হোম স্ক্রিন আইকনও manifest.json থেকে না নিয়ে এই <link rel="apple-touch-icon"> থেকে নেয়
+    if(route.icon){
+      const appleIconEl = document.querySelector('link[rel="apple-touch-icon"]');
+      if(appleIconEl) appleIconEl.setAttribute('href', 'icons/icon-' + route.icon + '-192.png');
+    }
+
+    // Android/Chrome manifest.json থেকে নাম ও আইকন নেয়, তাই সেটাও বদলে দেওয়া হচ্ছে
+    fetch('manifest.json').then(r => r.json()).then(m => {
+      m.start_url = window.location.href;
+      m.name = route.label;
+      m.short_name = route.label.length > 12 ? route.label.slice(0, 12) : route.label;
+      if(route.icon){
+        m.icons = [
+          { src: 'icons/icon-' + route.icon + '-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-' + route.icon + '-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
+        ];
+      }
+      const blob = new Blob([JSON.stringify(m)], { type: 'application/json' });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.getElementById('siteManifestLink');
+      if(link) link.setAttribute('href', blobUrl);
+    }).catch(()=>{});
+  }catch(err){}
+})();
+</script>
 <link rel="apple-touch-icon" href="favicon-180.png">
 <meta name="theme-color" content="#1F3B2C">
 <meta name="apple-mobile-web-app-capable" content="yes">
