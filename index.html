@@ -164,9 +164,10 @@
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
+    var swScope = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1) || '/';
     await OneSignal.init({
       appId: "414e7c02-46ae-4e1f-9b04-3dcc19eaedf7",
-      serviceWorkerParam: { scope: "/" },
+      serviceWorkerParam: { scope: swScope },
       serviceWorkerPath: "sw.js",
       promptOptions: {
         slidedown: {
