@@ -3733,6 +3733,18 @@ function hideRegForm(){
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
+// ============ URL প্যারামিটার (?form=1) দিয়ে সরাসরি রেজিস্ট্রেশন ফর্ম ওপেন করার রাউটার ============
+// এটা থাকলে https://alamingazi533.github.io/fb-help/?form=1 লিংকে ঢুকলেই
+// ল্যান্ডিং পেজ না দেখিয়ে সরাসরি রেজিস্ট্রেশন ফর্ম দেখানো হবে।
+(function initFormRouter(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    if(params.get('form') === '1'){
+      revealRegForm(false);
+    }
+  }catch(err){}
+})();
+
 function restoreDraft(){
   let draft = null;
   try{ draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); }catch(err){ draft = null; }
