@@ -4337,6 +4337,7 @@ function renderBlogCard(p, featured, small){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, featured ? 150 : (small ? 60 : 110)));
   const href = '?post=' + encodeURIComponent(p.id);
+  const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + p.imageUrl + '" alt="" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
     : '';
@@ -4358,12 +4359,12 @@ function renderBlogCard(p, featured, small){
       '<span class="blog-readmore">বিস্তারিত পড়ুন →</span>'
     ));
   if(featured){
-    return '<a class="blog-card featured" href="' + href + '">' +
+    return '<a class="blog-card featured" href="' + href + '"' + clickAttr + '>' +
       thumbHtml +
       '<div class="featured-inner">' + body + '</div>' +
     '</a>';
   }
-  return '<a class="blog-card' + (small ? ' small' : '') + '" href="' + href + '">' + thumbHtml + body + '</a>';
+  return '<a class="blog-card' + (small ? ' small' : '') + '" href="' + href + '"' + clickAttr + '>' + thumbHtml + body + '</a>';
 }
 
 function loadPosts(){
@@ -4539,10 +4540,11 @@ function renderFeatureHero(p){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, 80));
   const href = '?post=' + encodeURIComponent(p.id);
+  const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + p.imageUrl + '" alt="" loading="lazy">'
     : '';
-  return '<a class="blog-feature-main" href="' + href + '">' +
+  return '<a class="blog-feature-main" href="' + href + '"' + clickAttr + '>' +
     thumbHtml +
     '<div class="post-date">' + cleanPostDate(p.date) + '</div>' +
     '<div class="post-title">' + safeTitle + '</div>' +
@@ -4554,10 +4556,11 @@ function renderFeatureHero(p){
 function renderThumbItem(p){
   const safeTitle = blogEscape(p.title);
   const href = '?post=' + encodeURIComponent(p.id);
+  const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + p.imageUrl + '" alt="" loading="lazy">'
     : '';
-  return '<a class="blog-thumb-item" href="' + href + '">' +
+  return '<a class="blog-thumb-item" href="' + href + '"' + clickAttr + '>' +
     thumbHtml +
     '<div class="blog-thumb-text">' +
       '<div class="blog-thumb-date">' + cleanPostDate(p.date) + '</div>' +
@@ -4569,7 +4572,8 @@ function renderThumbItem(p){
 function renderBlogListItem(p){
   const safeTitle = blogEscape(p.title);
   const href = '?post=' + encodeURIComponent(p.id);
-  return '<a class="blog-list-item" href="' + href + '">' +
+  const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
+  return '<a class="blog-list-item" href="' + href + '"' + clickAttr + '>' +
     '<span class="blog-list-title">' + safeTitle + '</span>' +
     '<span class="blog-list-date">' + cleanPostDate(p.date) + '</span>' +
   '</a>';
@@ -4588,6 +4592,7 @@ function showBlogDetail(postId){
     contentEl.innerHTML = '<p class="blog-not-found">এই পোস্টটি খুঁজে পাওয়া যায়নি। এটি হয়তো মুছে ফেলা হয়েছে।</p>';
     return;
   }
+  trackPostView(String(post.id));
 
   const safeTitle = blogEscape(post.title);
   const safeContent = blogEscape(post.content);
@@ -4683,6 +4688,32 @@ function renderRelatedPosts(post){
       '<div class="blog-related-grid">' + itemsHtml + '</div>' +
     '</div>';
   moreLinkWrap.insertAdjacentHTML('beforebegin', html);
+}
+
+// ============ পোস্টের ভিউ/ক্লিক ট্র্যাকিং (অ্যাডমিন প্যানেলে দেখা যায়) ============
+// View: পোস্ট ডিটেইল পেজ যতবার খোলা হয়েছে (সরাসরি লিংক, সার্চ, শেয়ার — যেকোনো উৎস থেকে)
+// Click: তালিকা/কার্ড থেকে সাইটের ভেতরেই কতবার ক্লিক করে পোস্টে ঢোকা হয়েছে
+function trackPostView(postId){
+  if(!postId) return;
+  try{
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'trackPostView', postId: postId })
+    }).catch(()=>{});
+  }catch(e){}
+}
+function trackPostClick(postId){
+  if(!postId) return;
+  try{
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'trackPostClick', postId: postId })
+    }).catch(()=>{});
+  }catch(e){}
 }
 
 // ============ পোস্ট লাইক (localStorage দিয়ে একই ব্রাউজার থেকে একবারই) ============
