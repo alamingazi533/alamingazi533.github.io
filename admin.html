@@ -576,7 +576,9 @@ function restoreScrollPosition(){
       const y = parseInt(saved, 10) || 0;
       // খোলা সেকশনের ডেটা (রিভিউ/কমেন্ট/পোস্ট) অ্যাসিঙ্ক্রোনাসভাবে লোড হয় বলে সাথে সাথে স্ক্রল করলে
       // লেআউট এখনো ছোট থাকে; একটু সময় দিয়ে তারপর স্ক্রল করা হচ্ছে যেন সঠিক জায়গায় যায়।
-      setTimeout(() => window.scrollTo(0, y), 500);
+      [300, 900, 1800, 3000].forEach(ms => setTimeout(() => {
+        if(document.documentElement.scrollHeight >= y + window.innerHeight * 0.5){ window.scrollTo(0, y); }
+      }, ms));
     }
   }catch(err){}
 }
@@ -614,7 +616,7 @@ function exportCsv(){
 }
 
 function deleteEntry(rowIndex, fullName, cardEl){
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   if(!confirm(fullName + ' এর আবেদনটি সম্পূর্ণ মুছে ফেলতে চান? এটা আর ফেরত পাওয়া যাবে না।')) return;
   fetch(SCRIPT_URL + '?action=deleteRow&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex))
     .then(r => r.json())
@@ -752,7 +754,7 @@ function loadAdminReviews(){
   const listEl = document.getElementById('reviewsList');
   const badgeEl = document.getElementById('pendingReviewBadge');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -789,7 +791,7 @@ function loadAdminReviews(){
 }
 
 function reviewAction(row, status){
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=reviewAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
     .then(r => r.json())
     .then(()=> loadAdminReviews());
@@ -800,7 +802,7 @@ function loadAdminComments(){
   const listEl = document.getElementById('commentsListAdmin');
   const badgeEl = document.getElementById('pendingCommentBadge');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listComments&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -836,7 +838,7 @@ function loadAdminComments(){
 }
 
 function commentAction(row, status){
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=commentAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
     .then(r => r.json())
     .then(()=> loadAdminComments());
@@ -889,7 +891,7 @@ function renderPostsAnalyticsSummary(posts){
 function loadAdminPosts(){
   const listEl = document.getElementById('postsList');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -998,7 +1000,7 @@ function formatScheduleDisplay(iso){
 }
 
 function saveEditPost(rowIndex){
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   const title = document.getElementById('editTitle' + rowIndex).value.trim();
   const content = document.getElementById('editContent' + rowIndex).value.trim();
   const category = document.getElementById('editCategory' + rowIndex).value;
@@ -1112,7 +1114,7 @@ function addPost(isDraft){
   // ISO স্ট্রিং-এ (UTC সহ) বদলে পাঠানো হচ্ছে, যাতে সার্ভারে সময়ের হিসাব সবসময় ঠিক থাকে।
   const scheduleRaw = scheduleEl ? scheduleEl.value : '';
   const publishAtIso = scheduleRaw ? new Date(scheduleRaw).toISOString() : '';
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
 
   function showPostMsg(text, ok){
     msgBox.style.display = 'block';
@@ -1196,7 +1198,7 @@ function addPost(isDraft){
 
 function publishDraftNow(rowIndex){
   if(!confirm('এই খসড়া পোস্টটি এখনই প্রকাশ করতে চান? প্রকাশ হলে সাবস্ক্রাইবারদের নোটিফিকেশনও যাবে।')) return;
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&status=')
@@ -1213,7 +1215,7 @@ function publishDraftNow(rowIndex){
 
 function publishPostNow(rowIndex){
   if(!confirm('এই পোস্টটি এখনই প্রকাশ করতে চান?')) return;
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&publishAt=')
@@ -1230,7 +1232,7 @@ function publishPostNow(rowIndex){
 
 function deletePost(rowIndex){
   if(!confirm('এই পোস্টটি মুছে ফেলতে চান?')) return;
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=deletePost&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex))
     .then(r => r.json())
     .then(data => {
@@ -1247,7 +1249,7 @@ function deletePost(rowIndex){
 let visitStatsTimer = null;
 
 function loadVisitStats(){
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=getVisitStats&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1333,7 +1335,7 @@ function stopVisitStatsAutoRefresh(){
 }
 
 function exportReviewsCsv(){
-  const pw = localStorage.getItem('adminPw') || '';
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1383,12 +1385,12 @@ function updateBackupReminder(){
 function login(){
   const pw = document.getElementById('pwInput').value.trim();
   if(!pw){ return; }
-  localStorage.setItem('adminPw', pw);
+  sessionStorage.setItem('adminPw', pw);
   verifyAndEnter();
 }
 
 function verifyAndEnter(){
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
@@ -1412,7 +1414,7 @@ function verifyAndEnter(){
         startVisitStatsAutoRefresh();
         fetchPersistentStats();
       } else {
-        localStorage.removeItem('adminPw');
+        sessionStorage.removeItem('adminPw');
         document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
           ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
           : 'পাসওয়ার্ড ভুল হয়েছে, আবার চেষ্টা করুন।';
@@ -1426,7 +1428,7 @@ function verifyAndEnter(){
 }
 
 function logout(){
-  localStorage.removeItem('adminPw');
+  sessionStorage.removeItem('adminPw');
   stopAutoRefresh();
   stopVisitStatsAutoRefresh();
   document.getElementById('panel').style.display = 'none';
@@ -1438,12 +1440,11 @@ function logout(){
 // 'pagehide' শুধু তখনই ফায়ার হয় যখন পেজটা সত্যিই বন্ধ/আনলোড হয়ে যাচ্ছে (ট্যাব ক্লোজ, নতুন URL-এ যাওয়া)।
 // অ্যাপ মিনিমাইজ করলে বা অন্য অ্যাপে সুইচ করলে পেজটা ব্যাকগ্রাউন্ডে জীবিতই থাকে, তখন এটা ফায়ার হয় না —
 // তাই ব্যাকগ্রাউন্ড/মিনিমাইজে লগ-ইন অবস্থা ঠিকই থেকে যায়, শুধু আসলেই বের হয়ে গেলে লগ-আউট হবে।
-window.addEventListener('pagehide', function(){
-  try{ localStorage.removeItem('adminPw'); }catch(err){}
-});
+// (পুল-টু-রিফ্রেশে লগআউট হওয়া এড়াতে 'pagehide'-এ পাসওয়ার্ড মোছা বন্ধ করা হয়েছে;
+// এখন পাসওয়ার্ড sessionStorage-এ থাকে, তাই রিফ্রেশে লগইন থাকে আর ট্যাব বন্ধ করলে আপনাআপনি মুছে যায়)
 
 function loadEntries(){
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1463,7 +1464,7 @@ function loadEntries(){
 function manualRefresh(){
   document.getElementById('loadingMsg').style.display = 'block';
   document.getElementById('emptyMsg').style.display = 'none';
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1576,7 +1577,7 @@ function clearBulkSelection(){
 
 function applyBulkStatus(){
   const status = document.getElementById('bulkStatusSelect').value;
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   const rowsCsv = Array.from(selectedRowIndexes).join(',');
   if(!rowsCsv) return;
   fetch(SCRIPT_URL + '?action=bulkUpdateStatus&password=' + encodeURIComponent(pw) + '&rows=' + encodeURIComponent(rowsCsv) + '&status=' + encodeURIComponent(status))
@@ -1593,7 +1594,7 @@ function applyBulkStatus(){
 }
 
 function saveNote(rowIndex, note, btn){
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   btn.disabled = true;
   btn.textContent = 'সেভ হচ্ছে...';
   fetch(SCRIPT_URL + '?action=updateNote&password=' + encodeURIComponent(pw) + '&row=' + rowIndex + '&note=' + encodeURIComponent(note))
@@ -1609,7 +1610,7 @@ function saveNote(rowIndex, note, btn){
 }
 
 function updateStatus(rowIndex, newStatus, btn, card){
-  const pw = localStorage.getItem('adminPw');
+  const pw = sessionStorage.getItem('adminPw');
   btn.disabled = true;
   btn.textContent = 'সেভ হচ্ছে...';
   fetch(SCRIPT_URL + '?action=updateStatus&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex) + '&status=' + encodeURIComponent(newStatus))
@@ -1695,7 +1696,7 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 });
 
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
-if(localStorage.getItem('adminPw')){
+if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
 }
 </script>
