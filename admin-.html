@@ -359,6 +359,7 @@
       <button id="addPostBtn" onclick="addPost()" style="width:100%; padding:11px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer;">পোস্ট করুন</button>
       <div id="postMsg" style="display:none; margin-top:10px; padding:9px 11px; border-radius:7px; font-size:13px;"></div>
       <hr class="card-divider" style="margin:16px 0 12px;">
+      <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
       <div id="postsList">লোড হচ্ছে...</div>
     </div>
 
@@ -695,6 +696,48 @@ function commentAction(row, status){
     .then(()=> loadAdminComments());
 }
 
+// ============ পোস্ট অ্যানালিটিক্স সামারি — টোটাল ভিউ/ক্লিক/লাইক/কমেন্ট ও টপ পোস্ট এক নজরে ============
+function renderPostsAnalyticsSummary(posts){
+  const wrap = document.getElementById('postsAnalyticsSummary');
+  if(!wrap) return;
+  if(!posts || posts.length === 0){ wrap.innerHTML = ''; return; }
+
+  const totals = posts.reduce((acc, p) => {
+    acc.views += Number(p.views) || 0;
+    acc.clicks += Number(p.clicks) || 0;
+    acc.likes += Number(p.likes) || 0;
+    acc.comments += Number(p.commentCount) || 0;
+    return acc;
+  }, { views: 0, clicks: 0, likes: 0, comments: 0 });
+
+  const scheduledCount = posts.filter(p => p.publishAt && p.published === false).length;
+
+  const top3 = posts.slice().sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0)).slice(0, 3);
+  const topHtml = top3.length
+    ? top3.map((p, i) => {
+        const medal = ['🥇', '🥈', '🥉'][i] || '•';
+        const t = String(p.title || '').replace(/</g, '&lt;');
+        return '<div style="display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:3px 0;">' +
+          '<span>' + medal + ' ' + t + '</span>' +
+          '<span style="color:var(--muted); white-space:nowrap;">👁 ' + (Number(p.views) || 0) + '</span>' +
+        '</div>';
+      }).join('')
+    : '<div style="font-size:12.5px; color:var(--muted);">এখনো কোনো ভিউ নেই।</div>';
+
+  wrap.innerHTML =
+    '<div style="background:var(--card-bg-alt, #f6f4ee); border:1px solid var(--line); border-radius:10px; padding:12px;">' +
+      '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">📊 মোট (' + posts.length + 'টা পোস্ট' + (scheduledCount ? ', ' + scheduledCount + 'টা সিডিউল করা' : '') + ')</div>' +
+      '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center; margin-bottom:10px;">' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.views + '</div><div style="font-size:11px; color:var(--muted);">👁 ভিউ</div></div>' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.clicks + '</div><div style="font-size:11px; color:var(--muted);">🖱 ক্লিক</div></div>' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.likes + '</div><div style="font-size:11px; color:var(--muted);">❤️ লাইক</div></div>' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.comments + '</div><div style="font-size:11px; color:var(--muted);">💬 কমেন্ট</div></div>' +
+      '</div>' +
+      '<div style="font-size:12px; font-weight:700; color:var(--forest); margin-bottom:4px; border-top:1px dashed var(--line); padding-top:8px;">সবচেয়ে বেশি দেখা পোস্ট</div>' +
+      topHtml +
+    '</div>';
+}
+
 // ============ আপডেট/পোস্ট ম্যানেজমেন্ট ============
 function loadAdminPosts(){
   const listEl = document.getElementById('postsList');
@@ -707,6 +750,7 @@ function loadAdminPosts(){
         listEl.textContent = 'পোস্ট লোড করতে সমস্যা হয়েছে।';
         return;
       }
+      renderPostsAnalyticsSummary(data.posts || []);
       if(!data.posts || data.posts.length === 0){
         listEl.textContent = 'এখনো কোনো পোস্ট নেই।';
         return;
