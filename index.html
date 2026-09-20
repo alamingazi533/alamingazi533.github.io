@@ -326,8 +326,10 @@
   [data-theme="dark"] .profile-pic{ border-color:var(--card-bg); }
   [data-theme="dark"] #receipt{ background:var(--card-bg) !important; }
   *{box-sizing:border-box;}
+  html{ overscroll-behavior-y: contain; }
   body{
     margin:0;
+    overscroll-behavior-y: contain;
     background:var(--paper);
     background-image:
       radial-gradient(circle at 1px 1px, rgba(31,59,44,0.07) 1px, transparent 0);

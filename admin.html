@@ -59,8 +59,10 @@
     background:var(--card-bg); color:var(--ink);
   }
   *{box-sizing:border-box;}
+  html{ overscroll-behavior-y: contain; }
   body{
     margin:0;
+    overscroll-behavior-y: contain;
     background:var(--paper);
     font-family:'Hind Siliguri', sans-serif;
     color:var(--ink);
@@ -399,12 +401,40 @@ let activeStatusFilter = 'সব';
 let activeDateFilterDays = 0;
 let selectedRowIndexes = new Set();
 
+const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody'];
+
 function toggleSection(id, headerEl){
   const body = document.getElementById(id);
   const arrow = headerEl.querySelector('.secArrow');
   const opening = body.style.display === 'none';
   body.style.display = opening ? 'block' : 'none';
   if(arrow) arrow.textContent = opening ? '▾' : '▸';
+  saveOpenSections();
+}
+
+// রিফ্রেশ/পুল-টু-রিফ্রেশ করলেও কোন সেকশন খোলা ছিল তা মনে রাখা হয়, যাতে ব্যবহারকারী যেখানে ছিলেন সেখানেই থাকেন
+function saveOpenSections(){
+  try{
+    const open = COLLAPSIBLE_SECTION_IDS.filter(id => {
+      const el = document.getElementById(id);
+      return el && el.style.display !== 'none';
+    });
+    localStorage.setItem('adminOpenSections', JSON.stringify(open));
+  }catch(err){}
+}
+
+function restoreOpenSections(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('adminOpenSections') || '[]');
+    saved.forEach(id => {
+      const body = document.getElementById(id);
+      if(!body) return;
+      body.style.display = 'block';
+      const header = body.previousElementSibling;
+      const arrow = header ? header.querySelector('.secArrow') : null;
+      if(arrow) arrow.textContent = '▾';
+    });
+  }catch(err){}
 }
 
 function parseAdminDate(dateStr){
@@ -524,7 +554,10 @@ function restoreScrollPosition(){
   try{
     const saved = sessionStorage.getItem('adminScrollY');
     if(saved){
-      requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10) || 0));
+      const y = parseInt(saved, 10) || 0;
+      // খোলা সেকশনের ডেটা (রিভিউ/কমেন্ট/পোস্ট) অ্যাসিঙ্ক্রোনাসভাবে লোড হয় বলে সাথে সাথে স্ক্রল করলে
+      // লেআউট এখনো ছোট থাকে; একটু সময় দিয়ে তারপর স্ক্রল করা হচ্ছে যেন সঠিক জায়গায় যায়।
+      setTimeout(() => window.scrollTo(0, y), 500);
     }
   }catch(err){}
 }
@@ -1348,6 +1381,7 @@ function verifyAndEnter(){
         allRows = data.rows;
         restoreFilterState();
         applyCurrentFilter();
+        restoreOpenSections();
         restoreScrollPosition();
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
