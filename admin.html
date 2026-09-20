@@ -373,18 +373,16 @@
     <div id="loadingMsg">লোড হচ্ছে...</div>
     <div id="emptyMsg">কোনো এন্ট্রি পাওয়া যায়নি।</div>
     <div id="list"></div>
-    <datalist id="statusSuggestions">
-      <option value="অপেক্ষমান">
-      <option value="কাজ চলছে">
-      <option value="সম্পন্ন">
-      <option value="বাতিল">
-    </datalist>
   </main>
 </div>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
 const STATUS_OPTIONS = ["অপেক্ষমান", "কাজ চলছে", "সম্পন্ন", "বাতিল"];
+// স্ট্যাটাস আগে ফ্রি-টেক্সট ইনপুট দিয়ে টাইপ করা হতো বলে ভুলবশত অতিরিক্ত স্পেস/টাইপো ঢুকে যেতে পারত,
+// যার ফলে ফিল্টার চিপে ক্লিক করলে "মিল না পাওয়ায়" এন্ট্রি বাদ পড়ে যেত। তাই তুলনা করার আগে সবসময়
+// ট্রিম করে নেওয়া হচ্ছে (এখন থেকে স্ট্যাটাস ড্রপডাউন থেকে বাছাই করা হয় বলে নতুন করে এই সমস্যা হবে না)।
+function normStatus(s){ return String(s || '').trim(); }
 
 let allRows = [];
 let autoRefreshTimer = null;
@@ -411,7 +409,7 @@ function applyCurrentFilter(){
   const q = document.getElementById('searchBox').value.trim().toLowerCase();
   let filtered = allRows;
   if(activeStatusFilter !== 'সব'){
-    filtered = filtered.filter(r => r.status === activeStatusFilter);
+    filtered = filtered.filter(r => normStatus(r.status) === normStatus(activeStatusFilter));
   }
   if(activeDateFilterDays > 0){
     const cutoff = new Date();
@@ -439,11 +437,22 @@ function renderDashboard(){
   const dash = document.getElementById('dashboard');
   const counts = {};
   STATUS_OPTIONS.forEach(s => counts[s] = 0);
-  allRows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+  let otherCount = 0;
+  allRows.forEach(r => {
+    const s = normStatus(r.status);
+    if(STATUS_OPTIONS.includes(s)){
+      counts[s] = (counts[s] || 0) + 1;
+    } else {
+      otherCount++; // পুরনো ফ্রি-টেক্সট যুগের কোনো টাইপো/অস্বাভাবিক স্ট্যাটাস থাকলে এখানে ধরা পড়বে
+    }
+  });
   let html = '<div class="dash-item"><div class="num">' + allRows.length + '</div><div class="lbl">মোট</div></div>';
   STATUS_OPTIONS.forEach(s => {
     html += '<div class="dash-item"><div class="num">' + (counts[s] || 0) + '</div><div class="lbl">' + s + '</div></div>';
   });
+  if(otherCount > 0){
+    html += '<div class="dash-item" style="border-color:var(--maroon);"><div class="num" style="color:var(--maroon);">' + otherCount + '</div><div class="lbl">⚠️ অস্বাভাবিক স্ট্যাটাস</div></div>';
+  }
   dash.innerHTML = html;
 }
 
@@ -517,10 +526,26 @@ function stopAutoRefresh(){
 }
 
 function badgeClass(status){
-  if(status === "সম্পন্ন") return "badge done";
-  if(status === "কাজ চলছে") return "badge progress";
-  if(status === "বাতিল") return "badge cancel";
+  const s = normStatus(status);
+  if(s === "সম্পন্ন") return "badge done";
+  if(s === "কাজ চলছে") return "badge progress";
+  if(s === "বাতিল") return "badge cancel";
   return "badge";
+}
+
+// ============ স্ট্যাটাস এখন ফ্রি-টেক্সট না — নির্দিষ্ট ড্রপডাউন থেকে বাছাই করতে হয়, যাতে টাইপো/অতিরিক্ত
+// স্পেসের কারণে ফিল্টার চিপে ভুল ফলাফল না আসে। পুরনো কোনো এন্ট্রিতে অস্বাভাবিক (ফ্রি-টেক্সট যুগের) স্ট্যাটাস
+// থেকে থাকলে সেটাও অপশন হিসেবে দেখানো হচ্ছে (একটা সতর্কীকরণ চিহ্নসহ), যাতে বাছাই করে ঠিক করে দেওয়া যায়। ============
+function buildStatusSelectHtml(currentStatus){
+  const current = normStatus(currentStatus);
+  const isKnown = STATUS_OPTIONS.includes(current);
+  let options = STATUS_OPTIONS.map(s =>
+    '<option value="' + s + '"' + (s === current ? ' selected' : '') + '>' + s + '</option>'
+  ).join('');
+  if(current && !isKnown){
+    options = '<option value="' + esc(current) + '" selected>⚠️ ' + esc(current) + ' (অস্বাভাবিক)</option>' + options;
+  }
+  return '<select class="statusInput" style="flex:1; min-width:120px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit;">' + options + '</select>';
 }
 
 function showForgotBox(){
@@ -1366,7 +1391,7 @@ function renderList(rows){
           '</div>' : '') +
         '<hr class="card-divider">' +
         '<div class="card-actions">' +
-          '<input type="text" class="statusInput" list="statusSuggestions" value="' + esc(row.status) + '" placeholder="স্ট্যাটাস লিখুন">' +
+          buildStatusSelectHtml(row.status) +
           '<button class="saveBtn">আপডেট</button>' +
           '<button class="deleteBtn">🗑️</button>' +
         '</div>' +
