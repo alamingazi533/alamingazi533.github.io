@@ -286,10 +286,11 @@
     </div>
 
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-weight:700; color:var(--forest);">📊 ভিজিটর অ্যানালিটিক্স <span id="liveNowBadge"></span></div>
-        <button onclick="loadVisitStats()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('visitAnalyticsBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 📊 ভিজিটর অ্যানালিটিক্স <span id="liveNowBadge"></span></div>
+        <button onclick="event.stopPropagation(); loadVisitStats();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
       </div>
+      <div id="visitAnalyticsBody" style="display:none; margin-top:10px;">
       <div class="dashboard" id="visitDashboard" style="margin-bottom:12px;"></div>
       <div id="deviceBreakdown" style="display:flex; gap:8px; margin-bottom:14px;"></div>
       <div id="dailyTrendBlock" style="margin-bottom:14px; display:none;">
@@ -303,32 +304,39 @@
       <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">সাম্প্রতিক ভিজিট</div>
       <div id="recentVisitsList" style="max-height:260px; overflow-y:auto;">লোড হচ্ছে...</div>
       <div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:center;">প্রতি ২০ সেকেন্ডে অটো-আপডেট হয়</div>
+      </div>
     </div>
 
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-weight:700; color:var(--forest);">গ্রাহক রিভিউ <span id="pendingReviewBadge"></span></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('reviewsBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> গ্রাহক রিভিউ <span id="pendingReviewBadge"></span></div>
         <div style="display:flex; gap:6px;">
-          <button onclick="exportReviewsCsv()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">CSV</button>
-          <button onclick="loadAdminReviews()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+          <button onclick="event.stopPropagation(); exportReviewsCsv();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">CSV</button>
+          <button onclick="event.stopPropagation(); loadAdminReviews();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
         </div>
       </div>
+      <div id="reviewsBody" style="display:none; margin-top:10px;">
       <div id="reviewsList">লোড হচ্ছে...</div>
+      </div>
     </div>
 
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-weight:700; color:var(--forest);">💬 পোস্ট কমেন্ট (এখন সাবমিট করলেই সাথে সাথে পাবলিশ হয় — এখান থেকে অনুপযুক্ত কমেন্ট মুছে ফেলুন) <span id="pendingCommentBadge"></span></div>
-        <button onclick="loadAdminComments()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('commentsBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 💬 পোস্ট কমেন্ট <span id="pendingCommentBadge"></span></div>
+        <button onclick="event.stopPropagation(); loadAdminComments();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
       </div>
+      <div id="commentsBody" style="display:none; margin-top:10px;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">সাবমিট করলেই সাথে সাথে পাবলিশ হয় — এখান থেকে অনুপযুক্ত কমেন্ট মুছে ফেলুন।</div>
       <div id="commentsListAdmin">লোড হচ্ছে...</div>
+      </div>
     </div>
 
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-weight:700; color:var(--forest);">📢 আপডেট/পোস্ট ম্যানেজমেন্ট</div>
-        <button onclick="loadAdminPosts()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('postFormBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 📢 আপডেট/পোস্ট ম্যানেজমেন্ট</div>
+        <button onclick="event.stopPropagation(); loadAdminPosts();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
       </div>
+      <div id="postFormBody" style="display:none; margin-top:10px;">
       <input type="text" id="newPostTitle" placeholder="পোস্টের শিরোনাম" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
       <select id="newPostCategory" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
         <option value="সাধারণ আপডেট">সাধারণ আপডেট</option>
@@ -362,6 +370,7 @@
       <hr class="card-divider" style="margin:16px 0 12px;">
       <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
       <div id="postsList">লোড হচ্ছে...</div>
+      </div>
     </div>
 
     <div class="toolbar" style="margin-top:0; flex-direction:column; align-items:stretch;">
@@ -389,6 +398,14 @@ let autoRefreshTimer = null;
 let activeStatusFilter = 'সব';
 let activeDateFilterDays = 0;
 let selectedRowIndexes = new Set();
+
+function toggleSection(id, headerEl){
+  const body = document.getElementById(id);
+  const arrow = headerEl.querySelector('.secArrow');
+  const opening = body.style.display === 'none';
+  body.style.display = opening ? 'block' : 'none';
+  if(arrow) arrow.textContent = opening ? '▾' : '▸';
+}
 
 function parseAdminDate(dateStr){
   // ফরম্যাট: dd/MM/yyyy HH:mm
@@ -429,16 +446,27 @@ function applyCurrentFilter(){
   }
   renderList(filtered);
   window.__lastFilteredRows = filtered;
-  renderDashboard();
+  renderDashboard(getDateFilteredRows());
   renderFilterChips();
 }
 
-function renderDashboard(){
+function getDateFilteredRows(){
+  if(activeDateFilterDays <= 0) return allRows;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - activeDateFilterDays);
+  return allRows.filter(r => {
+    const d = parseAdminDate(r.date);
+    return d && d >= cutoff;
+  });
+}
+
+function renderDashboard(rows){
+  rows = rows || getDateFilteredRows();
   const dash = document.getElementById('dashboard');
   const counts = {};
   STATUS_OPTIONS.forEach(s => counts[s] = 0);
   let otherCount = 0;
-  allRows.forEach(r => {
+  rows.forEach(r => {
     const s = normStatus(r.status);
     if(STATUS_OPTIONS.includes(s)){
       counts[s] = (counts[s] || 0) + 1;
@@ -446,7 +474,7 @@ function renderDashboard(){
       otherCount++; // পুরনো ফ্রি-টেক্সট যুগের কোনো টাইপো/অস্বাভাবিক স্ট্যাটাস থাকলে এখানে ধরা পড়বে
     }
   });
-  let html = '<div class="dash-item"><div class="num">' + allRows.length + '</div><div class="lbl">মোট</div></div>';
+  let html = '<div class="dash-item"><div class="num">' + rows.length + '</div><div class="lbl">মোট</div></div>';
   STATUS_OPTIONS.forEach(s => {
     html += '<div class="dash-item"><div class="num">' + (counts[s] || 0) + '</div><div class="lbl">' + s + '</div></div>';
   });
@@ -504,7 +532,7 @@ function deleteEntry(rowIndex, fullName, cardEl){
       if(data.success){
         cardEl.remove();
         allRows = allRows.filter(r => r.rowIndex !== rowIndex);
-        renderDashboard();
+        renderDashboard(getDateFilteredRows());
         document.getElementById('summary').textContent = 'মোট ' + document.querySelectorAll('.card').length + 'টি আবেদন দেখানো হচ্ছে';
       } else {
         alert('ডিলিট করতে সমস্যা হয়েছে।');
