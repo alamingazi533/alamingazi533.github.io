@@ -419,6 +419,7 @@ function setDateFilter(days, btnEl){
   activeDateFilterDays = days;
   document.querySelectorAll('#dateFilterRow .chip').forEach(b => b.classList.remove('active'));
   btnEl.classList.add('active');
+  try{ localStorage.setItem('adminFilterDays', String(days)); }catch(err){}
   applyCurrentFilter();
 }
 
@@ -493,10 +494,47 @@ function renderFilterChips(){
   row.querySelectorAll('.chip').forEach(btn => {
     btn.addEventListener('click', () => {
       activeStatusFilter = btn.getAttribute('data-status');
+      try{ localStorage.setItem('adminFilterStatus', activeStatusFilter); }catch(err){}
       applyCurrentFilter();
     });
   });
 }
+
+// ============ রিফ্রেশ করলেও ফিল্টার, সার্চ ও স্ক্রল পজিশন যেন হারিয়ে না যায় ============
+function restoreFilterState(){
+  try{
+    const savedStatus = localStorage.getItem('adminFilterStatus');
+    if(savedStatus) activeStatusFilter = savedStatus;
+    const savedDays = localStorage.getItem('adminFilterDays');
+    if(savedDays !== null){
+      activeDateFilterDays = parseInt(savedDays, 10) || 0;
+      document.querySelectorAll('#dateFilterRow .chip').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-days') === String(activeDateFilterDays));
+      });
+    }
+    const savedQuery = localStorage.getItem('adminSearchQuery');
+    if(savedQuery) document.getElementById('searchBox').value = savedQuery;
+  }catch(err){}
+}
+
+let scrollRestoreDone = false;
+function restoreScrollPosition(){
+  if(scrollRestoreDone) return;
+  scrollRestoreDone = true;
+  try{
+    const saved = sessionStorage.getItem('adminScrollY');
+    if(saved){
+      requestAnimationFrame(() => window.scrollTo(0, parseInt(saved, 10) || 0));
+    }
+  }catch(err){}
+}
+let scrollSaveTimer = null;
+window.addEventListener('scroll', () => {
+  clearTimeout(scrollSaveTimer);
+  scrollSaveTimer = setTimeout(() => {
+    try{ sessionStorage.setItem('adminScrollY', String(window.scrollY)); }catch(err){}
+  }, 200);
+});
 
 function exportCsv(){
   const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
@@ -1308,7 +1346,9 @@ function verifyAndEnter(){
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('panel').style.display = 'block';
         allRows = data.rows;
+        restoreFilterState();
         applyCurrentFilter();
+        restoreScrollPosition();
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         loadAdminReviews();
@@ -1582,7 +1622,10 @@ function toggleTheme(){
   applyTheme(saved || (prefersDark ? 'dark' : 'light'));
 })();
 
-document.getElementById('searchBox').addEventListener('input', applyCurrentFilter);
+document.getElementById('searchBox').addEventListener('input', function(){
+  try{ localStorage.setItem('adminSearchQuery', this.value); }catch(err){}
+  applyCurrentFilter();
+});
 
 document.getElementById('pwInput').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter') login();

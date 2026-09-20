@@ -3770,27 +3770,48 @@ function clearDraft(){
   if(banner) banner.style.display = 'none';
 }
 
-function revealRegForm(shouldScroll){
+function applyRegFormView(show, shouldScroll){
   const section = document.getElementById('mainFormSection');
   const landingTop = document.getElementById('landingTop');
   const landingBottom = document.getElementById('landingBottom');
-  if(section){ section.style.display = 'block'; }
-  if(landingTop){ landingTop.style.display = 'none'; }
-  if(landingBottom){ landingBottom.style.display = 'none'; }
+  if(section){ section.style.display = show ? 'block' : 'none'; }
+  if(landingTop){ landingTop.style.display = show ? 'none' : ''; }
+  if(landingBottom){ landingBottom.style.display = show ? 'none' : ''; }
   if(shouldScroll !== false){
     window.scrollTo({ top:0, behavior:'smooth' });
   }
 }
 
-function hideRegForm(){
-  const section = document.getElementById('mainFormSection');
-  const landingTop = document.getElementById('landingTop');
-  const landingBottom = document.getElementById('landingBottom');
-  if(section){ section.style.display = 'none'; }
-  if(landingTop){ landingTop.style.display = ''; }
-  if(landingBottom){ landingBottom.style.display = ''; }
-  window.scrollTo({ top:0, behavior:'smooth' });
+// রেজিস্ট্রেশন ফর্ম খোলা/বন্ধ করার সময় URL-এ ?form=1 বসানো/সরানো হয় যাতে রিফ্রেশ করলেও
+// ব্যবহারকারী যেখানে ছিলেন সেখানেই থাকেন, হোমে ফিরে না যান।
+function revealRegForm(shouldScroll){
+  applyRegFormView(true, shouldScroll);
+  try{
+    const params = new URLSearchParams(window.location.search);
+    if(params.get('form') !== '1'){
+      params.set('form', '1');
+      const qs = params.toString();
+      history.pushState({form:1}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+    }
+  }catch(err){}
 }
+
+function hideRegForm(){
+  applyRegFormView(false);
+  try{
+    const params = new URLSearchParams(window.location.search);
+    if(params.has('form')){
+      params.delete('form');
+      const qs = params.toString();
+      history.pushState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash);
+    }
+  }catch(err){}
+}
+
+window.addEventListener('popstate', function(){
+  const params = new URLSearchParams(window.location.search);
+  applyRegFormView(params.get('form') === '1', false);
+});
 
 // ============ URL প্যারামিটার (?form=1) দিয়ে সরাসরি রেজিস্ট্রেশন ফর্ম ওপেন করার রাউটার ============
 // এটা থাকলে https://alamingazi533.github.io/fb-help/?form=1 লিংকে ঢুকলেই
