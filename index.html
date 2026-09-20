@@ -4832,6 +4832,57 @@ function loadPostComments(postId){
     });
 }
 
+// ============ ব্লগ লিস্ট/আর্কাইভ/কমেন্ট — নিরাপদে পটভূমিতে অটো-রিফ্রেশ ============
+// সার্চ বক্সের লেখা, স্ক্রল পজিশন বা কমেন্ট লেখার বক্স — কোনোকিছুই না ঘেঁটে শুধু নতুন ডেটা টেনে দেখানো হয়
+function refreshBlogDataSilently(){
+  fetch(SCRIPT_URL + '?action=getPosts')
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success || !data.posts) return;
+      __allPosts = data.posts;
+
+      const blogView = document.getElementById('blogView');
+      const archiveWrap = document.getElementById('blogArchiveWrap');
+      const detailWrap = document.getElementById('blogDetailWrap');
+      const isBlogViewOpen = blogView && blogView.style.display !== 'none';
+      const isArchiveOpen = isBlogViewOpen && archiveWrap && archiveWrap.style.display !== 'none';
+      const isDetailOpen = isBlogViewOpen && detailWrap && detailWrap.style.display !== 'none';
+
+      if(!isBlogViewOpen){
+        const container = document.getElementById('postsContainer');
+        if(container){
+          if(__allPosts.length === 0){
+            container.innerHTML = '<p class="posts-empty">এখনো কোনো আপডেট নেই।</p>';
+          } else {
+            const shown = __allPosts.slice(0, 4);
+            container.innerHTML = shown.map((p, i) => renderBlogCard(p, i === 0)).join('');
+          }
+        }
+        renderRecentWidget();
+        renderCalendarWidget();
+      } else if(isArchiveOpen){
+        const searchInput = document.getElementById('blogSearchInput');
+        renderBlogArchiveGrid(searchInput ? searchInput.value : '', __currentBlogCat);
+        renderRecentWidget();
+      } else if(isDetailOpen){
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('post');
+        if(postId){
+          loadPostComments(postId); // নতুন কমেন্ট এলে দেখাবে, লেখার বক্স স্পর্শ করা হয় না
+          const post = __allPosts.find(p => String(p.id) === String(postId));
+          const countLabel = document.getElementById('commentCountLabel');
+          if(post && countLabel) countLabel.textContent = post.commentCount || 0;
+          const likeCountEl = document.getElementById('postLikeCount');
+          if(post && likeCountEl && !getLikedPostIds().includes(String(post.id))){
+            likeCountEl.textContent = post.likes || 0;
+          }
+        }
+      }
+    })
+    .catch(()=>{});
+}
+setInterval(refreshBlogDataSilently, 20000);
+
 function submitPostComment(postId){
   const nameInput = document.getElementById('commentNameInput');
   const textInput = document.getElementById('commentTextInput');
