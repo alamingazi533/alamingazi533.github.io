@@ -303,7 +303,7 @@
       </div>
       <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">সাম্প্রতিক ভিজিট</div>
       <div id="recentVisitsList" style="max-height:260px; overflow-y:auto;">লোড হচ্ছে...</div>
-      <div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:center;">প্রতি ২০ সেকেন্ডে অটো-আপডেট হয়</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:center;">প্রতি ৫ সেকেন্ডে অটো-আপডেট হয়</div>
       </div>
     </div>
 
@@ -1305,7 +1305,7 @@ function loadVisitStats(){
 
 function startVisitStatsAutoRefresh(){
   if(visitStatsTimer) return;
-  visitStatsTimer = setInterval(loadVisitStats, 20000);
+  visitStatsTimer = setInterval(loadVisitStats, 5000);
 }
 function stopVisitStatsAutoRefresh(){
   if(visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; }
