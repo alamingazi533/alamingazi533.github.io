@@ -263,7 +263,6 @@
     <div class="toolbar">
       <input type="text" id="searchBox" placeholder="নাম, ফোন বা আবেদন নম্বর দিয়ে খুঁজুন">
       <button onclick="manualRefresh()">রিফ্রেশ</button>
-      <button onclick="exportRegistrationsCSV()" title="বর্তমান ফিল্টার/সার্চ অনুযায়ী যা দেখাচ্ছে তাই এক্সপোর্ট হবে">⬇️ CSV এক্সপোর্ট</button>
     </div>
     <div class="dashboard" id="dashboard"></div>
     <div class="filterRow" id="filterRow"></div>
@@ -366,7 +365,7 @@
     </div>
 
     <div class="toolbar" style="margin-top:0; flex-direction:column; align-items:stretch;">
-      <button class="exportBtn" onclick="exportCsv()">CSV ডাউনলোড করুন</button>
+      <button class="exportBtn" onclick="exportCsv()" title="বর্তমানে যা ফিল্টার/সার্চ করা আছে ঠিক তাই এক্সপোর্ট হবে">CSV ডাউনলোড করুন</button>
       <div id="backupReminder" style="font-size:12px; color:var(--muted); margin-top:6px; text-align:center;"></div>
     </div>
     <div class="summary" id="summary"></div>
@@ -463,11 +462,12 @@ function renderFilterChips(){
 }
 
 function exportCsv(){
-  if(!allRows.length){ alert('ডাউনলোড করার মতো কোনো এন্ট্রি নেই।'); return; }
-  const headers = ['তারিখ','নাম','ফোন','জন্ম তারিখ','লিঙ্গ','ইমেইল','বিভাগ','জেলা','এলাকা','মন্তব্য','পেমেন্ট মেথড','TxnID','প্রেরক নম্বর','আবেদন নম্বর','স্ট্যাটাস','ছবি লিংক','আইডি/প্রোফাইল লিংক'];
+  const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
+  if(!rows.length){ alert('ডাউনলোড করার মতো কোনো এন্ট্রি নেই।'); return; }
+  const headers = ['তারিখ','নাম','ফোন','জন্ম তারিখ','লিঙ্গ','ইমেইল','বিভাগ','জেলা','এলাকা','মন্তব্য','পেমেন্ট মেথড','TxnID','প্রেরক নম্বর','আবেদন নম্বর','স্ট্যাটাস','প্রাইভেট নোট','ছবি লিংক','আইডি/প্রোফাইল লিংক'];
   const csvRows = [headers.join(',')];
-  allRows.forEach(r => {
-    const line = [r.date, r.fullName, r.phone, r.dob, r.gender, r.email, r.division, r.district, r.areaDetail, r.comment, r.paymentMethod, r.txnId, r.senderNumber, r.appId, r.status, r.photoUrl, r.idLink]
+  rows.forEach(r => {
+    const line = [r.date, r.fullName, r.phone, r.dob, r.gender, r.email, r.division, r.district, r.areaDetail, r.comment, r.paymentMethod, r.txnId, r.senderNumber, r.appId, r.status, r.note, r.photoUrl, r.idLink]
       .map(v => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"')
       .join(',');
     csvRows.push(line);
@@ -1323,45 +1323,6 @@ function manualRefresh(){
       document.getElementById('loadingMsg').style.display = 'none';
       alert('লোড করতে সমস্যা হয়েছে।');
     });
-}
-
-// ============ রেজিস্ট্রেশন লিস্ট CSV এক্সপোর্ট (বর্তমানে যা ফিল্টার/সার্চ করা আছে, ঠিক তাই এক্সপোর্ট হবে) ============
-function csvCell(v){
-  const s = (v === null || v === undefined) ? '' : String(v);
-  // এক্সেল/গুগল শিটে ঠিকমতো খোলার জন্য কমা, ডাবল-কোট বা নতুন লাইন থাকলে কোটেড করা হচ্ছে
-  if(/[",\n]/.test(s)){
-    return '"' + s.replace(/"/g, '""') + '"';
-  }
-  return s;
-}
-
-function exportRegistrationsCSV(){
-  const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
-  if(!rows || rows.length === 0){
-    alert('এক্সপোর্ট করার মতো কোনো ডেটা নেই।');
-    return;
-  }
-  const headers = ['তারিখ', 'নাম', 'আবেদন নম্বর', 'ফোন', 'ইমেইল', 'প্ল্যাটফর্ম', 'বিভাগ', 'জেলা', 'এলাকা', 'পেমেন্ট মাধ্যম', 'লেনদেন আইডি', 'প্রেরকের নম্বর', 'স্ট্যাটাস', 'প্রাইভেট নোট'];
-  const lines = [headers.map(csvCell).join(',')];
-  rows.forEach(r => {
-    lines.push([
-      r.date, r.fullName, r.appId, r.phone, r.email, r.platform,
-      r.division, r.district, r.areaDetail, r.paymentMethod, r.txnId,
-      r.senderNumber, r.status, r.note
-    ].map(csvCell).join(','));
-  });
-  // এক্সেল/গুগল শিটে বাংলা ঠিকভাবে দেখানোর জন্য UTF-8 BOM যোগ করা হচ্ছে
-  const csvContent = '\uFEFF' + lines.join('\r\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const stamp = new Date().toISOString().slice(0, 10);
-  a.href = url;
-  a.download = 'registrations-' + stamp + '.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 function renderList(rows){
