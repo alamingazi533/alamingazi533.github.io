@@ -489,6 +489,20 @@ function getDateFilteredRows(){
   });
 }
 
+let persistentStats = null; // getStats থেকে পাওয়া স্থায়ী কাউন্টার — ডিলিট করলেও কমে না
+function fetchPersistentStats(){
+  fetch(SCRIPT_URL + '?action=getStats')
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        persistentStats = { totalApplications: data.totalApplications, solvedCount: data.solvedCount };
+        // "সব সময়" ভিউতে থাকলে নতুন সংখ্যা দিয়ে ড্যাশবোর্ড রিফ্রেশ করা হচ্ছে
+        if(activeDateFilterDays === 0) renderDashboard(getDateFilteredRows());
+      }
+    })
+    .catch(()=>{});
+}
+
 function renderDashboard(rows){
   rows = rows || getDateFilteredRows();
   const dash = document.getElementById('dashboard');
@@ -503,9 +517,16 @@ function renderDashboard(rows){
       otherCount++; // পুরনো ফ্রি-টেক্সট যুগের কোনো টাইপো/অস্বাভাবিক স্ট্যাটাস থাকলে এখানে ধরা পড়বে
     }
   });
-  let html = '<div class="dash-item"><div class="num">' + rows.length + '</div><div class="lbl">মোট</div></div>';
+  // "সব সময়" ভিউতে "মোট" ও "সম্পন্ন" ব্যাকএন্ডের স্থায়ী কাউন্টার থেকে দেখানো হয় (deleteRow করলেও
+  // এই সংখ্যা কমে না — শুধু তারিখ-ফিল্টার করা ভিউতে (আজ/৭দিন/৩০দিন) বর্তমানে শিটে থাকা এন্ট্রি গোনা হয়,
+  // কারণ ডিলিট হওয়া পুরনো এন্ট্রির আসল তারিখ আর জানার উপায় থাকে না)
+  const showPersistent = activeDateFilterDays === 0 && persistentStats;
+  const totalNum = showPersistent ? persistentStats.totalApplications : rows.length;
+  const solvedNum = showPersistent ? persistentStats.solvedCount : (counts["সম্পন্ন"] || 0);
+  let html = '<div class="dash-item"><div class="num">' + totalNum + '</div><div class="lbl">মোট</div></div>';
   STATUS_OPTIONS.forEach(s => {
-    html += '<div class="dash-item"><div class="num">' + (counts[s] || 0) + '</div><div class="lbl">' + s + '</div></div>';
+    const num = (s === "সম্পন্ন") ? solvedNum : (counts[s] || 0);
+    html += '<div class="dash-item"><div class="num">' + num + '</div><div class="lbl">' + s + '</div></div>';
   });
   if(otherCount > 0){
     html += '<div class="dash-item" style="border-color:var(--maroon);"><div class="num" style="color:var(--maroon);">' + otherCount + '</div><div class="lbl">⚠️ অস্বাভাবিক স্ট্যাটাস</div></div>';
@@ -1389,6 +1410,7 @@ function verifyAndEnter(){
         updateBackupReminder();
         loadVisitStats();
         startVisitStatsAutoRefresh();
+        fetchPersistentStats();
       } else {
         localStorage.removeItem('adminPw');
         document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
@@ -1412,6 +1434,14 @@ function logout(){
   document.getElementById('pwInput').value = '';
 }
 
+// ============ পেজ ছেড়ে বেরিয়ে গেলে (ট্যাব বন্ধ, অন্য সাইটে যাওয়া) অটো লগ-আউট ============
+// 'pagehide' শুধু তখনই ফায়ার হয় যখন পেজটা সত্যিই বন্ধ/আনলোড হয়ে যাচ্ছে (ট্যাব ক্লোজ, নতুন URL-এ যাওয়া)।
+// অ্যাপ মিনিমাইজ করলে বা অন্য অ্যাপে সুইচ করলে পেজটা ব্যাকগ্রাউন্ডে জীবিতই থাকে, তখন এটা ফায়ার হয় না —
+// তাই ব্যাকগ্রাউন্ড/মিনিমাইজে লগ-ইন অবস্থা ঠিকই থেকে যায়, শুধু আসলেই বের হয়ে গেলে লগ-আউট হবে।
+window.addEventListener('pagehide', function(){
+  try{ localStorage.removeItem('adminPw'); }catch(err){}
+});
+
 function loadEntries(){
   const pw = localStorage.getItem('adminPw');
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
@@ -1420,6 +1450,7 @@ function loadEntries(){
       if(data.success){
         allRows = data.rows;
         applyCurrentFilter();
+        fetchPersistentStats();
         const now = new Date();
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
       }
