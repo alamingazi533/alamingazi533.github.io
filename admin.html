@@ -263,6 +263,7 @@
     <div class="toolbar">
       <input type="text" id="searchBox" placeholder="নাম, ফোন বা আবেদন নম্বর দিয়ে খুঁজুন">
       <button onclick="manualRefresh()">রিফ্রেশ</button>
+      <button onclick="exportRegistrationsCSV()" title="বর্তমান ফিল্টার/সার্চ অনুযায়ী যা দেখাচ্ছে তাই এক্সপোর্ট হবে">⬇️ CSV এক্সপোর্ট</button>
     </div>
     <div class="dashboard" id="dashboard"></div>
     <div class="filterRow" id="filterRow"></div>
@@ -356,7 +357,8 @@
         <button type="button" onclick="clearNewPostVideo()" style="margin-top:4px; padding:4px 10px; font-size:12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon);">ভিডিও বাদ দিন</button>
       </div>
 
-      <button id="addPostBtn" onclick="addPost()" style="width:100%; padding:11px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer;">পোস্ট করুন</button>
+      <button id="addPostBtn" onclick="addPost(false)" style="width:100%; padding:11px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer;">পোস্ট করুন</button>
+      <button id="draftPostBtn" onclick="addPost(true)" style="width:100%; padding:10px; margin-top:8px; border:1.5px solid var(--muted); border-radius:9px; background:var(--card-bg); color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer;">📝 খসড়া হিসেবে সেভ করুন</button>
       <div id="postMsg" style="display:none; margin-top:10px; padding:9px 11px; border-radius:7px; font-size:13px;"></div>
       <hr class="card-divider" style="margin:16px 0 12px;">
       <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
@@ -429,6 +431,7 @@ function applyCurrentFilter(){
     );
   }
   renderList(filtered);
+  window.__lastFilteredRows = filtered;
   renderDashboard();
   renderFilterChips();
 }
@@ -710,9 +713,10 @@ function renderPostsAnalyticsSummary(posts){
     return acc;
   }, { views: 0, clicks: 0, likes: 0, comments: 0 });
 
-  const scheduledCount = posts.filter(p => p.publishAt && p.published === false).length;
+  const scheduledCount = posts.filter(p => p.publishAt && p.published === false && !p.draft).length;
+  const draftCount = posts.filter(p => p.draft).length;
 
-  const top3 = posts.slice().sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0)).slice(0, 3);
+  const top3 = posts.filter(p => !p.draft).sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0)).slice(0, 3);
   const topHtml = top3.length
     ? top3.map((p, i) => {
         const medal = ['🥇', '🥈', '🥉'][i] || '•';
@@ -726,7 +730,7 @@ function renderPostsAnalyticsSummary(posts){
 
   wrap.innerHTML =
     '<div style="background:var(--card-bg-alt, #f6f4ee); border:1px solid var(--line); border-radius:10px; padding:12px;">' +
-      '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">📊 মোট (' + posts.length + 'টা পোস্ট' + (scheduledCount ? ', ' + scheduledCount + 'টা সিডিউল করা' : '') + ')</div>' +
+      '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">📊 মোট (' + posts.length + 'টা পোস্ট' + (scheduledCount ? ', ' + scheduledCount + 'টা সিডিউল করা' : '') + (draftCount ? ', ' + draftCount + 'টা খসড়া' : '') + ')</div>' +
       '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center; margin-bottom:10px;">' +
         '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.views + '</div><div style="font-size:11px; color:var(--muted);">👁 ভিউ</div></div>' +
         '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.clicks + '</div><div style="font-size:11px; color:var(--muted);">🖱 ক্লিক</div></div>' +
@@ -765,9 +769,12 @@ function loadAdminPosts(){
           (p.imageUrl ? '<img src="' + p.imageUrl + '" style="max-width:100%; max-height:140px; border-radius:8px; margin:6px 0; display:block;">' : '') +
           (p.videoUrl ? '<div style="font-size:12px; color:var(--forest); margin:4px 0;">🎬 ভিডিও যুক্ত আছে</div>' : '');
         const isScheduled = p.publishAt && p.published === false;
-        const scheduleBadge = isScheduled
-          ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#fff3cd; color:#8a6100; font-size:11.5px; font-weight:700; margin-left:6px;">⏰ সিডিউল করা: ' + formatScheduleDisplay(p.publishAt) + '</span>'
-          : '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:var(--badge-done-bg); color:var(--ok); font-size:11.5px; font-weight:700; margin-left:6px;">প্রকাশিত</span>';
+        const isDraft = !!p.draft;
+        const scheduleBadge = isDraft
+          ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#e6e6e6; color:#555; font-size:11.5px; font-weight:700; margin-left:6px;">📝 খসড়া</span>'
+          : (isScheduled
+            ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#fff3cd; color:#8a6100; font-size:11.5px; font-weight:700; margin-left:6px;">⏰ সিডিউল করা: ' + formatScheduleDisplay(p.publishAt) + '</span>'
+            : '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:var(--badge-done-bg); color:var(--ok); font-size:11.5px; font-weight:700; margin-left:6px;">প্রকাশিত</span>');
         const statsRow =
           '<div style="display:flex; gap:14px; margin-top:6px; font-size:12.5px; color:var(--muted);">' +
             '<span>👁 দেখেছেন: <b style="color:var(--ink);">' + (p.views || 0) + '</b></span>' +
@@ -785,6 +792,7 @@ function loadAdminPosts(){
             '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
               '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">লিংক কপি করুন</button>' +
               '<button onclick="startEditPost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">এডিট</button>' +
+              (isDraft ? '<button onclick="publishDraftNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">প্রকাশ করুন</button>' : '') +
               (isScheduled ? '<button onclick="publishPostNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #8a6100; border-radius:6px; background:var(--card-bg); color:#8a6100; font-size:12.5px;">এখনই প্রকাশ করুন</button>' : '') +
               '<button onclick="deletePost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon); font-size:12.5px;">মুছুন</button>' +
             '</div>' +
@@ -944,7 +952,7 @@ function clearNewPostVideo(){
   }
 })();
 
-function addPost(){
+function addPost(isDraft){
   const titleEl = document.getElementById('newPostTitle');
   const contentEl = document.getElementById('newPostContent');
   const categoryEl = document.getElementById('newPostCategory');
@@ -952,6 +960,7 @@ function addPost(){
   const imgInput = document.getElementById('newPostImage');
   const vidInput = document.getElementById('newPostVideo');
   const btn = document.getElementById('addPostBtn');
+  const draftBtn = document.getElementById('draftPostBtn');
   const msgBox = document.getElementById('postMsg');
   const title = titleEl.value.trim();
   const content = contentEl.value.trim();
@@ -975,9 +984,12 @@ function addPost(){
   }
 
   btn.disabled = true;
-  btn.textContent = 'পোস্ট হচ্ছে...';
+  draftBtn.disabled = true;
+  const activeBtn = isDraft ? draftBtn : btn;
+  const activeBtnDefaultText = isDraft ? '📝 খসড়া হিসেবে সেভ করুন' : 'পোস্ট করুন';
+  activeBtn.textContent = isDraft ? 'সেভ হচ্ছে...' : 'পোস্ট হচ্ছে...';
 
-  const payload = { action: 'addPost', password: pw, title: title, content: content, category: category, publishAt: publishAtIso };
+  const payload = { action: 'addPost', password: pw, title: title, content: content, category: category, publishAt: publishAtIso, status: isDraft ? 'draft' : '' };
   const imageFile = imgInput && imgInput.files[0];
   const videoFile = vidInput && vidInput.files[0];
 
@@ -1012,9 +1024,14 @@ function addPost(){
     .then(r => r.json())
     .then(data => {
       btn.disabled = false;
+      draftBtn.disabled = false;
       btn.textContent = 'পোস্ট করুন';
+      draftBtn.textContent = '📝 খসড়া হিসেবে সেভ করুন';
       if(data.success){
-        showPostMsg(data.scheduled ? '✓ পোস্ট সিডিউল করা হয়েছে, নির্ধারিত সময়ে প্রকাশ পাবে।' : '✓ পোস্ট যোগ হয়েছে।', true);
+        const msg = data.draft
+          ? '✓ খসড়া হিসেবে সেভ হয়েছে — এটা সাইটে দেখাবে না, পরে "প্রকাশ করুন" চাপলে লাইভ হবে।'
+          : (data.scheduled ? '✓ পোস্ট সিডিউল করা হয়েছে, নির্ধারিত সময়ে প্রকাশ পাবে।' : '✓ পোস্ট যোগ হয়েছে।');
+        showPostMsg(msg, true);
         titleEl.value = '';
         contentEl.value = '';
         if(scheduleEl) scheduleEl.value = '';
@@ -1027,9 +1044,28 @@ function addPost(){
     })
     .catch(() => {
       btn.disabled = false;
+      draftBtn.disabled = false;
       btn.textContent = 'পোস্ট করুন';
+      draftBtn.textContent = '📝 খসড়া হিসেবে সেভ করুন';
       showPostMsg('সংযোগে সমস্যা হয়েছে।', false);
     });
+}
+
+function publishDraftNow(rowIndex){
+  if(!confirm('এই খসড়া পোস্টটি এখনই প্রকাশ করতে চান? প্রকাশ হলে সাবস্ক্রাইবারদের নোটিফিকেশনও যাবে।')) return;
+  const pw = localStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
+    '&row=' + encodeURIComponent(rowIndex) +
+    '&status=')
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        loadAdminPosts();
+      } else {
+        alert('প্রকাশ করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(() => alert('সংযোগে সমস্যা হয়েছে।'));
 }
 
 function publishPostNow(rowIndex){
@@ -1287,6 +1323,45 @@ function manualRefresh(){
       document.getElementById('loadingMsg').style.display = 'none';
       alert('লোড করতে সমস্যা হয়েছে।');
     });
+}
+
+// ============ রেজিস্ট্রেশন লিস্ট CSV এক্সপোর্ট (বর্তমানে যা ফিল্টার/সার্চ করা আছে, ঠিক তাই এক্সপোর্ট হবে) ============
+function csvCell(v){
+  const s = (v === null || v === undefined) ? '' : String(v);
+  // এক্সেল/গুগল শিটে ঠিকমতো খোলার জন্য কমা, ডাবল-কোট বা নতুন লাইন থাকলে কোটেড করা হচ্ছে
+  if(/[",\n]/.test(s)){
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function exportRegistrationsCSV(){
+  const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
+  if(!rows || rows.length === 0){
+    alert('এক্সপোর্ট করার মতো কোনো ডেটা নেই।');
+    return;
+  }
+  const headers = ['তারিখ', 'নাম', 'আবেদন নম্বর', 'ফোন', 'ইমেইল', 'প্ল্যাটফর্ম', 'বিভাগ', 'জেলা', 'এলাকা', 'পেমেন্ট মাধ্যম', 'লেনদেন আইডি', 'প্রেরকের নম্বর', 'স্ট্যাটাস', 'প্রাইভেট নোট'];
+  const lines = [headers.map(csvCell).join(',')];
+  rows.forEach(r => {
+    lines.push([
+      r.date, r.fullName, r.appId, r.phone, r.email, r.platform,
+      r.division, r.district, r.areaDetail, r.paymentMethod, r.txnId,
+      r.senderNumber, r.status, r.note
+    ].map(csvCell).join(','));
+  });
+  // এক্সেল/গুগল শিটে বাংলা ঠিকভাবে দেখানোর জন্য UTF-8 BOM যোগ করা হচ্ছে
+  const csvContent = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = 'registrations-' + stamp + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 function renderList(rows){
