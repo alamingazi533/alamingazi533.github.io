@@ -218,10 +218,16 @@
     position:absolute; left:14px; top:22px;
   }
   header{position:relative;}
+  /* সেভ করা লগইন থাকলে যাচাই চলার সময় লগইন ফর্ম না দেখিয়ে "লোড হচ্ছে" দেখানো হয় */
+  #sessionLoading{display:none; text-align:center; padding:80px 20px; color:var(--muted); font-size:15px;}
+  .has-session #loginBox{display:none !important;}
+  .has-session #sessionLoading{display:block;}
 </style>
+<script>try{ var __t = localStorage.getItem('adminPw'); if(__t && __t.indexOf('tk_') === 0){ document.documentElement.className += ' has-session'; } }catch(e){}</script>
 </head>
 <body>
 
+<div id="sessionLoading">⏳ লোড হচ্ছে...</div>
 <div id="loginBox">
   <button id="loginThemeToggleBtn" onclick="toggleTheme()" title="ডার্ক/লাইট মোড" style="position:absolute; left:14px; top:14px; background:transparent; border:1px solid var(--line); color:var(--ink); padding:6px 10px; border-radius:7px; font-size:14px; cursor:pointer;">🌙</button>
   <h2>অ্যাডমিন লগইন</h2>
@@ -1506,6 +1512,7 @@ function verifyAndEnter(){
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
+      document.documentElement.classList.remove('has-session');
       if(data.success){
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('panel').style.display = 'block';
@@ -1532,12 +1539,14 @@ function verifyAndEnter(){
       }
     })
     .catch(() => {
+      document.documentElement.classList.remove('has-session');
       document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
       document.getElementById('loginErr').style.display = 'block';
     });
 }
 
 function logout(){
+  document.documentElement.classList.remove('has-session');
   const oldTok = localStorage.getItem('adminPw');
   localStorage.removeItem('adminPw');
   if(oldTok){ try{ fetch(SCRIPT_URL + '?action=logout&password=' + encodeURIComponent(oldTok)).catch(()=>{}); }catch(err){} }
@@ -1811,7 +1820,8 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 try{
   sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
   const savedTok = localStorage.getItem('adminPw');
-  if(savedTok && savedTok.indexOf('tk_') !== 0){ localStorage.removeItem('adminPw'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
+  if(savedTok && savedTok.indexOf('tk_') !== 0){ localStorage.removeItem('adminPw'); }
+  if(!localStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
 }catch(err){}
 if(localStorage.getItem('adminPw')){
   verifyAndEnter();
