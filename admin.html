@@ -1248,6 +1248,14 @@ function deletePost(rowIndex){
 // ============ ভিজিটর অ্যানালিটিক্স (সময়, ডিভাইস ব্রেকডাউন, লাইভ) ============
 let visitStatsTimer = null;
 
+function fmtDur(sec){
+  sec = parseInt(sec, 10) || 0;
+  if(sec <= 0) return '—';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  const bn = n => n.toLocaleString('bn-BD');
+  return m > 0 ? (bn(m) + ' মি ' + bn(s) + ' সে') : (bn(s) + ' সে');
+}
+
 function loadVisitStats(){
   const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=getVisitStats&password=' + encodeURIComponent(pw))
@@ -1259,7 +1267,9 @@ function loadVisitStats(){
       dash.innerHTML =
         '<div class="dash-item"><div class="num">' + data.total + '</div><div class="lbl">মোট ভিজিট</div></div>' +
         '<div class="dash-item"><div class="num">' + data.today + '</div><div class="lbl">আজ</div></div>' +
-        '<div class="dash-item"><div class="num">' + data.liveNow + '</div><div class="lbl">এখন অনলাইন</div></div>';
+        '<div class="dash-item"><div class="num">' + data.liveNow + '</div><div class="lbl">এখন অনলাইন</div></div>' +
+        '<div class="dash-item"><div class="num">' + fmtDur(data.avgDuration) + '</div><div class="lbl">গড় সময় (সব)</div></div>' +
+        '<div class="dash-item"><div class="num">' + fmtDur(data.avgDurationToday) + '</div><div class="lbl">গড় সময় (আজ)</div></div>';
 
       const badgeEl = document.getElementById('liveNowBadge');
       badgeEl.innerHTML = data.liveNow > 0
@@ -1319,7 +1329,7 @@ function loadVisitStats(){
       listEl.innerHTML = data.recent.map(v =>
         '<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; gap:8px;">' +
           '<span>' + (deviceIcon[v.device] || '❔') + ' ' + v.device + (v.location ? ' • 📍 ' + String(v.location).replace(/</g,'&lt;') : '') + '</span>' +
-          '<span style="color:var(--muted); white-space:nowrap;">' + v.time + '</span>' +
+          '<span style="color:var(--muted); white-space:nowrap;">' + v.time + (v.duration ? ' • ⏱ ' + fmtDur(v.duration) : '') + '</span>' +
         '</div>'
       ).join('');
     })

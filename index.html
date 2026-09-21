@@ -4958,6 +4958,38 @@ function submitPostComment(postId){
 }
 
 // ============ ভিজিট ট্র্যাক করা (নীরবে, সময়, ডিভাইস ও আনুমানিক লোকেশনসহ) ============
+// ============ ভিজিটর কত সময় সাইটে সক্রিয় ছিলেন তা মাপা (শুধু পেজ স্ক্রিনে খোলা থাকলে সময় ধরা হয়) ============
+let __visitId = null;
+let __activeMs = 0;
+let __visibleSince = (document.visibilityState === 'visible') ? Date.now() : null;
+let __lastSentSec = 0;
+function __activeSeconds(){
+  let ms = __activeMs;
+  if(__visibleSince) ms += (Date.now() - __visibleSince);
+  return Math.round(ms / 1000);
+}
+function sendVisitDuration(){
+  if(!__visitId) return;
+  const sec = __activeSeconds();
+  if(sec < 1 || sec === __lastSentSec) return;
+  __lastSentSec = sec;
+  try{
+    fetch(SCRIPT_URL + '?action=trackDuration&id=' + encodeURIComponent(__visitId) + '&sec=' + sec,
+      { keepalive: true, mode: 'no-cors' }).catch(()=>{});
+  }catch(err){}
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden'){
+    if(__visibleSince){ __activeMs += (Date.now() - __visibleSince); __visibleSince = null; }
+    sendVisitDuration();
+  } else {
+    __visibleSince = Date.now();
+  }
+});
+window.addEventListener('pagehide', sendVisitDuration);
+// মোবাইলে ব্রাউজার হঠাৎ বন্ধ হয়ে গেলে যেন সময় হারিয়ে না যায়, তাই স্ক্রিনে থাকা অবস্থায় প্রতি ৪৫ সেকেন্ডে একবার পাঠানো হয়
+setInterval(function(){ if(document.visibilityState === 'visible') sendVisitDuration(); }, 45000);
+
 function detectDeviceType(){
   const ua = navigator.userAgent || '';
   if(/iPad|Tablet|Nexus 7|Nexus 10|KFAPWI/i.test(ua)) return 'ট্যাবলেট';
@@ -4982,7 +5014,10 @@ function trackVisitWithLocation(){
   Promise.race([geoLookup, timeout]).then(location => {
     let url = SCRIPT_URL + '?action=trackVisit&device=' + encodeURIComponent(device);
     if(location) url += '&location=' + encodeURIComponent(location);
-    fetch(url).then(()=> loadStats()).catch(()=>{});
+    fetch(url)
+      .then(r => r.json().catch(()=> null))
+      .then(d => { if(d && d.id){ __visitId = d.id; } loadStats(); })
+      .catch(()=>{});
   });
 }
 trackVisitWithLocation();
