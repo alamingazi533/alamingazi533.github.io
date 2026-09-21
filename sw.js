@@ -1,5 +1,5 @@
 try {
-  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKWorker.js');
+  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 } catch (e) {
   // OneSignal লোড ব্যর্থ হলেও সাইটের মূল অফলাইন-ক্যাশিং যেন থেমে না যায়
 }
