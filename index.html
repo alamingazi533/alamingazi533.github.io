@@ -4282,7 +4282,7 @@ function renderPhotoGrid(){
   if(withImages.length === 0){ wrap.innerHTML = ''; return; }
   wrap.innerHTML = withImages.map(p =>
     '<a class="blog-photo-card" href="?post=' + encodeURIComponent(p.id) + '">' +
-      '<img src="' + p.imageUrl + '" alt="" loading="lazy">' +
+      '<img src="' + p.imageUrl + '" alt="' + blogEscape(p.title) + '" loading="lazy">' +
       '<div class="post-title">' + blogEscape(p.title) + '</div>' +
     '</a>'
   ).join('');
@@ -4336,7 +4336,7 @@ function renderCategorySections(){
     if(posts.length === 0) return;
     const mainPost = posts[0];
     const sideList = posts.slice(1);
-    const mainImg = mainPost.imageUrl ? '<img src="' + mainPost.imageUrl + '" alt="" loading="lazy">' : '';
+    const mainImg = mainPost.imageUrl ? '<img src="' + mainPost.imageUrl + '" alt="' + blogEscape(mainPost.title) + '" loading="lazy">' : '';
     const mainExcerpt = blogEscape(blogExcerpt(mainPost.content, 110));
     html +=
       '<div class="blog-cat-block">' +
@@ -4355,7 +4355,7 @@ function renderCategorySections(){
           (sideList.length > 0
             ? '<ul class="blog-cat-side-list">' + sideList.map(p =>
                 '<li>' +
-                  (p.imageUrl ? '<img src="' + p.imageUrl + '" alt="" loading="lazy">' : '') +
+                  (p.imageUrl ? '<img src="' + p.imageUrl + '" alt="' + blogEscape(p.title) + '" loading="lazy">' : '') +
                   '<a href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a>' +
                 '</li>'
               ).join('') + '</ul>'
@@ -4372,7 +4372,7 @@ function renderBlogCard(p, featured, small){
   const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
-    ? '<img src="' + p.imageUrl + '" alt="" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
+    ? '<img src="' + p.imageUrl + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
     : '';
   const mediaTag = (!p.imageUrl && p.videoUrl)
     ? '<span style="display:inline-block; font-size:11.5px; color:var(--forest); margin-bottom:6px;">🎬 ভিডিওসহ পোস্ট</span>'
@@ -4575,7 +4575,7 @@ function renderFeatureHero(p){
   const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
-    ? '<img src="' + p.imageUrl + '" alt="" loading="lazy">'
+    ? '<img src="' + p.imageUrl + '" alt="' + safeTitle + '" loading="lazy">'
     : '';
   return '<a class="blog-feature-main" href="' + href + '"' + clickAttr + '>' +
     thumbHtml +
@@ -4591,7 +4591,7 @@ function renderThumbItem(p){
   const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
-    ? '<img src="' + p.imageUrl + '" alt="" loading="lazy">'
+    ? '<img src="' + p.imageUrl + '" alt="' + safeTitle + '" loading="lazy">'
     : '';
   return '<a class="blog-thumb-item" href="' + href + '"' + clickAttr + '>' +
     thumbHtml +
