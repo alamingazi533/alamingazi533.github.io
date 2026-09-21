@@ -3781,6 +3781,7 @@ function clearDraft(){
 }
 
 function applyRegFormView(show, shouldScroll){
+  if(show){ try{ reportFormStage(1); }catch(err){} }
   const section = document.getElementById('mainFormSection');
   const landingTop = document.getElementById('landingTop');
   const landingBottom = document.getElementById('landingBottom');
@@ -4020,6 +4021,7 @@ form.addEventListener('submit', async (e)=>{
     if(typeof gtag === 'function'){
       gtag('event', 'registration_submit', { 'event_category': 'engagement', 'event_label': 'application_form' });
     }
+    try{ reportFormStage(3); }catch(err){}
 
     const now = new Date();
     const appIdDisplayEl = document.getElementById('appIdDisplay');
@@ -4959,7 +4961,7 @@ function submitPostComment(postId){
 
 // ============ ভিজিট ট্র্যাক করা (নীরবে, সময়, ডিভাইস ও আনুমানিক লোকেশনসহ) ============
 // ============ ভিজিটর কত সময় সাইটে সক্রিয় ছিলেন তা মাপা (শুধু পেজ স্ক্রিনে খোলা থাকলে সময় ধরা হয়) ============
-let __visitId = null;
+var __visitId = null;
 let __activeMs = 0;
 let __visibleSince = (document.visibilityState === 'visible') ? Date.now() : null;
 let __lastSentSec = 0;
@@ -4990,6 +4992,65 @@ window.addEventListener('pagehide', sendVisitDuration);
 // মোবাইলে ব্রাউজার হঠাৎ বন্ধ হয়ে গেলে যেন সময় হারিয়ে না যায়, তাই স্ক্রিনে থাকা অবস্থায় প্রতি ৪৫ সেকেন্ডে একবার পাঠানো হয়
 setInterval(function(){ if(document.visibilityState === 'visible') sendVisitDuration(); }, 45000);
 
+
+// ============ ভিজিটর কোথা থেকে এল (Google, Facebook...) ============
+function detectTrafficSource(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const utm = params.get('utm_source') || params.get('src');
+    if(utm) return String(utm).slice(0, 30);
+    const ref = (document.referrer || '').toLowerCase();
+    if(!ref) return 'সরাসরি';
+    if(ref.indexOf(window.location.hostname.toLowerCase()) !== -1) return 'সরাসরি';
+    if(/facebook|fb\.com|fb\.me|fbcdn|com\.facebook/.test(ref)) return 'Facebook';
+    if(/instagram/.test(ref)) return 'Instagram';
+    if(/youtube|youtu\.be/.test(ref)) return 'YouTube';
+    if(/whatsapp/.test(ref)) return 'WhatsApp';
+    if(/tiktok/.test(ref)) return 'TikTok';
+    if(/t\.co\/|twitter\.com|x\.com/.test(ref)) return 'X/Twitter';
+    if(/bing\./.test(ref)) return 'Bing';
+    if(/google\.|googlequicksearchbox/.test(ref)) return 'Google';
+    if(/^android-app:\/\//.test(ref)) return 'অ্যাপ';
+    const host = new URL(document.referrer).hostname.replace(/^www\./, '');
+    return host.slice(0, 40) || 'অন্যান্য';
+  }catch(err){ return 'সরাসরি'; }
+}
+
+// ============ নতুন না আগে এসেছেন (এই ব্রাউজারে) ============
+function markReturningVisitor(){
+  try{
+    const k = 'fbh_seen_v1';
+    const seen = localStorage.getItem(k);
+    localStorage.setItem(k, String(Date.now()));
+    return seen ? '1' : '0';
+  }catch(err){ return ''; }
+}
+
+// ============ ফর্ম ফানেল: ১ = ফর্ম খুলেছে, ২ = লেখা শুরু, ৩ = জমা দিয়েছে ============
+// ভিজিটের আইডি আসার আগে ঘটলে মনে রেখে পরে পাঠানো হয় (এই ভেরিয়েবলে ইচ্ছে করেই শুরুর মান দেওয়া নেই)
+var __wantedStage;
+var __sentStage;
+function reportFormStage(stage){
+  __wantedStage = Math.max(__wantedStage || 0, stage);
+  flushFormStage();
+}
+function flushFormStage(){
+  if(!__visitId) return;
+  if((__wantedStage || 0) > (__sentStage || 0)){
+    __sentStage = __wantedStage;
+    try{
+      fetch(SCRIPT_URL + '?action=trackFormStage&id=' + encodeURIComponent(__visitId) + '&stage=' + __sentStage,
+        { keepalive: true, mode: 'no-cors' }).catch(()=>{});
+    }catch(err){}
+  }
+}
+(function(){
+  try{
+    const f = document.getElementById('regForm');
+    if(f){ f.addEventListener('input', function(){ reportFormStage(2); }, { once: true }); }
+  }catch(err){}
+})();
+
 function detectDeviceType(){
   const ua = navigator.userAgent || '';
   if(/iPad|Tablet|Nexus 7|Nexus 10|KFAPWI/i.test(ua)) return 'ট্যাবলেট';
@@ -4998,6 +5059,8 @@ function detectDeviceType(){
 }
 function trackVisitWithLocation(){
   const device = detectDeviceType();
+  const __trafficSource = detectTrafficSource();
+  const __returningFlag = markReturningVisitor();
   // IP ঠিকানা থেকে আনুমানিক শহর/দেশ বের করা হয় (একটা ফ্রি, নিবন্ধনবিহীন সার্ভিস দিয়ে)।
   // এটা ব্যর্থ হলেও ভিজিট গণনা যাতে থেমে না যায়, তাই সবসময় ৩ সেকেন্ডের মধ্যে ফলাফল না
   // পেলে লোকেশন ছাড়াই ট্র্যাক করে ফেলা হয়।
@@ -5014,9 +5077,10 @@ function trackVisitWithLocation(){
   Promise.race([geoLookup, timeout]).then(location => {
     let url = SCRIPT_URL + '?action=trackVisit&device=' + encodeURIComponent(device);
     if(location) url += '&location=' + encodeURIComponent(location);
+    url += '&src=' + encodeURIComponent(__trafficSource) + '&ret=' + __returningFlag;
     fetch(url)
       .then(r => r.json().catch(()=> null))
-      .then(d => { if(d && d.id){ __visitId = d.id; } loadStats(); })
+      .then(d => { if(d && d.id){ __visitId = d.id; flushFormStage(); } loadStats(); })
       .catch(()=>{});
   });
 }

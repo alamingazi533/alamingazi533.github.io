@@ -301,6 +301,7 @@
         <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">শীর্ষ লোকেশন</div>
         <div id="topLocationsList"></div>
       </div>
+      <div id="insightsBlock"></div>
       <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">সাম্প্রতিক ভিজিট</div>
       <div id="recentVisitsList" style="max-height:260px; overflow-y:auto;">লোড হচ্ছে...</div>
       <div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:center;">প্রতি ৫ সেকেন্ডে অটো-আপডেট হয়</div>
@@ -387,6 +388,30 @@
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
+
+// ============ পাসওয়ার্ড URL-এ না পাঠিয়ে POST-এর বডিতে পাঠানো ============
+// ব্রাউজার হিস্ট্রি ও লগে যেন পাসওয়ার্ড না থাকে, তাই ?password=... বা newPassword=... থাকা GET কল
+// স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভার একই কাজ করে)।
+(function(){
+  const origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try{
+      if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
+         /[?&](password|newPassword)=/.test(input) &&
+         (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
+        const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
+        const params = {};
+        new URLSearchParams(qs).forEach(function(v, k){ params[k] = v; });
+        return origFetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ __get: true, params: params })
+        });
+      }
+    }catch(err){}
+    return origFetch(input, init);
+  };
+})();
 const STATUS_OPTIONS = ["অপেক্ষমান", "কাজ চলছে", "সম্পন্ন", "বাতিল"];
 // স্ট্যাটাস আগে ফ্রি-টেক্সট ইনপুট দিয়ে টাইপ করা হতো বলে ভুলবশত অতিরিক্ত স্পেস/টাইপো ঢুকে যেতে পারত,
 // যার ফলে ফিল্টার চিপে ক্লিক করলে "মিল না পাওয়ায়" এন্ট্রি বাদ পড়ে যেত। তাই তুলনা করার আগে সবসময়
@@ -1248,6 +1273,62 @@ function deletePost(rowIndex){
 // ============ ভিজিটর অ্যানালিটিক্স (সময়, ডিভাইস ব্রেকডাউন, লাইভ) ============
 let visitStatsTimer = null;
 
+function renderVisitInsights(data){
+  const box = document.getElementById('insightsBlock');
+  if(!box) return;
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const bn = n => Number(n).toLocaleString('bn-BD');
+  const head = t => '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin:14px 0 8px;">' + t + '</div>';
+  const bar = (label, count, max) => {
+    const pct = max > 0 ? Math.round(count / max * 100) : 0;
+    return '<div style="margin-bottom:7px;">' +
+      '<div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px;"><span>' + esc(label) + '</span><span style="color:var(--muted);">' + bn(count) + '</span></div>' +
+      '<div style="background:var(--paper-dark); border-radius:5px; height:6px; overflow:hidden;"><div style="background:var(--forest); height:100%; width:' + pct + '%;"></div></div></div>';
+  };
+  let html = '';
+
+  if(data.topSources && data.topSources.length){
+    const max = data.topSources[0].count;
+    html += head('🔗 ভিজিটর কোথা থেকে আসছে') + data.topSources.map(s => bar(s.source, s.count, max)).join('');
+  }
+
+  const nv = data.newVisitors || 0, rv = data.returningVisitors || 0;
+  if(nv + rv > 0){
+    const rpct = Math.round(rv / (nv + rv) * 100);
+    html += head('🔁 নতুন ও ফিরে আসা ভিজিটর') +
+      '<div class="dashboard">' +
+        '<div class="dash-item"><div class="num">' + bn(nv) + '</div><div class="lbl">নতুন</div></div>' +
+        '<div class="dash-item"><div class="num">' + bn(rv) + '</div><div class="lbl">ফিরে এসেছেন</div></div>' +
+        '<div class="dash-item"><div class="num">' + bn(rpct) + '%</div><div class="lbl">ফেরত হার</div></div>' +
+      '</div>';
+  }
+
+  if(data.hourly && data.hourly.length === 24 && data.hourly.some(n => n > 0)){
+    const maxH = Math.max.apply(null, data.hourly.concat([1]));
+    html += head('🕒 কোন সময়ে বেশি ভিজিট (গত ৩০ দিন, বাংলাদেশ সময়)') +
+      '<div style="display:flex; align-items:flex-end; gap:2px; height:90px; padding-top:6px;">' +
+      data.hourly.map((n, h) => {
+        const ht = Math.max(Math.round(n / maxH * 100), n > 0 ? 6 : 2);
+        const lbl = (h % 3 === 0) ? ((h % 12 || 12) + (h < 12 ? 'AM' : 'PM')) : '';
+        return '<div title="' + h + ':00 → ' + n + ' ভিজিট" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">' +
+          '<div style="width:100%; height:' + ht + '%; background:var(--forest); border-radius:3px 3px 0 0; min-height:2px;"></div>' +
+          '<div style="font-size:8px; color:var(--muted); margin-top:3px; height:10px; white-space:nowrap;">' + lbl + '</div></div>';
+      }).join('') + '</div>';
+  }
+
+  const f = data.funnel;
+  if(f && f.visits > 0){
+    const pc = (a, b) => b > 0 ? ' (' + bn(Math.round(a / b * 100)) + '%)' : '';
+    html += head('📝 ফর্ম ফানেল (নতুন ভিজিট থেকে হিসাব)') +
+      bar('ভিজিট', f.visits, f.visits) +
+      bar('ফর্ম খুলেছেন' + pc(f.opened, f.visits), f.opened, f.visits) +
+      bar('লেখা শুরু করেছেন' + pc(f.started, f.opened), f.started, f.visits) +
+      bar('জমা দিয়েছেন' + pc(f.submitted, f.started), f.submitted, f.visits);
+  }
+
+  box.innerHTML = html;
+}
+
 function fmtDur(sec){
   sec = parseInt(sec, 10) || 0;
   if(sec <= 0) return '—';
@@ -1320,6 +1401,7 @@ function loadVisitStats(){
         topLocBlock.style.display = 'none';
       }
 
+      try{ renderVisitInsights(data); }catch(err){}
       const listEl = document.getElementById('recentVisitsList');
       if(!data.recent || data.recent.length === 0){
         listEl.textContent = 'এখনো কোনো ভিজিট রেকর্ড নেই।';
@@ -1328,7 +1410,7 @@ function loadVisitStats(){
       const deviceIcon = { 'মোবাইল': '📱', 'ট্যাবলেট': '📟', 'ডেস্কটপ': '💻' };
       listEl.innerHTML = data.recent.map(v =>
         '<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; gap:8px;">' +
-          '<span>' + (deviceIcon[v.device] || '❔') + ' ' + v.device + (v.location ? ' • 📍 ' + String(v.location).replace(/</g,'&lt;') : '') + '</span>' +
+          '<span>' + (deviceIcon[v.device] || '❔') + ' ' + v.device + (v.location ? ' • 📍 ' + String(v.location).replace(/</g,'&lt;') : '') + (v.source ? ' • 🔗 ' + String(v.source).replace(/</g,'&lt;') : '') + '</span>' +
           '<span style="color:var(--muted); white-space:nowrap;">' + v.time + (v.duration ? ' • ⏱ ' + fmtDur(v.duration) : '') + '</span>' +
         '</div>'
       ).join('');
