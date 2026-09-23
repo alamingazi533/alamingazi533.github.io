@@ -139,7 +139,11 @@
   .badge.progress{background:var(--badge-progress-bg); color:var(--badge-progress-text);}
   .badge.cancel{background:var(--badge-cancel-bg); color:var(--maroon);}
 
-  .card-body{ padding:14px 16px 16px; }
+  .card-body{ padding:14px 16px 16px; display:none; }
+  .card-body.open{ display:block; }
+  .card-top{ cursor:pointer; }
+  .cardArrow{ font-size:13px; color:var(--muted); margin-left:2px; flex-shrink:0; }
+  .postExpandBtn{ background:none; border:none; color:var(--forest); font-size:12.5px; font-weight:700; padding:4px 0; cursor:pointer; font-family:inherit; }
   .info-grid{ display:flex; flex-direction:column; gap:9px; }
   .info-item{ display:flex; gap:9px; align-items:flex-start; font-size:13.5px; line-height:1.5; }
   .info-item .ic{ flex-shrink:0; width:18px; text-align:center; }
@@ -938,8 +942,11 @@ function loadAdminPosts(){
       window.__adminPostsData = {};
       data.posts.forEach(p => { window.__adminPostsData[p.rowIndex] = p; });
       listEl.innerHTML = data.posts.map(p => {
+        const rawContent = String(p.content || '');
         const safeTitle = String(p.title || '').replace(/</g,'&lt;');
-        const safeContent = String(p.content || '').replace(/</g,'&lt;');
+        const isLongContent = rawContent.length > 220;
+        const shortRaw = isLongContent ? rawContent.slice(0, 220) + '…' : rawContent;
+        const safeShortContent = shortRaw.replace(/</g,'&lt;');
         const safeId = String(p.id || '').replace(/</g,'&lt;');
         const mediaHtml =
           (p.imageUrl ? '<img src="' + p.imageUrl + '" style="max-width:100%; max-height:140px; border-radius:8px; margin:6px 0; display:block;">' : '') +
@@ -962,7 +969,8 @@ function loadAdminPosts(){
           '<div style="font-size:12px; color:var(--muted);">' + (p.date || '') + ' &nbsp;·&nbsp; <span style="color:var(--forest); font-weight:600;">' + String(p.category || 'সাধারণ আপডেট').replace(/</g,'&lt;') + '</span>' + scheduleBadge + '</div>' +
           '<div class="postView' + p.rowIndex + '">' +
             '<div style="font-size:14.5px; font-weight:700; margin:4px 0;">' + safeTitle + '</div>' +
-            '<div style="font-size:13.5px; line-height:1.5; white-space:pre-wrap;">' + safeContent + '</div>' +
+            '<div class="postContentText' + p.rowIndex + '" data-full="' + encodeURIComponent(rawContent) + '" data-short="' + encodeURIComponent(shortRaw) + '" data-expanded="0" style="font-size:13.5px; line-height:1.5; white-space:pre-wrap;">' + safeShortContent + '</div>' +
+            (isLongContent ? '<button type="button" class="postExpandBtn" onclick="togglePostContent(' + p.rowIndex + ')">আরও দেখুন ▾</button>' : '') +
             mediaHtml +
             statsRow +
             '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
@@ -977,6 +985,22 @@ function loadAdminPosts(){
       }).join('');
     })
     .catch(()=>{ listEl.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+}
+
+function togglePostContent(rowIndex){
+  const el = document.querySelector('.postContentText' + rowIndex);
+  if(!el) return;
+  const btn = el.nextElementSibling;
+  const expanded = el.dataset.expanded === '1';
+  if(expanded){
+    el.textContent = decodeURIComponent(el.dataset.short);
+    el.dataset.expanded = '0';
+    if(btn && btn.classList.contains('postExpandBtn')) btn.textContent = 'আরও দেখুন ▾';
+  } else {
+    el.textContent = decodeURIComponent(el.dataset.full);
+    el.dataset.expanded = '1';
+    if(btn && btn.classList.contains('postExpandBtn')) btn.textContent = 'সংক্ষিপ্ত করুন ▴';
+  }
 }
 
 function startEditPost(rowIndex){
@@ -1619,9 +1643,12 @@ function renderList(rows){
         '<div style="display:flex; align-items:center; gap:8px;">' +
           '<input type="checkbox" class="bulkCheck" data-row="' + row.rowIndex + '" style="width:18px; height:18px; flex-shrink:0;">' +
           (row.photoUrl ? '<img class="applicant-photo" src="' + row.photoUrl + '" alt="ছবি" onclick="window.open(\'' + row.photoUrl + '\', \'_blank\')">' : '') +
-          '<div><div class="card-name">' + esc(row.fullName) + '</div><div class="card-id">' + (row.appId === 'N/A' ? 'সারি #' + row.rowIndex : esc(row.appId)) + '</div></div>' +
+          '<div><div class="card-name">' + esc(row.fullName) + '</div><div class="card-id">' + (row.appId === 'N/A' ? 'সারি #' + row.rowIndex : esc(row.appId)) + ' • ' + esc(row.date) + '</div></div>' +
         '</div>' +
-        '<span class="' + badgeClass(row.status) + '">' + esc(row.status) + '</span>' +
+        '<div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">' +
+          '<span class="' + badgeClass(row.status) + '">' + esc(row.status) + '</span>' +
+          '<span class="cardArrow">▸</span>' +
+        '</div>' +
       '</div>' +
       '<div class="card-body">' +
         '<div class="info-grid">' +
@@ -1674,6 +1701,21 @@ function renderList(rows){
       updateBulkBar();
     });
     noteSaveBtn.addEventListener('click', () => saveNote(row.rowIndex, noteInput.value, noteSaveBtn));
+
+    // ============ কার্ড ট্যাপ করলে বিস্তারিত খোলা/বন্ধ হয় (পেজ ছোট রাখতে ডিফল্টে বন্ধ থাকে) ============
+    const topEl = card.querySelector('.card-top');
+    const bodyEl = card.querySelector('.card-body');
+    const arrowEl = card.querySelector('.cardArrow');
+    topEl.addEventListener('click', (e) => {
+      if(e.target.closest('.bulkCheck') || e.target.closest('.applicant-photo')) return;
+      const isOpen = bodyEl.classList.toggle('open');
+      if(arrowEl) arrowEl.textContent = isOpen ? '▾' : '▸';
+    });
+    // অপেক্ষমান আবেদন — মনোযোগ দরকার, তাই ডিফল্টে খোলা থাকবে
+    if(row.status === 'অপেক্ষমান'){
+      bodyEl.classList.add('open');
+      if(arrowEl) arrowEl.textContent = '▾';
+    }
 
     listEl.appendChild(card);
   });
