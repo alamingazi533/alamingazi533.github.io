@@ -1807,7 +1807,7 @@ function normalizePhone(phone){
 function statusMessage(fullName, appId, status){
   const idLine = (appId && appId !== 'N/A') ? ('আবেদন নম্বর: ' + appId + '\n') : '';
   let line;
-  if(status === 'সম্পন্ন') line = 'আপনার আবেদনটির কাজ সম্পন্ন হয়েছে। ধন্যবাদ।\n\nআপনার অভিজ্ঞতা কেমন ছিল আমাদের জানাতে একটা ছোট্ট রিভিউ দিতে পারেন:\nhttps://alamingazi533.github.io/fb-help/';
+  if(status === 'সম্পন্ন') line = 'আপনার আবেদনটির কাজ সম্পন্ন হয়েছে। ধন্যবাদ।\n\nআপনার অভিজ্ঞতা কেমন ছিল আমাদের জানাতে একটা ছোট্ট রিভিউ দিতে পারেন:\nhttps://alamingazi533.github.io/';
   else if(status === 'কাজ চলছে') line = 'আপনার আবেদনটি নিয়ে কাজ চলছে। একটু অপেক্ষা করুন।';
   else if(status === 'বাতিল') line = 'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।';
   else line = 'আপনার আবেদনটি জমা হয়েছে, বর্তমানে অপেক্ষমান আছে।';
