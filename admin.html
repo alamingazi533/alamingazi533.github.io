@@ -1547,13 +1547,13 @@ function verifyAndEnter(){
         restoreScrollPosition();
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
+        loadAdminReviews();
+        loadAdminComments();
+        loadAdminPosts();
         updateBackupReminder();
-        setTimeout(loadAdminReviews, 200);
-        setTimeout(loadAdminComments, 500);
-        setTimeout(loadAdminPosts, 800);
-        setTimeout(loadVisitStats, 1100);
-        setTimeout(fetchPersistentStats, 1400);
+        loadVisitStats();
         startVisitStatsAutoRefresh();
+        fetchPersistentStats();
       } else {
         localStorage.removeItem('adminPw');
         document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
@@ -1643,7 +1643,7 @@ function renderList(rows){
         '<div style="display:flex; align-items:center; gap:8px;">' +
           '<input type="checkbox" class="bulkCheck" data-row="' + row.rowIndex + '" style="width:18px; height:18px; flex-shrink:0;">' +
           (row.photoUrl ? '<img class="applicant-photo" src="' + row.photoUrl + '" alt="ছবি" onclick="window.open(\'' + row.photoUrl + '\', \'_blank\')">' : '') +
-          '<div><div class="card-name">' + esc(row.fullName) + '</div><div class="card-id">' + (row.appId === 'N/A' ? 'সারি #' + row.rowIndex : esc(row.appId)) + ' • ' + esc(row.date) + '</div></div>' +
+          '<div><div class="card-name">' + esc(row.fullName) + '</div><div class="card-id">' + (row.appId === 'N/A' ? 'সারি #' + row.rowIndex : esc(row.appId)) + (/^\d{2}\/\d{2}\/\d{4}/.test(String(row.date || '')) ? ' • ' + esc(row.date) : '') + '</div></div>' +
         '</div>' +
         '<div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">' +
           '<span class="' + badgeClass(row.status) + '">' + esc(row.status) + '</span>' +
