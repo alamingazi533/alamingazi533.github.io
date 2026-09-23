@@ -1547,13 +1547,13 @@ function verifyAndEnter(){
         restoreScrollPosition();
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
-        loadAdminReviews();
-        loadAdminComments();
-        loadAdminPosts();
         updateBackupReminder();
-        loadVisitStats();
+        setTimeout(loadAdminReviews, 200);
+        setTimeout(loadAdminComments, 500);
+        setTimeout(loadAdminPosts, 800);
+        setTimeout(loadVisitStats, 1100);
+        setTimeout(fetchPersistentStats, 1400);
         startVisitStatsAutoRefresh();
-        fetchPersistentStats();
       } else {
         localStorage.removeItem('adminPw');
         document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
