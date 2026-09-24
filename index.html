@@ -4426,46 +4426,75 @@ function renderBlogCard(p, featured, small){
 
 function loadPosts(){
   const container = document.getElementById('postsContainer');
-  const cacheKey = 'publicBlogPostsCacheV2';
+  const cacheKey = 'publicBlogPostsCacheV3';
   const cacheTtl = 5 * 60 * 1000;
-  try {
-    const cached = sessionStorage.getItem(cacheKey);
-    if(cached){
-      const obj = JSON.parse(cached);
-      if(obj && obj.time && (Date.now() - obj.time) < cacheTtl && Array.isArray(obj.posts)){
-        __allPosts = obj.posts;
-        if(container){
-          const shown = __allPosts.slice(0, 4);
-          container.innerHTML = shown.length ? shown.map((p, i) => renderBlogCard(p, i === 0)).join('') : '<p class="posts-empty">এখনো কোনো আপডেট নেই।</p>';
-        }
-        renderRecentWidget();
-        renderCalendarWidget();
-        initBlogRouter();
-        return;
+  let settled = false;
+  let timer = null;
+  const finish = (fn)=>{
+    if(settled) return;
+    settled = true;
+    if(timer) clearTimeout(timer);
+    fn();
+  };
+  const render = (posts)=>{
+    __allPosts = Array.isArray(posts) ? posts : [];
+    if(container){
+      if(!__allPosts.length){
+        container.innerHTML = '<p class="posts-empty">এখনো কোনো আপডেট নেই।</p>';
+      } else {
+        container.innerHTML = __allPosts.slice(0,4).map((p,i)=>renderBlogCard(p,i===0)).join('');
       }
     }
-  } catch(err) {}
+    renderRecentWidget();
+    renderCalendarWidget();
+    initBlogRouter();
+  };
 
-  fetch(SCRIPT_URL + '?action=getPosts')
-    .then(r => r.json())
-    .then(data => {
-      __allPosts = (data.success && data.posts) ? data.posts : [];
-      try { sessionStorage.setItem(cacheKey, JSON.stringify({time: Date.now(), posts: __allPosts})); } catch(err) {}
-      if(container){
-        if(__allPosts.length === 0){
-          container.innerHTML = '<p class="posts-empty">এখনো কোনো আপডেট নেই।</p>';
-        } else {
-          const shown = __allPosts.slice(0, 4);
-          container.innerHTML = shown.map((p, i) => renderBlogCard(p, i === 0)).join('');
-        }
+  // আগে পাওয়া পোস্ট থাকলে সাথে সাথে দেখান — নেটওয়ার্কের জন্য পুরো ব্লগ আটকে থাকবে না।
+  try{
+    const cached = sessionStorage.getItem(cacheKey) || sessionStorage.getItem('publicBlogPostsCacheV2');
+    if(cached){
+      const obj = JSON.parse(cached);
+      if(obj && Array.isArray(obj.posts) && obj.posts.length){
+        render(obj.posts);
+        // ক্যাশ পুরনো হলেও ব্যাকগ্রাউন্ডে নতুন ডেটা আনার চেষ্টা চলবে।
       }
-      renderRecentWidget();
-      renderCalendarWidget();
+    }
+  }catch(err){}
+
+  if(container && !__allPosts.length){
+    container.innerHTML = '<p class="posts-empty">আপডেট লোড হচ্ছে…</p>';
+  }
+
+  timer = setTimeout(()=>{
+    finish(()=>{
+      if(container && !__allPosts.length){
+        container.innerHTML = '<p class="posts-empty">পোস্ট লোড হতে দেরি হচ্ছে। পরে আবার চেষ্টা করুন।</p>';
+      }
       initBlogRouter();
+    });
+  }, 12000);
+
+  fetch(SCRIPT_URL + '?action=getPosts&_=' + Date.now(), {cache:'no-store'})
+    .then(r=>{
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
     })
-    .catch(()=>{
-      if(container) container.innerHTML = '<p class="posts-empty">আপডেট লোড করতে সমস্যা হয়েছে।</p>';
-      initBlogRouter();
+    .then(data=>{
+      if(!data || data.success !== true) throw new Error(data && data.error ? data.error : 'getPosts failed');
+      const posts = Array.isArray(data.posts) ? data.posts : [];
+      try{ sessionStorage.setItem(cacheKey, JSON.stringify({time:Date.now(),posts:posts})); }catch(err){}
+      finish(()=>render(posts));
+    })
+    .catch(err=>{
+      console.error('getPosts error:', err);
+      finish(()=>{
+        // পুরনো ক্যাশ থাকলে সেটাই রাখুন; একেবারে কিছু না থাকলে পরিষ্কার বার্তা দেখান।
+        if(container && !__allPosts.length){
+          container.innerHTML = '<p class="posts-empty">পোস্ট এখন লোড হচ্ছে না। Admin/Apps Script সংযোগটি পরীক্ষা করুন।</p>';
+        }
+        initBlogRouter();
+      });
     });
 }
 loadPosts();
