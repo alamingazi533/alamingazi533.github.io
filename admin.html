@@ -228,7 +228,7 @@
   .has-session #sessionLoading{display:block;}
 </style>
 <script>try{ var __t = sessionStorage.getItem('adminPw'); if(__t && __t.indexOf('tk_') === 0){ document.documentElement.className += ' has-session'; } }catch(e){}</script>
-</head>
+<style id="admin-enhancements">.admin-tools-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.admin-tools-extra button{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer}@media(max-width:600px){.admin-tools-extra{grid-template-columns:1fr}}</style></head>
 <body>
 
 <div id="sessionLoading">⏳ লোড হচ্ছে...</div>
@@ -384,6 +384,47 @@
       </div>
     </div>
 
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('subscribersBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 📧 ব্লগ সাবস্ক্রাইবার <span id="subscriberBadge"></span></div>
+        <button onclick="event.stopPropagation(); loadSubscribers();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      </div>
+      <div id="subscribersBody" style="display:none; margin-top:10px;">
+        <div style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:8px;">
+          <button onclick="exportSubscribersCsv()" class="exportBtn" style="width:auto; flex:1; min-width:150px;">📥 Subscriber CSV</button>
+        </div>
+        <div id="subscribersList">লোড হচ্ছে...</div>
+      </div>
+    </div>
+
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('settingsBody', this)"><div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> ⚙️ সাইট সেটিংস</div><button onclick="event.stopPropagation(); loadSiteSettings();" style="padding:6px 12px;">লোড</button></div>
+      <div id="settingsBody" style="display:none; margin-top:10px;">
+        <label>সাইটের নাম</label><input id="siteSetTitle" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>WhatsApp নম্বর</label><input id="siteSetWhatsapp" style="width:100%;padding:9px;margin:4px 0 8px;" placeholder="017xxxxxxxx">
+        <label>Facebook Page URL</label><input id="siteSetFacebook" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>YouTube URL</label><input id="siteSetYoutube" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>Telegram URL</label><input id="siteSetTelegram" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>Contact Email</label><input id="siteSetEmail" type="email" style="width:100%;padding:9px;margin:4px 0 10px;">
+        <button onclick="saveSiteSettings()" style="width:100%;padding:10px;border:0;border-radius:8px;background:var(--forest);color:#fff;font-weight:700;">💾 সেটিংস সেভ করুন</button><div id="siteSettingsMsg" style="margin-top:8px;font-size:12.5px;"></div>
+      </div>
+    </div>
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">💾 ডেটা ব্যাকআপ</div><p style="font-size:12.5px;color:var(--muted);margin:0 0 9px;">Google Drive-এ Main, Posts, Reviews, Comments, Subscribers ও Visits-এর CSV ব্যাকআপ তৈরি হবে।</p>
+      <button onclick="backupNow()" id="backupNowBtn" style="width:100%;padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">☁️ এখনই ব্যাকআপ নিন</button><div id="backupNowMsg" style="margin-top:8px;font-size:12.5px;"></div><div class="admin-tools-extra"><button type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆️ উপরে যান</button><button type="button" onclick="clearAdminLocalCache()">🧹 লোকাল ক্যাশ পরিষ্কার</button></div><div id="adminLocalMsg" style="font-size:12px;margin-top:6px;color:var(--muted)"></div>
+    </div>
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">🛡️ নিরাপত্তা ও রিকভারি</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+        <button type="button" onclick="enableDailyBackup()" style="padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">🕐 Daily Backup চালু</button>
+        <button type="button" onclick="loadTrash()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">🗑️ Trash</button>
+        <button type="button" onclick="loadAdminActivity()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">📋 Activity Log</button>
+      </div>
+      <div id="securityToolsMsg" style="font-size:12px;margin-top:8px;color:var(--muted);"></div>
+      <div id="trashPanel" style="display:none;margin-top:10px;"></div>
+      <div id="activityPanel" style="display:none;margin-top:10px;"></div>
+    </div>
     <div class="toolbar" style="margin-top:0; flex-direction:column; align-items:stretch;">
       <button class="exportBtn" onclick="exportCsv()" title="বর্তমানে যা ফিল্টার/সার্চ করা আছে ঠিক তাই এক্সপোর্ট হবে">CSV ডাউনলোড করুন</button>
       <div id="backupReminder" style="font-size:12px; color:var(--muted); margin-top:6px; text-align:center;"></div>
@@ -474,7 +515,7 @@ let activeStatusFilter = 'সব';
 let activeDateFilterDays = 0;
 let selectedRowIndexes = new Set();
 
-const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody'];
+const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody', 'subscribersBody', 'settingsBody'];
 
 function toggleSection(id, headerEl){
   const body = document.getElementById(id);
@@ -664,6 +705,48 @@ window.addEventListener('scroll', () => {
     try{ sessionStorage.setItem('adminScrollY', String(window.scrollY)); }catch(err){}
   }, 200);
 });
+
+function loadSubscribers(){
+  const list = document.getElementById('subscribersList');
+  const badge = document.getElementById('subscriberBadge');
+  if(!list) return;
+  list.textContent = 'লোড হচ্ছে...';
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=listSubscribers&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success){ list.textContent = 'সাবস্ক্রাইবার লোড করতে সমস্যা হয়েছে।'; return; }
+      window.__subscribersData = data.subscribers || [];
+      if(badge) badge.textContent = '(' + window.__subscribersData.length + ')';
+      if(!window.__subscribersData.length){ list.textContent = 'এখনো কোনো সাবস্ক্রাইবার নেই।'; return; }
+      list.innerHTML = window.__subscribersData.map(s =>
+        '<div style="display:flex; justify-content:space-between; gap:8px; align-items:center; border-bottom:1px solid var(--line); padding:9px 0;">' +
+          '<div style="min-width:0;"><div style="font-size:13.5px; font-weight:600; word-break:break-all;">' + String(s.email).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' +
+          '<div style="font-size:11.5px; color:var(--muted);">' + String(s.date || '') + '</div></div>' +
+          '<button onclick="deleteSubscriber(' + s.rowIndex + ')" style="flex:0 0 auto; padding:6px 9px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon); font-size:12px;">মুছুন</button>' +
+        '</div>'
+      ).join('');
+    })
+    .catch(()=>{ list.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+}
+
+function deleteSubscriber(row){
+  if(!confirm('এই সাবস্ক্রাইবারকে মুছে ফেলবেন?')) return;
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=deleteSubscriber&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(row))
+    .then(r => r.json())
+    .then(data => { if(data.success) loadSubscribers(); else alert('মুছতে সমস্যা হয়েছে।'); })
+    .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function exportSubscribersCsv(){
+  const rows = window.__subscribersData || [];
+  if(!rows.length){ alert('এক্সপোর্ট করার মতো কোনো সাবস্ক্রাইবার নেই।'); return; }
+  const csv = ['তারিখ,ইমেইল'].concat(rows.map(r => '"' + String(r.date || '').replace(/"/g,'""') + '","' + String(r.email || '').replace(/"/g,'""') + '"')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'blog-subscribers.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
 
 function exportCsv(){
   const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
@@ -1523,6 +1606,10 @@ function exportReviewsCsv(){
     .catch(()=> alert('ডাউনলোড করতে সমস্যা হয়েছে।'));
 }
 
+
+function loadSiteSettings(){const pw=sessionStorage.getItem('adminPw')||'';fetch(SCRIPT_URL+'?action=getSiteSettings&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{if(!d.success){__handleAuthIssue(d.error);return;}const s=d.settings||{};siteSetTitle.value=s.siteTitle||'';siteSetWhatsapp.value=s.whatsapp||'';siteSetFacebook.value=s.facebook||'';siteSetYoutube.value=s.youtube||'';siteSetTelegram.value=s.telegram||'';siteSetEmail.value=s.contactEmail||'';}).catch(()=>{});}
+function saveSiteSettings(){const pw=sessionStorage.getItem('adminPw')||'',q=new URLSearchParams({action:'saveSiteSettings',password:pw,siteTitle:siteSetTitle.value.trim(),whatsapp:siteSetWhatsapp.value.trim(),facebook:siteSetFacebook.value.trim(),youtube:siteSetYoutube.value.trim(),telegram:siteSetTelegram.value.trim(),contactEmail:siteSetEmail.value.trim()});fetch(SCRIPT_URL+'?'+q.toString()).then(r=>r.json()).then(d=>{siteSettingsMsg.textContent=d.success?'✓ সেটিংস সেভ হয়েছে।':'✕ '+(d.error||'সেভ করা যায়নি।');siteSettingsMsg.style.color=d.success?'var(--ok)':'var(--maroon)';});}
+function backupNow(){const b=backupNowBtn,m=backupNowMsg;b.disabled=true;b.textContent='ব্যাকআপ তৈরি হচ্ছে...';const pw=sessionStorage.getItem('adminPw')||'';fetch(SCRIPT_URL+'?action=backupNow&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{if(d.success){m.textContent='✓ '+d.folderName+' তৈরি হয়েছে ('+(d.files||[]).length+'টি CSV)। Google Drive-এর “Site Backups” ফোল্ডারে আছে।';m.style.color='var(--ok)';localStorage.setItem('lastCsvExport',String(Date.now()));updateBackupReminder();}else{m.textContent='✕ '+(d.error||'ব্যাকআপ ব্যর্থ হয়েছে।');m.style.color='var(--maroon)';}}).catch(()=>{m.textContent='✕ সংযোগে সমস্যা হয়েছে।';m.style.color='var(--maroon)';}).finally(()=>{b.disabled=false;b.textContent='☁️ এখনই ব্যাকআপ নিন';});}
 function updateBackupReminder(){
   const el = document.getElementById('backupReminder');
   const last = localStorage.getItem('lastCsvExport');
@@ -1542,6 +1629,41 @@ function updateBackupReminder(){
     el.textContent = '✓ শেষ ব্যাকআপ ' + days + ' দিন আগে।';
     el.style.color = 'var(--muted)';
   }
+}
+
+
+function enableDailyBackup(){
+  const msg=document.getElementById('securityToolsMsg'); msg.textContent='Daily Backup চালু করা হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=setupDailyBackup&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
+    msg.textContent=d.success?'✓ প্রতিদিনের automatic backup চালু হয়েছে।':'✕ '+(d.error||'চালু করা যায়নি।');
+    msg.style.color=d.success?'var(--ok)':'var(--maroon)';
+  }).catch(()=>{msg.textContent='✕ সংযোগে সমস্যা হয়েছে।';msg.style.color='var(--maroon)';});
+}
+function loadTrash(){
+  const box=document.getElementById('trashPanel'); box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=listTrash&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
+    if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
+    if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">Trash খালি।</div>';return;}
+    box.innerHTML=d.rows.slice(0,50).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0;font-size:12.5px;"><span>🗑️ '+x.type+' · '+x.date+'</span><button onclick="restoreTrash('+x.rowIndex+')" style="padding:5px 9px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);">Restore</button></div>').join('');
+  }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
+}
+function restoreTrash(row){
+  if(!confirm('এই আইটেমটি আবার পোস্ট তালিকায় ফিরিয়ে আনবেন?')) return;
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=restoreTrash&password='+encodeURIComponent(pw)+'&row='+encodeURIComponent(row)).then(r=>r.json()).then(d=>{
+    if(d.success){loadTrash(); if(typeof loadAdminPosts==='function') loadAdminPosts();} else alert(d.error||'Restore করা যায়নি।');
+  }).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
+}
+function loadAdminActivity(){
+  const box=document.getElementById('activityPanel'); box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=listAdminActivity&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
+    if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
+    if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">এখনো কোনো activity log নেই।</div>';return;}
+    box.innerHTML='<div style="max-height:280px;overflow:auto;">'+d.rows.map(x=>'<div style="border-bottom:1px solid var(--line);padding:7px 0;font-size:12px;"><b>'+String(x.action||'').replace(/</g,'&lt;')+'</b> · '+String(x.date||'').replace(/</g,'&lt;')+'<div style="color:var(--muted);">'+String(x.details||'').replace(/</g,'&lt;')+'</div></div>').join('')+'</div>';
+  }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
 }
 
 function login(){
@@ -1602,6 +1724,9 @@ function verifyAndEnter(){
           loadVisitStats();
           startVisitStatsAutoRefresh();
         }, 1500);
+        setTimeout(() => {
+          loadSubscribers();
+        }, 1200);
       } else {
         sessionStorage.removeItem('adminPw');
         document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
@@ -1917,5 +2042,5 @@ if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
 }
 </script>
-</body>
+<script>function clearAdminLocalCache(){try{['lastCsvExport','adminOpenSections'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem('adminPw');const m=document.getElementById('adminLocalMsg');if(m)m.textContent='✓ লোকাল ক্যাশ/সেশন পরিষ্কার হয়েছে। নিরাপত্তার জন্য আবার লগইন করুন।';}catch(e){}}</script></body>
 </html>

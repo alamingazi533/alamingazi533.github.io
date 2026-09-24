@@ -2849,6 +2849,7 @@
     </div>
     <p class="site-footer-copy">© <span id="footerYear"></span> <span data-i18n="footer.copy">মোঃ আলামিন ইসলাম। সর্বস্বত্ব সংরক্ষিত।</span></p>
   </div>
+<div id="siteExtraLinks" class="site-extra-links"><a href="#contactSection">যোগাযোগ</a><button type="button" onclick="openSitePolicy('privacy')">গোপনীয়তা</button><button type="button" onclick="openSitePolicy('disclaimer')">ডিসক্লেইমার</button><a href="#faqSection">সাধারণ প্রশ্ন</a><a data-site-youtube href="#" target="_blank" rel="noopener">YouTube</a><a data-site-telegram href="#" target="_blank" rel="noopener">Telegram</a><a data-site-email href="#">ইমেইল</a></div>
 </footer>
 
 <a href="https://wa.me/8801764324313?text=%E0%A6%86%E0%A6%B8%E0%A6%B8%E0%A6%BE%E0%A6%B2%E0%A6%BE%E0%A6%AE%E0%A7%81%20%E0%A6%86%E0%A6%B2%E0%A6%BE%E0%A6%87%E0%A6%95%E0%A7%81%E0%A6%AE%2C%20%E0%A6%86%E0%A6%AE%E0%A6%BF%20%E0%A6%B8%E0%A6%BE%E0%A6%B9%E0%A6%BE%E0%A6%AF%E0%A7%8D%E0%A6%AF%20%E0%A6%9A%E0%A6%BE%E0%A6%87%E0%A5%A4" target="_blank" rel="noopener" class="whatsapp-float" id="whatsappFloatBtn" aria-label="হোয়াটসঅ্যাপে যোগাযোগ করুন" onclick="if(typeof gtag==='function'){gtag('event','whatsapp_click',{'event_category':'engagement','event_label':'floating_button'});}">
@@ -2909,6 +2910,9 @@
 // ============ CONFIG ============
 // এখানে আপনার Google Apps Script Web App URL বসান (নতুন Deploy করে যেটা পাবেন)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
+// ============ পাবলিক সাইট সেটিংস ============
+function applyPublicSiteSettings(){const defaultTitle=document.title;fetch(SCRIPT_URL+'?action=getPublicSiteSettings').then(r=>r.json()).then(d=>{if(!d.success)return;const s=d.settings||{};if(s.siteTitle)document.title=s.siteTitle;else document.title=defaultTitle;if(s.whatsapp){const n=String(s.whatsapp).replace(/\D/g,'');const full=n.startsWith('88')?n:'88'+n;document.querySelectorAll('a[href*='+'"wa.me/"'+']').forEach(a=>{const old=a.getAttribute('href')||'';const text=old.includes('?text=')?old.substring(old.indexOf('?text=')):'';a.setAttribute('href','https://wa.me/'+full+text);});}if(s.facebook)document.querySelectorAll('a[href*='+'"facebook.com/AlaminIslamAi13"'+'],a[href*='+'"facebook.com/AlaminIslam13AI"'+']').forEach(a=>a.setAttribute('href',s.facebook));if(s.youtube)document.querySelectorAll('[data-site-youtube]').forEach(a=>a.href=s.youtube);if(s.telegram)document.querySelectorAll('[data-site-telegram]').forEach(a=>a.href=s.telegram);if(s.contactEmail)document.querySelectorAll('[data-site-email]').forEach(a=>a.href='mailto:'+s.contactEmail);}).catch(()=>{});}
+applyPublicSiteSettings();
 // ==================================
 
 // ============ পেমেন্ট নম্বর কপি + পেমেন্ট মাধ্যম অটো-সিলেক্ট ============
@@ -3566,7 +3570,11 @@ function printStatusResult(){
     '.badge{display:inline-block; padding:4px 12px; border-radius:999px; background:#1f5f3f; color:#fff; font-size:13px; margin-top:2px;}' +
     'hr{border:none; border-top:1px solid #ddd; margin:16px 0;}' +
     '.foot{font-size:11.5px; color:#8a9690; margin-top:20px;}' +
-    '</style></head><body>' +
+    '</style>
+<style id="site-enhancements">
+.site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
+</style>
+</head><body>' +
     '<h2>আবেদনের অবস্থা রিসিট</h2>' +
     '<div class="foot">' + window.location.origin + window.location.pathname + '</div><hr>' +
     '<div class="row"><div class="label">আবেদন নম্বর</div>' + d.id + '</div>' +
@@ -3574,7 +3582,9 @@ function printStatusResult(){
     '<div class="row"><div class="label">আবেদনের তারিখ</div>' + d.date + '</div>' +
     '<div class="row"><div class="label">বর্তমান অবস্থা</div><span class="badge">' + d.status + '</span></div>' +
     '<hr><div class="foot">প্রিন্ট করার তারিখ: ' + new Date().toLocaleString('bn-BD') + '</div>' +
-    '</body></html>'
+    '
+
+</body></html>'
   );
   w.document.close();
   w.focus();
@@ -5274,6 +5284,12 @@ s1.charset = 'UTF-8';
 s1.setAttribute('crossorigin', '*');
 s0.parentNode.insertBefore(s1, s0);
 })();
+</script>
+
+<div id="sitePolicyModal" class="site-modal" role="dialog" aria-modal="true" aria-labelledby="sitePolicyTitle"><div class="site-modal-card"><button class="site-modal-close" onclick="closeSitePolicy()" aria-label="বন্ধ করুন">×</button><h2 id="sitePolicyTitle">গোপনীয়তা নীতি</h2><div id="sitePolicyBody"></div></div></div>
+<div class="mobile-action-bar"><a href="#contactSection">📞 যোগাযোগ</a><a href="https://wa.me/8801764324313" target="_blank" rel="noopener">💬 WhatsApp</a><a href="#blogView">📰 ব্লগ</a></div>
+<script>
+function openSitePolicy(type){const m=document.getElementById('sitePolicyModal'),t=document.getElementById('sitePolicyTitle'),b=document.getElementById('sitePolicyBody');if(type==='disclaimer'){t.textContent='ডিসক্লেইমার';b.innerHTML='<p>এই সাইটের তথ্য সাধারণ সহায়তা ও শিক্ষামূলক উদ্দেশ্যে দেওয়া হয়। কোনো অ্যাকাউন্ট, পেজ বা চ্যানেল পুনরুদ্ধার নিশ্চিতভাবে হবে—এমন নিশ্চয়তা এখানে দেওয়া হচ্ছে না। তৃতীয় পক্ষের প্ল্যাটফর্মের নিজস্ব নীতি ও সিদ্ধান্ত প্রযোজ্য। প্রয়োজনীয় তথ্য দেওয়ার আগে সংবেদনশীল পাসওয়ার্ড বা OTP শেয়ার করবেন না।</p>';}else{t.textContent='গোপনীয়তা নীতি';b.innerHTML='<p>আপনার দেওয়া তথ্য আবেদন যাচাই, যোগাযোগ ও সেবা দেওয়ার কাজে ব্যবহার করা হয়। প্রয়োজনের বাইরে তথ্য প্রকাশ বা বিক্রি না করার নীতি অনুসরণ করা হয়। তবে Google Sheets/Drive, WhatsApp বা অন্যান্য তৃতীয় পক্ষের সেবায় তথ্য ব্যবহারের ক্ষেত্রে তাদের নিজস্ব নীতিও প্রযোজ্য। তথ্য মুছে ফেলা বা সংশোধনের অনুরোধ করতে যোগাযোগ করুন।</p>';}m.classList.add('open');document.body.style.overflow='hidden';}function closeSitePolicy(){const m=document.getElementById('sitePolicyModal');m.classList.remove('open');document.body.style.overflow='';}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSitePolicy()});document.getElementById('sitePolicyModal').addEventListener('click',e=>{if(e.target.id==='sitePolicyModal')closeSitePolicy()});
 </script>
 </body>
   </html>
