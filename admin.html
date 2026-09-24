@@ -402,6 +402,31 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
 // ============ পাসওয়ার্ড URL-এ না পাঠিয়ে POST-এর বডিতে পাঠানো ============
 // ব্রাউজার হিস্ট্রি ও লগে যেন পাসওয়ার্ড না থাকে, তাই ?password=... বা newPassword=... থাকা GET কল
 // স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভার একই কাজ করে)।
+// ============ সেশন-এক্সপায়ারি/লক গ্লোবালি ধরা ============
+// আগে টোকেন মেয়াদ শেষ হয়ে গেলে ব্যাকগ্রাউন্ড অটো-রিফ্রেশ (প্রতি ৩০ সেকেন্ডে) বারবার
+// "ভুল পাসওয়ার্ড" হিসেবে গণনা হতো, যা কিছুক্ষণ পরই পুরো অ্যাডমিন প্যানেল ১৫ মিনিটের
+// জন্য লক করে দিত (লোডিং/সংযোগ সমস্যা/পোস্ট ফেল দেখাত)। সার্ভার-সাইডে সেটা ঠিক করার
+// পাশাপাশি, এখানে যেকোনো রেসপন্সে "session expired"/"locked" পেলে সাথে সাথে সব
+// ব্যাকগ্রাউন্ড টাইমার বন্ধ করে দেওয়া হচ্ছে, যাতে সমস্যা আরও না বাড়ে।
+let __sessionIssueShown = false;
+function __handleAuthIssue(errCode){
+  try{ if(typeof autoRefreshTimer !== 'undefined' && autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }catch(e){}
+  try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
+  if(errCode === 'session expired'){
+    localStorage.removeItem('adminPw');
+  }
+  if(!__sessionIssueShown){
+    __sessionIssueShown = true;
+    const msg = errCode === 'locked'
+      ? 'নিরাপত্তার কারণে সাময়িকভাবে অ্যাডমিন প্যানেল লক আছে — কিছুক্ষণ পর আবার চেষ্টা করুন।'
+      : 'আপনার সেশনের মেয়াদ শেষ হয়ে গেছে — আবার লগইন করুন।';
+    setTimeout(function(){
+      alert(msg);
+      if(errCode === 'session expired') location.reload();
+    }, 50);
+  }
+}
+
 (function(){
   const origFetch = window.fetch.bind(window);
   window.fetch = function(input, init){
@@ -416,8 +441,23 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ __get: true, params: params })
+        }).then(function(resp){
+          resp.clone().json().then(function(data){
+            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
+          }).catch(function(){});
+          return resp;
         });
       }
+      const isScriptCall = typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0;
+      const result = origFetch(input, init);
+      if(isScriptCall){
+        result.then(function(resp){
+          resp.clone().json().then(function(data){
+            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
+          }).catch(function(){});
+        }).catch(function(){});
+      }
+      return result;
     }catch(err){}
     return origFetch(input, init);
   };
