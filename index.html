@@ -2438,6 +2438,10 @@
   <span data-i18n="btn.facebook">আমাদের Facebook পেজ দেখুন</span>
 </a>
 
+<button type="button" class="chat-btn" id="liveChatBtn" onclick="openLiveChat()">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.94 2 10.8c0 2.66 1.36 5.03 3.5 6.63V22l3.86-2.12c.83.18 1.7.28 2.64.28 5.52 0 10-3.94 10-8.8S17.52 2 12 2Zm1 12h-2v-2h2v2Zm0-3.5h-2c0-3 3-2.75 3-4.5 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.25-3 2.5-3 4.5Z"/></svg>
+  <span data-i18n="btn.liveChat">লাইভ চ্যাট করুন</span>
+</button>
 
 <section class="services-section" id="servicesSection" aria-label="আমাদের সেবাসমূহ">
   <h2 data-i18n="services.heading">আমাদের সেবাসমূহ</h2>
@@ -5297,15 +5301,39 @@ if(reviewSubmitBtn){
      নিচের YOUR_PROPERTY_ID এবং YOUR_WIDGET_ID বদলে আপনার নিজের ভ্যালু বসান।
      কীভাবে পাবেন তা চ্যাটের নিচের নির্দেশনায় দেওয়া আছে। -->
 <script type="text/javascript">
-var Tawk_API = window.Tawk_API || {}, Tawk_LoadStart = new Date();
-// ব্লগ/পোস্টের উপর কোনো চ্যাট প্যানেল নিজে থেকে খুলবে না।
-// ব্রাউজারে আগের Tawk open-state থাকলেও load হওয়ার সাথে সাথে minimize করা হবে।
+var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 Tawk_API.onLoad = function(){
-  try { if (typeof Tawk_API.minimize === 'function') Tawk_API.minimize(); } catch(e) {}
+  // চ্যাট নিজে থেকে খুলবে না। বিশেষ করে ব্লগ/পোস্টের উপরে যেন চ্যাট উইন্ডো না আসে।
+  // ভিজিটর নিজে চ্যাট বাটনে চাপলে তখনই খুলবে।
 };
-Tawk_API.onChatMaximized = function(){
-  // এখানে কোনো auto-open করা হবে না; শুধু ভিজিটরের click-এ maximize হতে দেবে।
-};
+// ============ মোবাইলে ১৫ সেকেন্ড পর চ্যাট বাটনে পালস অ্যানিমেশন (ফুলস্ক্রিন খুলবে না) ============
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if (window.innerWidth <= 768) {
+      var chatBtn = document.getElementById('liveChatBtn');
+      if (chatBtn) chatBtn.classList.add('pulse-attention');
+    }
+  }, 15000);
+});
+
+// ============ WhatsApp/Facebook বাটনের নিচের "লাইভ চ্যাট করুন" বাটন ============
+function openLiveChat(){
+  if (window.Tawk_API && typeof Tawk_API.maximize === 'function') {
+    Tawk_API.maximize();
+  } else {
+    // widget script তখনও লোড হচ্ছে হয়তো, একটু পর আবার চেষ্টা করা হচ্ছে
+    var tries = 0;
+    var waitForTawk = setInterval(function(){
+      tries++;
+      if (window.Tawk_API && typeof Tawk_API.maximize === 'function') {
+        Tawk_API.maximize();
+        clearInterval(waitForTawk);
+      } else if (tries > 20) {
+        clearInterval(waitForTawk);
+      }
+    }, 300);
+  }
+}
 (function(){
   function loadTawk(){
     if(window.__tawkLoaded) return;
@@ -5317,7 +5345,6 @@ Tawk_API.onChatMaximized = function(){
     s1.setAttribute('crossorigin', '*');
     s0.parentNode.insertBefore(s1, s0);
   }
-  // একবারই Tawk লোড হবে; duplicate script/inline loader থাকবে না।
   if('requestIdleCallback' in window) requestIdleCallback(loadTawk,{timeout:5000});
   else setTimeout(loadTawk,5000);
 })();
