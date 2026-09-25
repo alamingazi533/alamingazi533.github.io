@@ -228,7 +228,9 @@
   .has-session #sessionLoading{display:block;}
 </style>
 <script>try{ var __t = sessionStorage.getItem('adminPw'); if(__t && __t.indexOf('tk_') === 0){ document.documentElement.className += ' has-session'; } }catch(e){}</script>
-<style id="admin-enhancements">.admin-tools-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.admin-tools-extra button{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer}@media(max-width:600px){.admin-tools-extra{grid-template-columns:1fr}}</style></head>
+<style id="admin-enhancements">.admin-tools-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.admin-tools-extra button{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer}@media(max-width:600px){.admin-tools-extra{grid-template-columns:1fr}}</style><style id="admin-professional-upgrade">
+.admin-quick-nav{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px;padding:8px;background:var(--card-bg);border:1px solid var(--line);border-radius:11px;position:sticky;top:8px;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,.06)}.admin-quick-nav button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 10px;font-size:11.5px;font-weight:700;cursor:pointer}.admin-quick-nav button:hover{border-color:var(--forest);color:var(--forest)}
+</style></head>
 <body>
 
 <div id="sessionLoading">⏳ লোড হচ্ছে...</div>
@@ -793,7 +795,7 @@ function deleteEntry(rowIndex, fullName, cardEl){
 
 function startAutoRefresh(){
   if(autoRefreshTimer) return;
-  autoRefreshTimer = setInterval(loadEntries, 30000);
+  autoRefreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadEntries(); }, 60000);
 }
 
 function stopAutoRefresh(){
@@ -1573,7 +1575,7 @@ function loadVisitStats(){
 
 function startVisitStatsAutoRefresh(){
   if(visitStatsTimer) return;
-  visitStatsTimer = setInterval(loadVisitStats, 30000);
+  visitStatsTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadVisitStats(); }, 60000);
 }
 function stopVisitStatsAutoRefresh(){
   if(visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; }
@@ -1695,14 +1697,39 @@ function verifyAndEnter(){
   const pw = sessionStorage.getItem('adminPw');
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
-  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+
+  // আগের সফল ডেটা থাকলে আগে সেটাই দেখাই — Admin খুলতেই টেবিল দেখা যাবে।
+  let hadCache = false;
+  try{
+    const raw = sessionStorage.getItem('adminListCacheV2');
+    if(raw){
+      const obj = JSON.parse(raw);
+      if(obj && Array.isArray(obj.rows) && obj.rows.length && (Date.now() - (obj.time || 0)) < 5 * 60 * 1000){
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('panel').style.display = 'block';
+        allRows = obj.rows;
+        restoreFilterState();
+        applyCurrentFilter();
+        restoreOpenSections();
+        restoreScrollPosition();
+        document.getElementById('lastUpdated').textContent = 'ক্যাশ ডেটা • আপডেট হচ্ছে…';
+        startAutoRefresh();
+        updateBackupReminder();
+        hadCache = true;
+      }
+    }
+  }catch(e){}
+
+  // Backend verification/background refresh — cache থাকলে এটি UI আটকে রাখবে না।
+  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
     .then(data => {
       document.documentElement.classList.remove('has-session');
       if(data.success){
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('panel').style.display = 'block';
-        allRows = data.rows;
+        allRows = Array.isArray(data.rows) ? data.rows : [];
+        try{ sessionStorage.setItem('adminListCacheV2', JSON.stringify({time:Date.now(), rows:allRows})); }catch(e){}
         restoreFilterState();
         applyCurrentFilter();
         restoreOpenSections();
@@ -1710,35 +1737,28 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // মূল আবেদন তালিকা দেখানোর পর ভারী/অতিরিক্ত সেকশনগুলো ধাপে ধাপে লোড করি।
-        // এতে অ্যাডমিন প্যানেল আগে usable হয় এবং একসাথে ৬টি Sheet request শুরু হয় না।
-        setTimeout(() => {
-          loadAdminReviews();
-          loadAdminComments();
-        }, 350);
-        setTimeout(() => {
-          loadAdminPosts();
-          fetchPersistentStats();
-        }, 900);
-        setTimeout(() => {
-          loadVisitStats();
-          startVisitStatsAutoRefresh();
-        }, 1500);
-        setTimeout(() => {
-          loadSubscribers();
-        }, 1200);
+        // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
+        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
+        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
+        setTimeout(() => { loadSubscribers(); }, 1000);
+        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
       } else {
         sessionStorage.removeItem('adminPw');
-        document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
-          ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
-          : 'সেশনের মেয়াদ শেষ, আবার লগইন করুন';
-        document.getElementById('loginErr').style.display = 'block';
+        if(!hadCache){
+          document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
+            ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
+            : 'সেশনের মেয়াদ শেষ, আবার লগইন করুন';
+          document.getElementById('loginErr').style.display = 'block';
+        }
       }
     })
     .catch(() => {
-      document.documentElement.classList.remove('has-session');
-      document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
-      document.getElementById('loginErr').style.display = 'block';
+      // পুরনো ক্যাশ থাকলে Admin চালু রেখেই offline/stale অবস্থায় ব্যবহার করা যাবে।
+      if(!hadCache){
+        document.documentElement.classList.remove('has-session');
+        document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
+        document.getElementById('loginErr').style.display = 'block';
+      }
     });
 }
 

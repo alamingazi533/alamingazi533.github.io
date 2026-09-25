@@ -2315,8 +2315,46 @@
 <style id="site-enhancements">
 .site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
 </style>
+
+<!-- Professional site enhancements -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FB সমাধান">
+<meta name="theme-color" content="#1F3B2C">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+
+<style id="professional-upgrade-css">
+.skip-to-content{position:fixed;left:12px;top:-60px;z-index:100000;background:#1f3b2c;color:#fff;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.skip-to-content:focus{top:12px}
+.hero-quick-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:18px auto 4px;max-width:620px}
+.hero-quick-actions a{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 16px;border-radius:999px;text-decoration:none;font-weight:800;font-size:13px;border:1px solid rgba(255,255,255,.28);transition:transform .18s,opacity .18s}
+.hero-quick-actions a:hover{transform:translateY(-2px);opacity:.92}
+.hero-quick-actions .primary{background:#E8C784;color:#173323;border-color:#E8C784}
+.hero-quick-actions .secondary{background:rgba(255,255,255,.10);color:#fff}
+.help-center-strip{max-width:1100px;margin:20px auto 8px;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--card-bg);box-shadow:0 8px 26px rgba(31,59,44,.06)}
+.help-center-strip h2{margin:0 0 5px;font-size:20px;color:var(--forest)}
+.help-center-strip>p{margin:0 0 13px;color:var(--muted);font-size:13px}
+.help-quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.help-quick-grid a{padding:12px 10px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);background:var(--paper-dark);font-weight:800;font-size:12.5px;text-align:center}
+.help-quick-grid a:hover{border-color:var(--forest);transform:translateY(-1px)}
+.trust-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:1100px;margin:10px auto 20px}
+.trust-strip .trust-item{padding:11px 9px;border:1px solid var(--line);border-radius:12px;background:var(--card-bg);text-align:center;font-size:12px;color:var(--muted)}
+.trust-strip strong{display:block;color:var(--forest);font-size:14px;margin-bottom:3px}
+.blog-breadcrumb{font-size:12px;color:var(--muted);margin:0 0 12px;padding:8px 10px;background:var(--paper-dark);border-radius:9px}
+.blog-breadcrumb a{color:var(--forest);font-weight:700;text-decoration:none}
+.post-reading-meta{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;color:var(--muted);font-size:12px}
+.post-reading-meta span{padding:5px 8px;border-radius:999px;background:var(--paper-dark);border:1px solid var(--line)}
+.blog-prev-next{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}
+.blog-prev-next a{padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--card-bg);text-decoration:none;color:var(--ink);font-size:12.5px}
+.blog-prev-next a:last-child{text-align:right}
+.blog-prev-next small{display:block;color:var(--muted);margin-bottom:4px}
+.article-trust-box{margin-top:18px;padding:14px;border-radius:12px;background:linear-gradient(135deg,rgba(31,59,44,.08),rgba(232,199,132,.12));border:1px solid var(--line);font-size:13px;line-height:1.7}
+@media(max-width:700px){.help-quick-grid{grid-template-columns:repeat(2,1fr)}.trust-strip{grid-template-columns:repeat(2,1fr);padding:0 10px}.blog-prev-next{grid-template-columns:1fr}.blog-prev-next a:last-child{text-align:left}}
+</style>
 </head>
 <body>
+<a class="skip-to-content" href="#mainContent">মূল কনটেন্টে যান</a>
 
 <nav class="site-nav">
   <a class="site-brand" href="#top">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</a>
@@ -2329,6 +2367,7 @@
   </div>
 </nav>
 
+<div id="mainContent">
 <div id="landingTop">
 <header id="top">
   <div class="top-action-bar">
@@ -2850,7 +2889,7 @@
       <a href="#servicesSection" data-i18n="nav.services">সেবা</a>
       <a href="#reviewsSection" data-i18n="nav.reviews">রিভিউ</a>
       <a href="#contactSection" data-i18n="nav.contact">যোগাযোগ</a>
-      <a href="#faqSection" data-i18n="faq.q5">গোপনীয়তা নীতি</a>
+      <a href="#faqSection">সাধারণ প্রশ্ন</a><button type="button" onclick="openSitePolicy('privacy')">গোপনীয়তা</button><button type="button" onclick="openSitePolicy('disclaimer')">ডিসক্লেইমার</button><a href="?blog=all">হেল্প সেন্টার</a>
     </div>
     <p class="site-footer-copy">© <span id="footerYear"></span> <span data-i18n="footer.copy">মোঃ আলামিন ইসলাম। সর্বস্বত্ব সংরক্ষিত।</span></p>
   </div>
@@ -2862,6 +2901,7 @@
 </a>
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="উপরে ফিরুন">↑</button>
 
+</div>
 <div id="receipt">
   <div class="r-watermark">✓ যাচাইকৃত</div>
   <div class="r-stamp">অনুমোদিত<br>✓</div>
@@ -4762,11 +4802,24 @@ function showBlogDetail(postId){
     : '';
   const alreadyLiked = getLikedPostIds().includes(String(post.id));
   const likeLabel = alreadyLiked ? '❤️ পছন্দ হয়েছে' : '🤍 পছন্দ';
+  const category = String(post.category || 'সাধারণ আপডেট');
+  const wordCount = String(post.content || '').trim().split(/\s+/).filter(Boolean).length;
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 180));
+  const idx = __allPosts.findIndex(p => String(p.id) === String(post.id));
+  const newerPost = idx > 0 ? __allPosts[idx - 1] : null;
+  const olderPost = idx >= 0 && idx < __allPosts.length - 1 ? __allPosts[idx + 1] : null;
+  const breadcrumb = '<div class="blog-breadcrumb"><a href="./">হোম</a> › <a href="?blog=all">ব্লগ</a> › ' + blogEscape(category) + ' › ' + safeTitle + '</div>';
+  const prevNext = (newerPost || olderPost) ? ('<div class="blog-prev-next">' +
+    (olderPost ? '<a href="?post=' + encodeURIComponent(olderPost.id) + '"><small>← আগের পোস্ট</small><strong>' + blogEscape(olderPost.title) + '</strong></a>' : '<div></div>') +
+    (newerPost ? '<a href="?post=' + encodeURIComponent(newerPost.id) + '"><small>পরের পোস্ট →</small><strong>' + blogEscape(newerPost.title) + '</strong></a>' : '<div></div>') +
+    '</div>') : '';
 
   contentEl.innerHTML =
+    breadcrumb +
     '<article>' +
-      '<span class="post-eyebrow">আপডেট</span>' +
+      '<span class="post-eyebrow">' + blogEscape(category) + '</span>' +
       '<h1>' + safeTitle + '</h1>' +
+      '<div class="post-reading-meta"><span>📅 ' + cleanPostDate(post.date) + '</span><span>⏱️ প্রায় ' + readingMinutes + ' মিনিট</span><span>👁️ ' + (post.views || 0) + ' ভিউ</span></div>' +
       '<div class="byline">' +
         '<img src="profile.jpg" alt="মোঃ আলামিন ইসলাম">' +
         '<div>' +
@@ -4800,6 +4853,8 @@ function showBlogDetail(postId){
         '<div id="commentMsg" class="comment-msg" style="display:none;"></div>' +
       '</div>' +
     '</div>' +
+    '<div class="article-trust-box">🔐 <strong>নিরাপত্তা নোট:</strong> কোনো প্ল্যাটফর্মের পাসওয়ার্ড, OTP বা 2FA কোড কারও সঙ্গে শেয়ার করবেন না। এই পোস্টের তথ্য সাধারণ সহায়তার জন্য; প্ল্যাটফর্মের নিজস্ব নীতি ও সিদ্ধান্ত প্রযোজ্য।</div>' +
+    prevNext +
     '<div class="blog-more-link-wrap">' +
       '<a class="blog-viewall-link" href="?blog=all">← আরও পোস্ট দেখুন</a>' +
     '</div>';
@@ -4824,6 +4879,15 @@ function showBlogDetail(postId){
   if(ogTitleEl) ogTitleEl.setAttribute('content', post.title);
   const ogDescEl = document.querySelector('meta[property="og:description"]');
   if(ogDescEl) ogDescEl.setAttribute('content', postExcerpt);
+  // Google/ফেসবুকের জন্য পোস্ট-ভিত্তিক Article schema আপডেট
+  let articleSchemaEl = document.getElementById('dynamicArticleSchema');
+  if(!articleSchemaEl){ articleSchemaEl = document.createElement('script'); articleSchemaEl.type='application/ld+json'; articleSchemaEl.id='dynamicArticleSchema'; document.head.appendChild(articleSchemaEl); }
+  articleSchemaEl.textContent = JSON.stringify({
+    '@context':'https://schema.org', '@type':'Article', headline:post.title, description:postExcerpt,
+    image: post.imageUrl ? [post.imageUrl] : [location.origin + location.pathname.replace(/[^/]*$/, '') + 'profile.jpg'],
+    datePublished:post.date, dateModified:post.date, author:{'@type':'Person',name:'মোঃ আলামিন ইসলাম'},
+    mainEntityOfPage:{'@type':'WebPage','@id':location.href}, publisher:{'@type':'Organization',name:'সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা'}
+  });
 }
 
 // ============ একই ক্যাটাগরির রিলেটেড পোস্ট দেখানো ============
@@ -5371,6 +5435,10 @@ function openLiveChat(){
 <div class="mobile-action-bar"><a href="#contactSection">📞 যোগাযোগ</a><a href="https://wa.me/8801764324313" target="_blank" rel="noopener">💬 WhatsApp</a><a href="#blogView">📰 ব্লগ</a></div>
 <script>
 function openSitePolicy(type){const m=document.getElementById('sitePolicyModal'),t=document.getElementById('sitePolicyTitle'),b=document.getElementById('sitePolicyBody');if(type==='disclaimer'){t.textContent='ডিসক্লেইমার';b.innerHTML='<p>এই সাইটের তথ্য সাধারণ সহায়তা ও শিক্ষামূলক উদ্দেশ্যে দেওয়া হয়। কোনো অ্যাকাউন্ট, পেজ বা চ্যানেল পুনরুদ্ধার নিশ্চিতভাবে হবে—এমন নিশ্চয়তা এখানে দেওয়া হচ্ছে না। তৃতীয় পক্ষের প্ল্যাটফর্মের নিজস্ব নীতি ও সিদ্ধান্ত প্রযোজ্য। প্রয়োজনীয় তথ্য দেওয়ার আগে সংবেদনশীল পাসওয়ার্ড বা OTP শেয়ার করবেন না।</p>';}else{t.textContent='গোপনীয়তা নীতি';b.innerHTML='<p>আপনার দেওয়া তথ্য আবেদন যাচাই, যোগাযোগ ও সেবা দেওয়ার কাজে ব্যবহার করা হয়। প্রয়োজনের বাইরে তথ্য প্রকাশ বা বিক্রি না করার নীতি অনুসরণ করা হয়। তবে Google Sheets/Drive, WhatsApp বা অন্যান্য তৃতীয় পক্ষের সেবায় তথ্য ব্যবহারের ক্ষেত্রে তাদের নিজস্ব নীতিও প্রযোজ্য। তথ্য মুছে ফেলা বা সংশোধনের অনুরোধ করতে যোগাযোগ করুন।</p>';}m.classList.add('open');document.body.style.overflow='hidden';}function closeSitePolicy(){const m=document.getElementById('sitePolicyModal');m.classList.remove('open');document.body.style.overflow='';}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSitePolicy()});document.getElementById('sitePolicyModal').addEventListener('click',e=>{if(e.target.id==='sitePolicyModal')closeSitePolicy()});
+</script>
+
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load', function(){ navigator.serviceWorker.register('./sw.js').catch(function(){}); }); }
 </script>
 </body>
   </html>

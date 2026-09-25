@@ -1,83 +1,44 @@
-try {
-  importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
-} catch (e) {
-  // OneSignal লোড ব্যর্থ হলেও সাইটের মূল অফলাইন-ক্যাশিং যেন থেমে না যায়
-}
+const CACHE_NAME = 'fb-help-shell-v1';
+const OFFLINE_URL = './';
 
-const CACHE_NAME = 'fb-somadhan-cache-v4';
-const URLS_TO_CACHE = [
-  './',
-  './index.html',
-  './admin.html',
-  './profile.jpg',
-  './manifest.json',
-  './admin-manifest.json',
-  './icon-192.png',
-  './icon-512.png'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(URLS_TO_CACHE);
-    })
-  );
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll([OFFLINE_URL])));
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((names) => {
-      return Promise.all(
-        names.filter((name) => name !== CACHE_NAME)
-             .map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// HTML পেজ (নেভিগেশন + .html ফাইল) কিনা যাচাই — এগুলোর জন্য সবসময় আগে নেটওয়ার্ক থেকে সবশেষ ভার্সন আনার চেষ্টা হবে
-function isHtmlRequest(request) {
-  return request.mode === 'navigate' || request.url.endsWith('.html') || request.url.endsWith('/');
-}
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return;
 
-self.addEventListener('fetch', (event) => {
-  // শুধু GET রিকোয়েস্ট ক্যাশ করা হয় (ফর্ম সাবমিট / POST রিকোয়েস্ট বাদ)
-  if (event.request.method !== 'GET') return;
-
-  if (isHtmlRequest(event.request)) {
-    // নেটওয়ার্ক-ফার্স্ট: সবসময় সবশেষ ভার্সন আনার চেষ্টা, নেট না থাকলে ক্যাশ থেকে দেখাবে
+  // Navigation: network-first so নতুন পোস্ট/সেটিংস stale হয়ে না থাকে; offline হলে cached shell।
+  if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => caches.match(event.request))
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(OFFLINE_URL, copy));
+        return res;
+      }).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // ছবি/আইকন/অন্যান্য স্ট্যাটিক ফাইল: আগের মতোই দ্রুত লোডের জন্য ক্যাশ-ফার্স্ট, ব্যাকগ্রাউন্ডে আপডেট
+  // Static same-origin assets: cache-first, then network.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return networkResponse;
-      }).catch(() => cached);
-
-      return cached || fetchPromise;
-    })
+    caches.match(req).then(cached => cached || fetch(req).then(res => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+      }
+      return res;
+    }))
   );
 });

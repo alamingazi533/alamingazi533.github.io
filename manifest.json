@@ -1,23 +1,15 @@
 {
-  "name": "সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা",
-  "short_name": "সমাধান সেবা",
-  "start_url": "./index.html",
+  "name": "FB সমাধান — সোশ্যাল মিডিয়া সমস্যা সমাধান",
+  "short_name": "FB সমাধান",
+  "lang": "bn-BD",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#FBF6EA",
+  "background_color": "#F6F0E2",
   "theme_color": "#1F3B2C",
+  "description": "Facebook, Instagram, TikTok ও YouTube সমস্যা, রিকভারি, নিরাপত্তা ও মনিটাইজেশন সহায়তা কেন্দ্র।",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src":"profile.jpg","sizes":"192x192","type":"image/jpeg","purpose":"any maskable"},
+    {"src":"profile.jpg","sizes":"512x512","type":"image/jpeg","purpose":"any maskable"}
   ]
 }
