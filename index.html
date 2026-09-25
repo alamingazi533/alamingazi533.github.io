@@ -4204,27 +4204,40 @@ function loadReviews(){
 }
 
 // ============ হোমপেজে stats+reviews একসাথে একটা মাত্র রিকোয়েস্টে আনা (আগে ২টা আলাদা কল লাগতো, এখন ১টা — দ্রুত লোড হবে) ============
-function loadHomeData(){
-  fetch(SCRIPT_URL + '?action=getHomeData')
+let __homeDataRequest = null;
+function loadHomeData(force){
+  const key = 'publicHomeDataCacheV2';
+  const ttl = 60 * 1000;
+  if(!force){
+    try{
+      const raw = sessionStorage.getItem(key);
+      if(raw){
+        const obj = JSON.parse(raw);
+        if(obj && obj.time && (Date.now()-obj.time) < ttl && obj.data && obj.data.success){
+          renderStats(obj.data.stats);
+          renderReviews(obj.data.reviews);
+        }
+      }
+    }catch(e){}
+  }
+  if(__homeDataRequest && !force) return __homeDataRequest;
+  __homeDataRequest = fetch(SCRIPT_URL + '?action=getHomeData&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
     .then(data => {
-      if(data.success){
+      if(data && data.success){
         renderStats(data.stats);
         renderReviews(data.reviews);
-      } else {
-        loadStats();
-        loadReviews();
+        try{ sessionStorage.setItem(key, JSON.stringify({time:Date.now(),data:data})); }catch(e){}
       }
+      return data;
     })
-    .catch(()=>{
-      // combined কল ব্যর্থ হলে পুরনো পদ্ধতিতে আলাদা আলাদা চেষ্টা
-      loadStats();
-      loadReviews();
-    });
+    .catch(()=>null)
+    .finally(()=>{ __homeDataRequest = null; });
+  return __homeDataRequest;
 }
-loadHomeData();
-// প্রতি ১৫ সেকেন্ডে পটভূমিতে স্ট্যাটস/ভিজিট সংখ্যা আপনা-আপনি আপডেট হবে — ব্যাকএন্ডে ১০ সেকেন্ডের ক্যাশ থাকায় এটা প্রায় সবসময় দ্রুতই উত্তর দেবে
-setInterval(loadHomeData, 15000);
+loadHomeData(false);
+// ঘন ঘন API কল না করে ৬০ সেকেন্ড পরপর ব্যাকগ্রাউন্ডে আপডেট। ট্যাব লুকানো থাকলে কল হবে না।
+setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 60000);
 
 // ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?post=ID / ?blog=all) ============
 let __allPosts = [];
@@ -4458,7 +4471,10 @@ function loadPosts(){
     }
     if(cached){
       const obj = JSON.parse(cached);
-      if(obj && Array.isArray(obj.posts) && obj.posts.length) render(obj.posts);
+      if(obj && Array.isArray(obj.posts) && obj.posts.length){
+        render(obj.posts);
+        if(obj.time && (Date.now()-obj.time) < 60*1000) return;
+      }
     }
   }catch(err){}
 
@@ -4475,7 +4491,7 @@ function loadPosts(){
       }
       initBlogRouter();
     });
-  }, 15000);
+  }, 8000);
 
   fetch(SCRIPT_URL + '?action=getPosts&_=' + Date.now(), {cache:'no-store', signal:controller.signal})
     .then(r=>{
@@ -4981,7 +4997,7 @@ function refreshBlogDataSilently(){
     })
     .catch(()=>{});
 }
-setInterval(refreshBlogDataSilently, 20000);
+setInterval(()=>{ if(document.visibilityState === 'visible') refreshBlogDataSilently(); }, 90000);
 
 function submitPostComment(postId){
   const nameInput = document.getElementById('commentNameInput');
@@ -5320,12 +5336,18 @@ function openLiveChat(){
   }
 }
 (function(){
-var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
-s1.async = true;
-s1.src = 'https://embed.tawk.to/6a9e3f52d0128c3449822ce1/1k1t2enfc';
-s1.charset = 'UTF-8';
-s1.setAttribute('crossorigin', '*');
-s0.parentNode.insertBefore(s1, s0);
+  function loadTawk(){
+    if(window.__tawkLoaded) return;
+    window.__tawkLoaded = true;
+    var s1 = document.createElement('script'), s0 = document.getElementsByTagName('script')[0];
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/6a9e3f52d0128c3449822ce1/1k1t2enfc';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+  }
+  if('requestIdleCallback' in window) requestIdleCallback(loadTawk,{timeout:5000});
+  else setTimeout(loadTawk,5000);
 })();
 </script>
 
