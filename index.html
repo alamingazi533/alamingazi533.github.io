@@ -4464,6 +4464,8 @@ function loadPosts(){
     container.innerHTML = '<p class="posts-empty">আপডেট লোড হচ্ছে…</p>';
   }
 
+  // ধীরগতির নেটওয়ার্কে (২-৫ KB/s) সব পোস্টের ডেটা ডাউনলোড হতে ১২ সেকেন্ডের বেশি সময় লাগতে
+  // পারে, ফলে আগে সময় শেষ হয়ে "দেরি হচ্ছে" মেসেজ দেখাত যদিও ডেটা আসছিলই। তাই সময় বাড়ানো হলো।
   timer = setTimeout(()=>{
     finish(()=>{
       if(container && !__allPosts.length){
@@ -4471,7 +4473,7 @@ function loadPosts(){
       }
       initBlogRouter();
     });
-  }, 12000);
+  }, 35000);
 
   fetch(SCRIPT_URL + '?action=getPosts&_=' + Date.now(), {cache:'no-store'})
     .then(r=>{
