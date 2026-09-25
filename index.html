@@ -4424,16 +4424,18 @@ function renderBlogCard(p, featured, small){
 
 function loadPosts(){
   const container = document.getElementById('postsContainer');
-  const cacheKey = 'publicBlogPostsCacheV3';
-  const cacheTtl = 5 * 60 * 1000;
+  const cacheKey = 'publicBlogPostsCacheV4';
+  const oldCacheKeys = ['publicBlogPostsCacheV3','publicBlogPostsCacheV2'];
   let settled = false;
   let timer = null;
+
   const finish = (fn)=>{
     if(settled) return;
     settled = true;
     if(timer) clearTimeout(timer);
     fn();
   };
+
   const render = (posts)=>{
     __allPosts = Array.isArray(posts) ? posts : [];
     if(container){
@@ -4448,15 +4450,15 @@ function loadPosts(){
     initBlogRouter();
   };
 
-  // আগে পাওয়া পোস্ট থাকলে সাথে সাথে দেখান — নেটওয়ার্কের জন্য পুরো ব্লগ আটকে থাকবে না।
+  // পুরনো ক্যাশ থাকলে সঙ্গে সঙ্গে দেখাই; এরপর নতুন ডেটা ব্যাকগ্রাউন্ডে আনা হবে।
   try{
-    const cached = sessionStorage.getItem(cacheKey) || sessionStorage.getItem('publicBlogPostsCacheV2');
+    let cached = sessionStorage.getItem(cacheKey);
+    if(!cached){
+      for(const k of oldCacheKeys){ cached = sessionStorage.getItem(k); if(cached) break; }
+    }
     if(cached){
       const obj = JSON.parse(cached);
-      if(obj && Array.isArray(obj.posts) && obj.posts.length){
-        render(obj.posts);
-        // ক্যাশ পুরনো হলেও ব্যাকগ্রাউন্ডে নতুন ডেটা আনার চেষ্টা চলবে।
-      }
+      if(obj && Array.isArray(obj.posts) && obj.posts.length) render(obj.posts);
     }
   }catch(err){}
 
@@ -4464,18 +4466,18 @@ function loadPosts(){
     container.innerHTML = '<p class="posts-empty">আপডেট লোড হচ্ছে…</p>';
   }
 
-  // ধীরগতির নেটওয়ার্কে (২-৫ KB/s) সব পোস্টের ডেটা ডাউনলোড হতে ১২ সেকেন্ডের বেশি সময় লাগতে
-  // পারে, ফলে আগে সময় শেষ হয়ে "দেরি হচ্ছে" মেসেজ দেখাত যদিও ডেটা আসছিলই। তাই সময় বাড়ানো হলো।
+  const controller = new AbortController();
   timer = setTimeout(()=>{
+    try{ controller.abort(); }catch(e){}
     finish(()=>{
       if(container && !__allPosts.length){
-        container.innerHTML = '<p class="posts-empty">পোস্ট লোড হতে দেরি হচ্ছে। পরে আবার চেষ্টা করুন।</p>';
+        container.innerHTML = '<div class="posts-empty">পোস্ট লোড হতে দেরি হচ্ছে।<br><button type="button" onclick="loadPosts()" style="margin-top:10px;padding:8px 14px;border:1px solid #ccc;border-radius:8px;background:transparent;cursor:pointer">আবার চেষ্টা করুন</button></div>';
       }
       initBlogRouter();
     });
-  }, 35000);
+  }, 15000);
 
-  fetch(SCRIPT_URL + '?action=getPosts&_=' + Date.now(), {cache:'no-store'})
+  fetch(SCRIPT_URL + '?action=getPosts&_=' + Date.now(), {cache:'no-store', signal:controller.signal})
     .then(r=>{
       if(!r.ok) throw new Error('HTTP '+r.status);
       return r.json();
@@ -4488,15 +4490,27 @@ function loadPosts(){
     })
     .catch(err=>{
       console.error('getPosts error:', err);
-      finish(()=>{
-        // পুরনো ক্যাশ থাকলে সেটাই রাখুন; একেবারে কিছু না থাকলে পরিষ্কার বার্তা দেখান।
-        if(container && !__allPosts.length){
-          container.innerHTML = '<p class="posts-empty">পোস্ট এখন লোড হচ্ছে না। Admin/Apps Script সংযোগটি পরীক্ষা করুন।</p>';
-        }
-        initBlogRouter();
-      });
+      // পুরনো ক্যাশ থাকলে সেটি দেখিয়েই রাখি। একেবারে ডেটা না থাকলে ping দিয়ে API-র
+      // সংযোগ আছে কিনা যাচাই করে ব্যবহারকারীকে নির্দিষ্ট বার্তা দেখানো হবে।
+      if(settled) return;
+      fetch(SCRIPT_URL + '?action=ping&_=' + Date.now(), {cache:'no-store'})
+        .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(ping=>finish(()=>{
+          if(container && !__allPosts.length){
+            const detail = ping && ping.success ? 'Apps Script সংযোগ আছে, কিন্তু Posts ডেটা লোডে সমস্যা হচ্ছে।' : 'Apps Script সংযোগে সমস্যা হচ্ছে।';
+            container.innerHTML = '<div class="posts-empty">'+detail+'<br><button type="button" onclick="loadPosts()" style="margin-top:10px;padding:8px 14px;border:1px solid #ccc;border-radius:8px;background:transparent;cursor:pointer">আবার চেষ্টা করুন</button></div>';
+          }
+          initBlogRouter();
+        }))
+        .catch(()=>finish(()=>{
+          if(container && !__allPosts.length){
+            container.innerHTML = '<div class="posts-empty">Apps Script সংযোগ পাওয়া যাচ্ছে না। Apps Script Web App-এর সর্বশেষ version Deploy করুন।<br><button type="button" onclick="loadPosts()" style="margin-top:10px;padding:8px 14px;border:1px solid #ccc;border-radius:8px;background:transparent;cursor:pointer">আবার চেষ্টা করুন</button></div>';
+          }
+          initBlogRouter();
+        }));
     });
 }
+
 loadPosts();
 
 // ============ URL অনুযায়ী ব্লগ আর্কাইভ/ডিটেইল ভিউ দেখানো ============
