@@ -4738,9 +4738,26 @@ function showBlogDetail(postId){
   const imageHtml = blogSafeUrl(post.imageUrl)
     ? '<img src="' + blogSafeUrl(post.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="width:100%; border-radius:10px; margin-bottom:14px; display:block;">'
     : '';
-  const videoHtml = blogSafeUrl(post.videoUrl)
+  // ব্লগের ভিডিও হিসেবে নিজের সাইটের URL এলে সেটি iframe-এ খুললে
+  // পোস্টের ভিতরে আবার পুরো সাইটের একটি ছোট কপি দেখা যায়।
+  // তাই একই সাইটের URL-কে ভিডিও হিসেবে দেখানো হবে না।
+  function getValidBlogVideoUrl(rawUrl){
+    const u = blogSafeUrl(rawUrl);
+    if(!u) return '';
+    try{
+      const parsed = new URL(u, window.location.href);
+      const currentHost = String(window.location.hostname || '').toLowerCase();
+      const videoHost = String(parsed.hostname || '').toLowerCase();
+      if(!videoHost || videoHost === currentHost || videoHost === 'alamingazi533.github.io') return '';
+      return parsed.href;
+    }catch(e){
+      return '';
+    }
+  }
+  const validVideoUrl = getValidBlogVideoUrl(post.videoUrl);
+  const videoHtml = validVideoUrl
     ? '<div style="position:relative; width:100%; padding-top:56.25%; margin-bottom:14px; border-radius:10px; overflow:hidden; background:#000;">' +
-        '<iframe src="' + blogSafeUrl(post.videoUrl) + '" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="autoplay" allowfullscreen></iframe>' +
+        '<iframe src="' + validVideoUrl + '" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="autoplay" allowfullscreen></iframe>' +
       '</div>'
     : '';
   const alreadyLiked = getLikedPostIds().includes(String(post.id));
