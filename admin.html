@@ -223,7 +223,7 @@
   }
   header{position:relative;}
   /* সেভ করা লগইন থাকলে যাচাই চলার সময় লগইন ফর্ম না দেখিয়ে "লোড হচ্ছে" দেখানো হয় */
-  #sessionLoading{display:none; text-align:center; padding:80px 20px; color:var(--muted); font-size:15px;}
+  #sessionLoading{display:none !important; text-align:center; padding:80px 20px; color:var(--muted); font-size:15px;}
   .has-session #loginBox{display:none !important;}
   .has-session #sessionLoading{display:block;}
 </style>
@@ -1210,12 +1210,12 @@ function saveEditPost(rowIndex){
 
 function copyPostLink(id){
   // GitHub Pages-এর নিজের ছোট লিংক — Apps Script postSEO URL নয়।
-  // ফলে শেয়ার করা লিংকে Apps Script 404 হবে না এবং URL-ও অনেক ছোট থাকবে।
   const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
   const link = base + '?p=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
-      alert('ছোট পোস্ট লিংক কপি হয়েছে:\n' + link);
+      alert('ছোট পোস্ট লিংক কপি হয়েছে:
+' + link);
     }).catch(()=>{
       prompt('লিংকটি কপি করুন:', link);
     });
@@ -1738,11 +1738,12 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
-        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
-        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
-        setTimeout(() => { loadSubscribers(); }, 1000);
-        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
+        // অতিরিক্ত অপেক্ষা না করে সব সহায়ক ডেটা একসাথে লোড হবে।
+        // মূল Admin প্যানেল আগে থেকেই usable; কোনো API ধীর হলেও অন্য অংশ আটকে থাকবে না।
+        Promise.resolve().then(() => { loadAdminReviews(); loadAdminComments(); });
+        Promise.resolve().then(() => { loadAdminPosts(); fetchPersistentStats(); });
+        Promise.resolve().then(() => { loadSubscribers(); });
+        Promise.resolve().then(() => { loadVisitStats(); startVisitStatsAutoRefresh(); });
       } else {
         sessionStorage.removeItem('adminPw');
         if(!hadCache){
