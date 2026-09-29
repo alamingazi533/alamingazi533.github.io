@@ -38,7 +38,7 @@
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
-      if(params.get('post') || params.get('p')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
       if(params.get('blog')){
         const cat = params.get('blog');
         return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
@@ -4545,8 +4545,6 @@ function updateCanonicalUrl(url){
 
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
-  // নতুন ছোট পোস্ট লিংক: ?p=POST_ID
-  // পুরনো ?post=POST_ID লিংকও আগের মতো কাজ করবে।
   const postId = params.get('p') || params.get('post');
   const blogParam = params.get('blog');
 
@@ -4810,7 +4808,7 @@ function showBlogDetail(postId){
   loadPostComments(String(post.id));
 
   document.title = post.title + ' | সোশ্যাল মিডিয়া সমস্যা সমাধান — যশোর';
-  updateCanonicalUrl('https://alamingazi533.github.io/?p=' + encodeURIComponent(post.id));
+  updateCanonicalUrl('https://alamingazi533.github.io/?post=' + encodeURIComponent(post.id));
   const metaDesc = document.querySelector('meta[name="description"]');
   const postExcerpt = blogExcerpt(post.content, 155);
   if(metaDesc) metaDesc.setAttribute('content', postExcerpt);
@@ -4995,7 +4993,7 @@ function refreshBlogDataSilently(){
         renderRecentWidget();
       } else if(isDetailOpen){
         const params = new URLSearchParams(window.location.search);
-        const postId = params.get('post');
+        const postId = params.get('p') || params.get('post');
         if(postId){
           loadPostComments(postId); // নতুন কমেন্ট এলে দেখাবে, লেখার বক্স স্পর্শ করা হয় না
           const post = __allPosts.find(p => String(p.id) === String(postId));

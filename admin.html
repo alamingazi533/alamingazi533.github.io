@@ -233,7 +233,7 @@
 </style></head>
 <body>
 
-<div id="sessionLoading" style="display:none !important;">⏳ লোড হচ্ছে...</div>
+<div id="sessionLoading">⏳ লোড হচ্ছে...</div>
 <div id="loginBox">
   <button id="loginThemeToggleBtn" onclick="toggleTheme()" title="ডার্ক/লাইট মোড" style="position:absolute; left:14px; top:14px; background:transparent; border:1px solid var(--line); color:var(--ink); padding:6px 10px; border-radius:7px; font-size:14px; cursor:pointer;">🌙</button>
   <h2>অ্যাডমিন লগইন</h2>
@@ -474,23 +474,6 @@ function __handleAuthIssue(errCode){
   const origFetch = window.fetch.bind(window);
   window.fetch = function(input, init){
     try{
-      if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
-         /[?&](password|newPassword)=/.test(input) &&
-         (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
-        const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
-        const params = {};
-        new URLSearchParams(qs).forEach(function(v, k){ params[k] = v; });
-        return origFetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ __get: true, params: params })
-        }).then(function(resp){
-          resp.clone().json().then(function(data){
-            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
-          }).catch(function(){});
-          return resp;
-        });
-      }
       const isScriptCall = typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0;
       const result = origFetch(input, init);
       if(isScriptCall){
@@ -1209,13 +1192,12 @@ function saveEditPost(rowIndex){
 }
 
 function copyPostLink(id){
-  // GitHub Pages-এর নিজের ছোট লিংক — Apps Script postSEO URL নয়।
-  // ফলে শেয়ার করা লিংকে Apps Script 404 হবে না এবং URL-ও অনেক ছোট থাকবে।
-  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
-  const link = base + '?p=' + encodeURIComponent(id);
+  // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
+  // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
+  const link = 'https://alamingazi533.github.io/?p=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
-      alert('ছোট পোস্ট লিংক কপি হয়েছে:\n' + link);
+      alert('লিংক কপি হয়েছে:\n' + link);
     }).catch(()=>{
       prompt('লিংকটি কপি করুন:', link);
     });
@@ -1672,24 +1654,17 @@ function loadAdminActivity(){
 function login(){
   const pw = document.getElementById('pwInput').value.trim();
   if(!pw){ return; }
-
   const errEl = document.getElementById('loginErr');
-  const btn = document.querySelector('#loginBox button[onclick="login()"]');
   errEl.style.display = 'none';
-  if(btn){ btn.disabled = true; btn.textContent = 'যাচাই হচ্ছে…'; btn.style.opacity = '0.7'; }
-
-  const controller = ('AbortController' in window) ? new AbortController() : null;
-  const timer = setTimeout(() => { if(controller) controller.abort(); }, 15000);
-
-  fetch(SCRIPT_URL + '?action=login&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {
-    cache: 'no-store',
-    signal: controller ? controller.signal : undefined
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action:'login', password:pw})
   })
-    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(r => r.json())
     .then(data => {
-      clearTimeout(timer);
       if(data.success && data.token){
-        sessionStorage.setItem('adminPw', data.token);
+        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের টোকেন রাখা হয়
         document.getElementById('pwInput').value = '';
         verifyAndEnter();
       } else {
@@ -1697,16 +1672,11 @@ function login(){
           ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
           : 'পাসওয়ার্ড ভুল হয়েছে, আবার চেষ্টা করুন।';
         errEl.style.display = 'block';
-        if(btn){ btn.disabled = false; btn.textContent = 'লগইন করুন'; btn.style.opacity = ''; }
       }
     })
-    .catch(err => {
-      clearTimeout(timer);
-      errEl.textContent = (err && err.name === 'AbortError')
-        ? 'সার্ভার থেকে ১৫ সেকেন্ডের মধ্যে উত্তর আসেনি। আবার চেষ্টা করুন।'
-        : 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
+    .catch(() => {
+      errEl.textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
       errEl.style.display = 'block';
-      if(btn){ btn.disabled = false; btn.textContent = 'লগইন করুন'; btn.style.opacity = ''; }
     });
 }
 
@@ -2070,9 +2040,10 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
+  sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
   const savedTok = sessionStorage.getItem('adminPw');
   if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
-  if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }
+  if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
 }catch(err){}
 if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
