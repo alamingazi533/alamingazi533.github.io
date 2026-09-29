@@ -1211,7 +1211,7 @@ function saveEditPost(rowIndex){
 function copyPostLink(id){
   // GitHub Pages-এর নিজের ছোট লিংক — Apps Script postSEO URL নয়।
   // ফলে শেয়ার করা লিংকে Apps Script 404 হবে না এবং URL-ও অনেক ছোট থাকবে।
-  const base = window.location.origin + window.location.pathname.replace(/admin\\.html$/i, '');
+  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
   const link = base + '?p=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
@@ -2054,10 +2054,9 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
-  sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
   const savedTok = sessionStorage.getItem('adminPw');
   if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
-  if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
+  if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }
 }catch(err){}
 if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
