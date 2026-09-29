@@ -4223,8 +4223,20 @@ function loadHomeData(force){
       }
     }catch(e){}
   }
+  // Fresh session cache is enough for the first paint; avoid an extra API call.
+  if(!force){
+    try{
+      const raw = sessionStorage.getItem(key);
+      if(raw){
+        const obj = JSON.parse(raw);
+        if(obj && obj.time && (Date.now()-obj.time) < ttl && obj.data && obj.data.success){
+          return Promise.resolve(obj.data);
+        }
+      }
+    }catch(e){}
+  }
   if(__homeDataRequest && !force) return __homeDataRequest;
-  __homeDataRequest = fetch(SCRIPT_URL + '?action=getHomeData&_=' + Date.now(), {cache:'no-store'})
+  __homeDataRequest = fetch(SCRIPT_URL + '?action=getHomeData', {cache:'default'})
     .then(r => r.json())
     .then(data => {
       if(data && data.success){
@@ -4240,7 +4252,7 @@ function loadHomeData(force){
 }
 loadHomeData(false);
 // ঘন ঘন API কল না করে ৬০ সেকেন্ড পরপর ব্যাকগ্রাউন্ডে আপডেট। ট্যাব লুকানো থাকলে কল হবে না।
-setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 60000);
+setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 300000);
 
 // ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?post=ID / ?blog=all) ============
 let __allPosts = [];
@@ -4440,7 +4452,7 @@ function renderBlogCard(p, featured, small){
 
 function loadPosts(){
   const container = document.getElementById('postsContainer');
-  const cacheKey = 'publicBlogPostsCacheV5';
+  const cacheKey = 'publicBlogPostsCacheV7';
   const oldCacheKeys = ['publicBlogPostsCacheV4','publicBlogPostsCacheV3','publicBlogPostsCacheV2'];
   let settled = false;
   let timer = null;
@@ -4494,7 +4506,7 @@ function loadPosts(){
       }
       initBlogRouter();
     });
-  }, 5000);
+  }, 15000);
 
   fetch(SCRIPT_URL + '?action=getPosts', {cache:'default', signal:controller.signal})
     .then(r=>{

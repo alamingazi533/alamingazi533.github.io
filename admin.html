@@ -474,6 +474,23 @@ function __handleAuthIssue(errCode){
   const origFetch = window.fetch.bind(window);
   window.fetch = function(input, init){
     try{
+      if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
+         /[?&](password|newPassword)=/.test(input) &&
+         (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
+        const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
+        const params = {};
+        new URLSearchParams(qs).forEach(function(v, k){ params[k] = v; });
+        return origFetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ __get: true, params: params })
+        }).then(function(resp){
+          resp.clone().json().then(function(data){
+            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
+          }).catch(function(){});
+          return resp;
+        });
+      }
       const isScriptCall = typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0;
       const result = origFetch(input, init);
       if(isScriptCall){
@@ -1194,7 +1211,7 @@ function saveEditPost(rowIndex){
 function copyPostLink(id){
   // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
   // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
-  const link = 'https://alamingazi533.github.io/?p=' + encodeURIComponent(id);
+  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
       alert('লিংক কপি হয়েছে:\n' + link);
@@ -1725,10 +1742,11 @@ function verifyAndEnter(){
         startAutoRefresh();
         updateBackupReminder();
         // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
-        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
-        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
-        setTimeout(() => { loadSubscribers(); }, 1000);
-        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
+        // Main table becomes usable first; secondary panels load in the background.
+        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 1200);
+        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 2200);
+        setTimeout(() => { loadSubscribers(); }, 3200);
+        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 4200);
       } else {
         sessionStorage.removeItem('adminPw');
         if(!hadCache){
