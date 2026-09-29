@@ -38,7 +38,7 @@
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
-      if(params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('p') || params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
       if(params.get('blog')){
         const cat = params.get('blog');
         return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
@@ -4223,20 +4223,8 @@ function loadHomeData(force){
       }
     }catch(e){}
   }
-  // Fresh session cache is enough for the first paint; avoid an extra API call.
-  if(!force){
-    try{
-      const raw = sessionStorage.getItem(key);
-      if(raw){
-        const obj = JSON.parse(raw);
-        if(obj && obj.time && (Date.now()-obj.time) < ttl && obj.data && obj.data.success){
-          return Promise.resolve(obj.data);
-        }
-      }
-    }catch(e){}
-  }
   if(__homeDataRequest && !force) return __homeDataRequest;
-  __homeDataRequest = fetch(SCRIPT_URL + '?action=getHomeData', {cache:'default'})
+  __homeDataRequest = fetch(SCRIPT_URL + '?action=getHomeData&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
     .then(data => {
       if(data && data.success){
@@ -4252,9 +4240,9 @@ function loadHomeData(force){
 }
 loadHomeData(false);
 // ঘন ঘন API কল না করে ৬০ সেকেন্ড পরপর ব্যাকগ্রাউন্ডে আপডেট। ট্যাব লুকানো থাকলে কল হবে না।
-setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 300000);
+setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 60000);
 
-// ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?post=ID / ?blog=all) ============
+// ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?p=SHORT / ?post=OLD-ID / ?blog=all) ============
 let __allPosts = [];
 
 function blogEscape(s){
@@ -4320,7 +4308,7 @@ function renderTickerList(){
   if(__allPosts.length === 0){ wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   list.innerHTML = __allPosts.slice(0, 8).map((p, i) =>
-    '<li><span class="num">' + (i + 1) + '.</span><a href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a></li>'
+    '<li><span class="num">' + (i + 1) + '.</span><a href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' + blogEscape(p.title) + '</a></li>'
   ).join('');
 }
 
@@ -4331,7 +4319,7 @@ function renderPhotoGrid(){
   const withImages = __allPosts.filter(p => blogSafeUrl(p.imageUrl)).slice(0, 5);
   if(withImages.length === 0){ wrap.innerHTML = ''; return; }
   wrap.innerHTML = withImages.map(p =>
-    '<a class="blog-photo-card" href="?post=' + encodeURIComponent(p.id) + '">' +
+    '<a class="blog-photo-card" href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' +
       '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + blogEscape(p.title) + '" loading="lazy">' +
       '<div class="post-title">' + blogEscape(p.title) + '</div>' +
     '</a>'
@@ -4395,7 +4383,7 @@ function renderCategorySections(){
           '<a class="blog-viewall-link" href="?blog=' + encodeURIComponent(cat) + '">সব দেখুন →</a>' +
         '</div>' +
         '<div class="blog-cat-block-body">' +
-          '<a class="blog-cat-main-post" href="?post=' + encodeURIComponent(mainPost.id) + '">' +
+          '<a class="blog-cat-main-post" href="?p=' + encodeURIComponent(shortPostKey(mainPost.id)) + '">' +
             mainImg +
             '<div class="post-date">' + cleanPostDate(mainPost.date) + '</div>' +
             '<div class="post-title">' + blogEscape(mainPost.title) + '</div>' +
@@ -4406,7 +4394,7 @@ function renderCategorySections(){
             ? '<ul class="blog-cat-side-list">' + sideList.map(p =>
                 '<li>' +
                   (p.imageUrl ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + blogEscape(p.title) + '" loading="lazy">' : '') +
-                  '<a href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a>' +
+                  '<a href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' + blogEscape(p.title) + '</a>' +
                 '</li>'
               ).join('') + '</ul>'
             : '') +
@@ -4419,7 +4407,7 @@ function renderCategorySections(){
 function renderBlogCard(p, featured, small){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, featured ? 150 : (small ? 60 : 110)));
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
@@ -4452,7 +4440,7 @@ function renderBlogCard(p, featured, small){
 
 function loadPosts(){
   const container = document.getElementById('postsContainer');
-  const cacheKey = 'publicBlogPostsCacheV7';
+  const cacheKey = 'publicBlogPostsCacheV5';
   const oldCacheKeys = ['publicBlogPostsCacheV4','publicBlogPostsCacheV3','publicBlogPostsCacheV2'];
   let settled = false;
   let timer = null;
@@ -4506,7 +4494,7 @@ function loadPosts(){
       }
       initBlogRouter();
     });
-  }, 15000);
+  }, 5000);
 
   fetch(SCRIPT_URL + '?action=getPosts', {cache:'default', signal:controller.signal})
     .then(r=>{
@@ -4555,9 +4543,23 @@ function updateCanonicalUrl(url){
   if(ogUrlEl) ogUrlEl.setAttribute('content', url);
 }
 
+// নতুন ছোট পোস্ট লিংক: ?p=d791e0d3f3
+// পুরনো ?post=UUID লিংকও কাজ করবে।
+function shortPostKey(id){
+  return String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+}
+function resolveShortPostKey(key){
+  if(!key || !Array.isArray(__allPosts) || !__allPosts.length) return null;
+  const k = String(key);
+  const found = __allPosts.find(p => shortPostKey(p.id) === k);
+  return found ? String(found.id) : null;
+}
+
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
-  const postId = params.get('p') || params.get('post');
+  const shortKey = params.get('p');
+  const legacyPostId = params.get('post');
+  const postId = legacyPostId || resolveShortPostKey(shortKey);
   const blogParam = params.get('blog');
 
   if(!postId && !blogParam) return; // স্বাভাবিক হোমপেজ, কিছু করার দরকার নেই
@@ -4691,7 +4693,7 @@ function renderBlogArchiveGrid(query, cat){
 function renderFeatureHero(p){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, 80));
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -4707,7 +4709,7 @@ function renderFeatureHero(p){
 
 function renderThumbItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -4723,7 +4725,7 @@ function renderThumbItem(p){
 
 function renderBlogListItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   return '<a class="blog-list-item" href="' + href + '"' + clickAttr + '>' +
     '<span class="blog-list-title">' + safeTitle + '</span>' +
@@ -4820,7 +4822,7 @@ function showBlogDetail(postId){
   loadPostComments(String(post.id));
 
   document.title = post.title + ' | সোশ্যাল মিডিয়া সমস্যা সমাধান — যশোর';
-  updateCanonicalUrl('https://alamingazi533.github.io/?post=' + encodeURIComponent(post.id));
+  updateCanonicalUrl('https://alamingazi533.github.io/?p=' + encodeURIComponent(shortPostKey(post.id)));
   const metaDesc = document.querySelector('meta[name="description"]');
   const postExcerpt = blogExcerpt(post.content, 155);
   if(metaDesc) metaDesc.setAttribute('content', postExcerpt);
@@ -4840,7 +4842,7 @@ function renderRelatedPosts(post){
     .slice(0, 4);
   if(related.length === 0) return;
   const itemsHtml = related.map(p =>
-    '<a class="blog-related-item" href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a>'
+    '<a class="blog-related-item" href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' + blogEscape(p.title) + '</a>'
   ).join('');
   const html =
     '<div class="blog-related-wrap">' +
@@ -4917,7 +4919,7 @@ async function sharePost(postId, title){
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId)
+    url: window.location.origin + window.location.pathname + '?p=' + encodeURIComponent(postId)
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
@@ -5005,7 +5007,8 @@ function refreshBlogDataSilently(){
         renderRecentWidget();
       } else if(isDetailOpen){
         const params = new URLSearchParams(window.location.search);
-        const postId = params.get('p') || params.get('post');
+        const postKey = params.get('p');
+        const postId = params.get('post') || resolveShortPostKey(postKey);
         if(postId){
           loadPostComments(postId); // নতুন কমেন্ট এলে দেখাবে, লেখার বক্স স্পর্শ করা হয় না
           const post = __allPosts.find(p => String(p.id) === String(postId));
