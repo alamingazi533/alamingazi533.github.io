@@ -223,7 +223,7 @@
   }
   header{position:relative;}
   /* সেভ করা লগইন থাকলে যাচাই চলার সময় লগইন ফর্ম না দেখিয়ে "লোড হচ্ছে" দেখানো হয় */
-  #sessionLoading{display:none !important; text-align:center; padding:80px 20px; color:var(--muted); font-size:15px;}
+  #sessionLoading{display:none; text-align:center; padding:80px 20px; color:var(--muted); font-size:15px;}
   .has-session #loginBox{display:none !important;}
   .has-session #sessionLoading{display:block;}
 </style>
@@ -233,7 +233,7 @@
 </style></head>
 <body>
 
-<div id="sessionLoading">⏳ লোড হচ্ছে...</div>
+<div id="sessionLoading" style="display:none !important;">⏳ লোড হচ্ছে...</div>
 <div id="loginBox">
   <button id="loginThemeToggleBtn" onclick="toggleTheme()" title="ডার্ক/লাইট মোড" style="position:absolute; left:14px; top:14px; background:transparent; border:1px solid var(--line); color:var(--ink); padding:6px 10px; border-radius:7px; font-size:14px; cursor:pointer;">🌙</button>
   <h2>অ্যাডমিন লগইন</h2>
@@ -1210,12 +1210,12 @@ function saveEditPost(rowIndex){
 
 function copyPostLink(id){
   // GitHub Pages-এর নিজের ছোট লিংক — Apps Script postSEO URL নয়।
+  // ফলে শেয়ার করা লিংকে Apps Script 404 হবে না এবং URL-ও অনেক ছোট থাকবে।
   const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
   const link = base + '?p=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
-      alert('ছোট পোস্ট লিংক কপি হয়েছে:
-' + link);
+      alert('ছোট পোস্ট লিংক কপি হয়েছে:\n' + link);
     }).catch(()=>{
       prompt('লিংকটি কপি করুন:', link);
     });
@@ -1672,13 +1672,24 @@ function loadAdminActivity(){
 function login(){
   const pw = document.getElementById('pwInput').value.trim();
   if(!pw){ return; }
+
   const errEl = document.getElementById('loginErr');
+  const btn = document.querySelector('#loginBox button[onclick="login()"]');
   errEl.style.display = 'none';
-  fetch(SCRIPT_URL + '?action=login&password=' + encodeURIComponent(pw))
-    .then(r => r.json())
+  if(btn){ btn.disabled = true; btn.textContent = 'যাচাই হচ্ছে…'; btn.style.opacity = '0.7'; }
+
+  const controller = ('AbortController' in window) ? new AbortController() : null;
+  const timer = setTimeout(() => { if(controller) controller.abort(); }, 15000);
+
+  fetch(SCRIPT_URL + '?action=login&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {
+    cache: 'no-store',
+    signal: controller ? controller.signal : undefined
+  })
+    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(data => {
+      clearTimeout(timer);
       if(data.success && data.token){
-        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের টোকেন রাখা হয়
+        sessionStorage.setItem('adminPw', data.token);
         document.getElementById('pwInput').value = '';
         verifyAndEnter();
       } else {
@@ -1686,11 +1697,16 @@ function login(){
           ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
           : 'পাসওয়ার্ড ভুল হয়েছে, আবার চেষ্টা করুন।';
         errEl.style.display = 'block';
+        if(btn){ btn.disabled = false; btn.textContent = 'লগইন করুন'; btn.style.opacity = ''; }
       }
     })
-    .catch(() => {
-      errEl.textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
+    .catch(err => {
+      clearTimeout(timer);
+      errEl.textContent = (err && err.name === 'AbortError')
+        ? 'সার্ভার থেকে ১৫ সেকেন্ডের মধ্যে উত্তর আসেনি। আবার চেষ্টা করুন।'
+        : 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
       errEl.style.display = 'block';
+      if(btn){ btn.disabled = false; btn.textContent = 'লগইন করুন'; btn.style.opacity = ''; }
     });
 }
 
@@ -1738,12 +1754,11 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // অতিরিক্ত অপেক্ষা না করে সব সহায়ক ডেটা একসাথে লোড হবে।
-        // মূল Admin প্যানেল আগে থেকেই usable; কোনো API ধীর হলেও অন্য অংশ আটকে থাকবে না।
-        Promise.resolve().then(() => { loadAdminReviews(); loadAdminComments(); });
-        Promise.resolve().then(() => { loadAdminPosts(); fetchPersistentStats(); });
-        Promise.resolve().then(() => { loadSubscribers(); });
-        Promise.resolve().then(() => { loadVisitStats(); startVisitStatsAutoRefresh(); });
+        // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
+        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
+        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
+        setTimeout(() => { loadSubscribers(); }, 1000);
+        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
       } else {
         sessionStorage.removeItem('adminPw');
         if(!hadCache){
