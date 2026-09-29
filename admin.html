@@ -1209,10 +1209,10 @@ function saveEditPost(rowIndex){
 }
 
 function copyPostLink(id){
-  // স্থায়ী ছোট GitHub Pages লিংক — Apps Script-এর লম্বা postSEO URL নয়।
-  // নতুন ও পুরনো সব পোস্টের জন্য একই ফরম্যাট: ?p=XXXXXXXXXX
-  const shortKey = String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-  const link = 'https://alamingazi533.github.io/?p=' + encodeURIComponent(shortKey);
+  // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
+  // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
+  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
+  const link = base + '?p=' + encodeURIComponent(String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12));
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
       alert('লিংক কপি হয়েছে:\n' + link);

@@ -38,7 +38,7 @@
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
-      if(params.get('p') || params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
       if(params.get('blog')){
         const cat = params.get('blog');
         return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
@@ -4242,7 +4242,7 @@ loadHomeData(false);
 // ঘন ঘন API কল না করে ৬০ সেকেন্ড পরপর ব্যাকগ্রাউন্ডে আপডেট। ট্যাব লুকানো থাকলে কল হবে না।
 setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 60000);
 
-// ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?p=SHORT / ?post=OLD-ID / ?blog=all) ============
+// ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?post=ID / ?blog=all) ============
 let __allPosts = [];
 
 function blogEscape(s){
@@ -4383,7 +4383,7 @@ function renderCategorySections(){
           '<a class="blog-viewall-link" href="?blog=' + encodeURIComponent(cat) + '">সব দেখুন →</a>' +
         '</div>' +
         '<div class="blog-cat-block-body">' +
-          '<a class="blog-cat-main-post" href="?p=' + encodeURIComponent(shortPostKey(mainPost.id)) + '">' +
+          '<a class="blog-cat-main-post" href="?post=' + encodeURIComponent(mainPost.id) + '">' +
             mainImg +
             '<div class="post-date">' + cleanPostDate(mainPost.date) + '</div>' +
             '<div class="post-title">' + blogEscape(mainPost.title) + '</div>' +
@@ -4543,23 +4543,19 @@ function updateCanonicalUrl(url){
   if(ogUrlEl) ogUrlEl.setAttribute('content', url);
 }
 
-// নতুন ছোট পোস্ট লিংক: ?p=d791e0d3f3
-// পুরনো ?post=UUID লিংকও কাজ করবে।
 function shortPostKey(id){
   return String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
 }
 function resolveShortPostKey(key){
   if(!key || !Array.isArray(__allPosts) || !__allPosts.length) return null;
-  const k = String(key);
-  const found = __allPosts.find(p => shortPostKey(p.id) === k);
+  const found = __allPosts.find(p => shortPostKey(p.id) === String(key));
   return found ? String(found.id) : null;
 }
 
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
   const shortKey = params.get('p');
-  const legacyPostId = params.get('post');
-  const postId = legacyPostId || resolveShortPostKey(shortKey);
+  const postId = params.get('post') || resolveShortPostKey(shortKey);
   const blogParam = params.get('blog');
 
   if(!postId && !blogParam) return; // স্বাভাবিক হোমপেজ, কিছু করার দরকার নেই
@@ -4822,7 +4818,7 @@ function showBlogDetail(postId){
   loadPostComments(String(post.id));
 
   document.title = post.title + ' | সোশ্যাল মিডিয়া সমস্যা সমাধান — যশোর';
-  updateCanonicalUrl('https://alamingazi533.github.io/?p=' + encodeURIComponent(shortPostKey(post.id)));
+  updateCanonicalUrl('https://alamingazi533.github.io/?post=' + encodeURIComponent(post.id));
   const metaDesc = document.querySelector('meta[name="description"]');
   const postExcerpt = blogExcerpt(post.content, 155);
   if(metaDesc) metaDesc.setAttribute('content', postExcerpt);
@@ -4919,7 +4915,7 @@ async function sharePost(postId, title){
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: window.location.origin + window.location.pathname + '?p=' + encodeURIComponent(postId)
+    url: window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId)
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
@@ -5007,8 +5003,7 @@ function refreshBlogDataSilently(){
         renderRecentWidget();
       } else if(isDetailOpen){
         const params = new URLSearchParams(window.location.search);
-        const postKey = params.get('p');
-        const postId = params.get('post') || resolveShortPostKey(postKey);
+        const postId = params.get('post');
         if(postId){
           loadPostComments(postId); // নতুন কমেন্ট এলে দেখাবে, লেখার বক্স স্পর্শ করা হয় না
           const post = __allPosts.find(p => String(p.id) === String(postId));
