@@ -443,8 +443,8 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
 
 // ============ পাসওয়ার্ড URL-এ না পাঠিয়ে POST-এর বডিতে পাঠানো ============
-// ব্রাউজার হিস্ট্রি/লগে sensitive credential না রাখার জন্য password, newPassword বা otp থাকা GET কল
-// স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভারও সরাসরি sensitive GET প্রত্যাখ্যান করে)।
+// ব্রাউজার হিস্ট্রি ও লগে যেন পাসওয়ার্ড না থাকে, তাই ?password=... বা newPassword=... থাকা GET কল
+// স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভার একই কাজ করে)।
 // ============ সেশন-এক্সপায়ারি/লক গ্লোবালি ধরা ============
 // আগে টোকেন মেয়াদ শেষ হয়ে গেলে ব্যাকগ্রাউন্ড অটো-রিফ্রেশ (প্রতি ৩০ সেকেন্ডে) বারবার
 // "ভুল পাসওয়ার্ড" হিসেবে গণনা হতো, যা কিছুক্ষণ পরই পুরো অ্যাডমিন প্যানেল ১৫ মিনিটের
@@ -475,7 +475,7 @@ function __handleAuthIssue(errCode){
   window.fetch = function(input, init){
     try{
       if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
-         /[?&](password|newPassword|otp)=/.test(input) &&
+         /[?&](password|newPassword)=/.test(input) &&
          (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
         const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
         const params = {};
@@ -1099,7 +1099,8 @@ function loadAdminPosts(){
             mediaHtml +
             statsRow +
             '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
-              '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">লিংক কপি করুন</button>' +
+              '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">ছোট লিংক</button>' +
+  '<button onclick="copyPostPreviewLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">Preview লিংক</button>' +
               '<button onclick="startEditPost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">এডিট</button>' +
               (isDraft ? '<button onclick="publishDraftNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">প্রকাশ করুন</button>' : '') +
               (isScheduled ? '<button onclick="publishPostNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #8a6100; border-radius:6px; background:var(--card-bg); color:#8a6100; font-size:12.5px;">এখনই প্রকাশ করুন</button>' : '') +
@@ -1209,26 +1210,27 @@ function saveEditPost(rowIndex){
 }
 
 function copyPostLink(id){
-  // GitHub Pages-এর ultra-short, deterministic post link। UUID হলে 22-character Base64url key।
-  const s = String(id || '').trim();
-  const m = s.match(/^([0-9a-fA-F]{8})-([0-9a-fA-F]{4})-([0-9a-fA-F]{4})-([0-9a-fA-F]{4})-([0-9a-fA-F]{12})$/);
-  let key = s;
-  if(m){
-    const hex = m.slice(1).join('');
-    const bytes = new Uint8Array(16);
-    for(let i=0;i<16;i++) bytes[i] = parseInt(hex.slice(i*2,i*2+2),16);
-    let bin = '';
-    for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
-    key = btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
-  const link = base + '#' + key;
+  // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
+  // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
+  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
-      alert('অতি ছোট পোস্ট লিংক কপি হয়েছে:\n' + link);
+      alert('লিংক কপি হয়েছে:\n' + link);
     }).catch(()=>{
       prompt('লিংকটি কপি করুন:', link);
     });
+  } else {
+    prompt('লিংকটি কপি করুন:', link);
+  }
+}
+
+function copyPostPreviewLink(id){
+  // Facebook/WhatsApp-এর server-side OG preview-এর জন্য Apps Script SEO URL।
+  const link = 'https://script.google.com/macros/s/AKfycbw2Fjz0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=postSEO&id=' + encodeURIComponent(String(id || '').trim());
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(()=>{
+      alert('Facebook/WhatsApp Preview লিংক কপি হয়েছে:\n' + link);
+    }).catch(()=> prompt('লিংকটি কপি করুন:', link));
   } else {
     prompt('লিংকটি কপি করুন:', link);
   }
