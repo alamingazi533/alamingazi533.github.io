@@ -1,7 +1,8 @@
 User-agent: *
 Allow: /
+
+# Admin panel is not for search indexing.
 Disallow: /admin.html
-Disallow: /diagnostic.html
 
 Sitemap: https://alamingazi533.github.io/sitemap.xml
-Sitemap: https://script.google.com/macros/s/AKfycbw2Fzj0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=sitemap
+Sitemap: https://script.google.com/macros/s/AKfycbw2Fjz0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=sitemap
