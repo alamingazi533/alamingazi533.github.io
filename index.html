@@ -38,7 +38,7 @@
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
-      if(params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('post') || params.get('p')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
       if(params.get('blog')){
         const cat = params.get('blog');
         return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
@@ -58,7 +58,7 @@
     // iOS হোম স্ক্রিন আইকনও manifest.json থেকে না নিয়ে এই <link rel="apple-touch-icon"> থেকে নেয়
     if(route.icon){
       const appleIconEl = document.querySelector('link[rel="apple-touch-icon"]');
-      if(appleIconEl) appleIconEl.setAttribute('href', 'icons/icon-' + route.icon + '-192.png');
+      if(appleIconEl) appleIconEl.setAttribute('href', 'icon-' + route.icon + '-192.png');
     }
 
     // Android/Chrome manifest.json থেকে নাম ও আইকন নেয়, তাই সেটাও বদলে দেওয়া হচ্ছে
@@ -68,8 +68,8 @@
       m.short_name = route.label.length > 12 ? route.label.slice(0, 12) : route.label;
       if(route.icon){
         m.icons = [
-          { src: 'icons/icon-' + route.icon + '-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-' + route.icon + '-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
+          { src: 'icon-' + route.icon + '-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-' + route.icon + '-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
         ];
       }
       const blob = new Blob([JSON.stringify(m)], { type: 'application/json' });
@@ -2316,14 +2316,26 @@
 .site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
 </style>
 <script>
-/* ALAMIN_COMPAT_ROUTE_V1 */
-(function(){try{var u=new URL(window.location.href),oldPost=u.searchParams.get('post'),p=u.searchParams.get('p');if(oldPost&&!p){u.searchParams.delete('post');u.searchParams.set('p',String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));window.history.replaceState({},'',u.toString());}}catch(e){}})();
+/* ALAMIN_COMPAT_ROUTE_V2 */
+(function(){
+  try{
+    var u = new URL(window.location.href);
+    var oldPost = u.searchParams.get('post');
+    var p = u.searchParams.get('p');
+    if(oldPost && !p){
+      u.searchParams.delete('post');
+      u.searchParams.set('p', String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));
+      window.history.replaceState({}, '', u.toString());
+    }
+  }catch(e){}
+})();
 </script>
-<!-- ALAMIN_PERF_PRECONNECT_V1 -->
-<link rel="preconnect" href="https://script.google.com">
-<link rel="preconnect" href="https://www.googletagmanager.com">
+
+<!-- ALAMIN_FINAL_PERF_V2 -->
+<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="//embed.tawk.to">
 <link rel="dns-prefetch" href="//cdn.onesignal.com">
+
 </head>
 <body>
 
@@ -4554,7 +4566,7 @@ function updateCanonicalUrl(url){
 
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
-  const postId = params.get('post');
+  const postId = params.get('post') || params.get('p');
   const blogParam = params.get('blog');
 
   if(!postId && !blogParam) return; // স্বাভাবিক হোমপেজ, কিছু করার দরকার নেই
@@ -5002,7 +5014,7 @@ function refreshBlogDataSilently(){
         renderRecentWidget();
       } else if(isDetailOpen){
         const params = new URLSearchParams(window.location.search);
-        const postId = params.get('post');
+        const postId = params.get('post') || params.get('p');
         if(postId){
           loadPostComments(postId); // নতুন কমেন্ট এলে দেখাবে, লেখার বক্স স্পর্শ করা হয় না
           const post = __allPosts.find(p => String(p.id) === String(postId));
@@ -5378,4 +5390,3 @@ function openSitePolicy(type){const m=document.getElementById('sitePolicyModal')
 </script>
 </body>
   </html>
-<link rel="stylesheet" href="professional.css">
