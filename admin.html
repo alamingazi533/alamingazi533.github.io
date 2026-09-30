@@ -382,7 +382,14 @@
       <div id="postMsg" style="display:none; margin-top:10px; padding:9px 11px; border-radius:7px; font-size:13px;"></div>
       <hr class="card-divider" style="margin:16px 0 12px;">
       <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
-      <div id="postsList">লোড হচ্ছে...</div>
+      <div id="adminPostSearchWrap" style="margin:10px 0 12px;">
+  <div style="display:flex;gap:8px;align-items:center;">
+    <input type="search" id="adminPostSearch" placeholder="🔎 পোস্ট খুঁজুন — শিরোনাম, ক্যাটাগরি বা বিষয়" autocomplete="off" style="flex:1;padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;background:var(--card-bg);color:var(--ink);font-family:inherit;font-size:14px;outline:none;">
+    <button type="button" id="adminPostSearchClear" onclick="clearAdminPostSearch()" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;cursor:pointer;">✕</button>
+  </div>
+  <div id="adminPostSearchSummary" style="font-size:11.5px;color:var(--muted);margin-top:6px;"></div>
+</div>
+<div id="postsList">লোড হচ্ছে...</div>
       </div>
     </div>
 
@@ -1211,8 +1218,7 @@ function saveEditPost(rowIndex){
 function copyPostLink(id){
   // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
   // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
-  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
-  const link = base + '?p=' + encodeURIComponent(String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12));
+  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(id);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
       alert('লিংক কপি হয়েছে:\n' + link);
@@ -2062,6 +2068,41 @@ try{
 if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
 }
+</script>
+<script>
+(function(){
+  function getAdminPostSearchValue(){
+    const el=document.getElementById('adminPostSearch');
+    return el ? el.value.trim().toLowerCase() : '';
+  }
+  window.clearAdminPostSearch=function(){
+    const el=document.getElementById('adminPostSearch');
+    if(el) el.value='';
+    applyAdminPostSearch();
+  };
+  window.applyAdminPostSearch=function(){
+    const q=getAdminPostSearchValue();
+    const list=document.getElementById('postsList');
+    const summary=document.getElementById('adminPostSearchSummary');
+    if(!list) return;
+    const cards=Array.from(list.children).filter(el=>el.nodeType===1);
+    let shown=0;
+    cards.forEach(card=>{
+      if(!q){card.style.display='';shown++;return;}
+      const match=(card.textContent||'').toLowerCase().includes(q);
+      card.style.display=match?'':'none';
+      if(match) shown++;
+    });
+    if(summary) summary.textContent=q?('খোঁজার ফলাফল: '+shown+'টি পোস্ট'):('মোট পোস্ট: '+cards.length+'টি');
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    const el=document.getElementById('adminPostSearch'); if(!el) return;
+    el.addEventListener('input',window.applyAdminPostSearch);
+    applyAdminPostSearch();
+    const list=document.getElementById('postsList');
+    if(list && window.MutationObserver) new MutationObserver(applyAdminPostSearch).observe(list,{childList:true,subtree:true});
+  });
+})();
 </script>
 <script>function clearAdminLocalCache(){try{['lastCsvExport','adminOpenSections'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem('adminPw');const m=document.getElementById('adminLocalMsg');if(m)m.textContent='✓ লোকাল ক্যাশ/সেশন পরিষ্কার হয়েছে। নিরাপত্তার জন্য আবার লগইন করুন।';}catch(e){}}</script></body>
 </html>
