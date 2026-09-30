@@ -2315,22 +2315,6 @@
 <style id="site-enhancements">
 .site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
 </style>
-<script>
-/* ALAMIN_COMPAT_ROUTE_V2 */
-(function(){
-  try{
-    var u = new URL(window.location.href);
-    var oldPost = u.searchParams.get('post');
-    var p = u.searchParams.get('p');
-    if(oldPost && !p){
-      u.searchParams.delete('post');
-      u.searchParams.set('p', String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));
-      window.history.replaceState({}, '', u.toString());
-    }
-  }catch(e){}
-})();
-</script>
-
 <!-- ALAMIN_FINAL_PERF_V2 -->
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="//embed.tawk.to">
@@ -4921,12 +4905,16 @@ function likeCurrentPost(postId){
   });
 }
 
-// ============ পোস্ট শেয়ার (Web Share API, নাহলে লিংক কপি) ============
+// ============ পোস্ট শেয়ার — SEO/OG প্রিভিউসহ লিংক ============
+// GitHub Pages-এর ?post= লিংকটি JS-নির্ভর হওয়ায় Facebook/WhatsApp-এর মতো
+// crawler অনেক সময় পোস্টের title/image দেখতে পারে না। Apps Script-এর postSEO
+// endpoint server-side OG metadata দেয় এবং সাধারণ visitor-কে আসল পোস্টে পাঠায়।
 async function sharePost(postId, title){
+  const seoShareUrl = 'https://script.google.com/macros/s/AKfycbw2Fjz0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=postSEO&id=' + encodeURIComponent(postId);
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId)
+    url: seoShareUrl
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
