@@ -413,13 +413,14 @@
       </div>
     </div>
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
-      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">💾 ডেটা ব্যাকআপ</div><p style="font-size:12.5px;color:var(--muted);margin:0 0 9px;">Google Drive-এ Main, Posts, Reviews, Comments, Subscribers ও Visits-এর CSV ব্যাকআপ তৈরি হবে।</p>
+      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">💾 ডেটা ব্যাকআপ</div><p style="font-size:12.5px;color:var(--muted);margin:0 0 9px;">Google Drive-এ ডেটার CSV ব্যাকআপ তৈরি হবে। পুরোনো automatic backup থেকে সর্বশেষ ১৪টি রাখা হবে।</p>
       <button onclick="backupNow()" id="backupNowBtn" style="width:100%;padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">☁️ এখনই ব্যাকআপ নিন</button><div id="backupNowMsg" style="margin-top:8px;font-size:12.5px;"></div><div class="admin-tools-extra"><button type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆️ উপরে যান</button><button type="button" onclick="clearAdminLocalCache()">🧹 লোকাল ক্যাশ পরিষ্কার</button></div><div id="adminLocalMsg" style="font-size:12px;margin-top:6px;color:var(--muted)"></div>
     </div>
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
       <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">🛡️ নিরাপত্তা ও রিকভারি</div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
         <button type="button" onclick="enableDailyBackup()" style="padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">🕐 Daily Backup চালু</button>
+        <button type="button" onclick="checkBackupStatus()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">🔎 Backup Status</button>
         <button type="button" onclick="loadTrash()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">🗑️ Trash</button>
         <button type="button" onclick="loadAdminActivity()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">📋 Activity Log</button>
       </div>
@@ -443,8 +444,8 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
 
 // ============ পাসওয়ার্ড URL-এ না পাঠিয়ে POST-এর বডিতে পাঠানো ============
-// ব্রাউজার হিস্ট্রি/লগে sensitive credential না রাখার জন্য password, newPassword বা otp থাকা GET কল
-// স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভারও সরাসরি sensitive GET প্রত্যাখ্যান করে)।
+// ব্রাউজার হিস্ট্রি ও লগে যেন পাসওয়ার্ড না থাকে, তাই ?password=... বা newPassword=... থাকা GET কল
+// স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভার একই কাজ করে)।
 // ============ সেশন-এক্সপায়ারি/লক গ্লোবালি ধরা ============
 // আগে টোকেন মেয়াদ শেষ হয়ে গেলে ব্যাকগ্রাউন্ড অটো-রিফ্রেশ (প্রতি ৩০ সেকেন্ডে) বারবার
 // "ভুল পাসওয়ার্ড" হিসেবে গণনা হতো, যা কিছুক্ষণ পরই পুরো অ্যাডমিন প্যানেল ১৫ মিনিটের
@@ -475,7 +476,7 @@ function __handleAuthIssue(errCode){
   window.fetch = function(input, init){
     try{
       if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
-         /[?&](password|newPassword|otp)=/.test(input) &&
+         /[?&](password|newPassword)=/.test(input) &&
          (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
         const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
         const params = {};
@@ -1640,6 +1641,17 @@ function enableDailyBackup(){
   fetch(SCRIPT_URL+'?action=setupDailyBackup&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
     msg.textContent=d.success?'✓ প্রতিদিনের automatic backup চালু হয়েছে।':'✕ '+(d.error||'চালু করা যায়নি।');
     msg.style.color=d.success?'var(--ok)':'var(--maroon)';
+  }).catch(()=>{msg.textContent='✕ সংযোগে সমস্যা হয়েছে।';msg.style.color='var(--maroon)';});
+}
+function checkBackupStatus(){
+  const msg=document.getElementById('securityToolsMsg'); msg.textContent='Backup status দেখা হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=backupStatus&password='+encodeURIComponent(pw)+'&_='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
+    if(!d.success){ msg.textContent='✕ '+(d.error||'স্ট্যাটাস পাওয়া যায়নি।'); msg.style.color='var(--maroon)'; return; }
+    const s=d.status||{};
+    const last=s.lastBackup ? ('শেষ ব্যাকআপ: '+s.lastBackup) : 'এখনো কোনো automatic backup log নেই';
+    msg.textContent=(s.dailyEnabled?'✓ Daily Backup চালু আছে। ':'⚠️ Daily Backup এখনো চালু নেই। ')+last+' · রাখা হবে সর্বোচ্চ '+(s.retention||14)+'টি backup';
+    msg.style.color=s.dailyEnabled?'var(--ok)':'var(--maroon)';
   }).catch(()=>{msg.textContent='✕ সংযোগে সমস্যা হয়েছে।';msg.style.color='var(--maroon)';});
 }
 function loadTrash(){
