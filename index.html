@@ -38,7 +38,7 @@
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
-      if(params.get('post') || params.get('p')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('post') || params.get('p') || (/^#[A-Za-z0-9_-]{22}$/.test(hash))) return { label: 'ব্লগ পোস্ট', icon: 'post' };
       if(params.get('blog')){
         const cat = params.get('blog');
         return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
@@ -2315,6 +2315,22 @@
 <style id="site-enhancements">
 .site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
 </style>
+<script>
+/* ALAMIN_COMPAT_ROUTE_V2 */
+(function(){
+  try{
+    var u = new URL(window.location.href);
+    var oldPost = u.searchParams.get('post');
+    var p = u.searchParams.get('p');
+    if(oldPost && !p){
+      u.searchParams.delete('post');
+      u.searchParams.set('p', String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));
+      window.history.replaceState({}, '', u.toString());
+    }
+  }catch(e){}
+})();
+</script>
+
 <!-- ALAMIN_FINAL_PERF_V2 -->
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="//embed.tawk.to">
@@ -4412,7 +4428,7 @@ function renderCategorySections(){
 function renderBlogCard(p, featured, small){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, featured ? 150 : (small ? 60 : 110)));
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '#' + shortPostKey(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
@@ -4548,9 +4564,38 @@ function updateCanonicalUrl(url){
   if(ogUrlEl) ogUrlEl.setAttribute('content', url);
 }
 
+// ============ নিরাপদ ultra-short post key ============
+// UUID (128-bit) হলে 16 bytes -> Base64url without padding = 22 characters।
+function __base64UrlFromBytes(bytes){
+  let bin = '';
+  for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function __uuidToShortKey(id){
+  const s = String(id || '').trim();
+  const m = s.match(/^([0-9a-fA-F]{8})-([0-9a-fA-F]{4})-([0-9a-fA-F]{4})-([0-9a-fA-F]{4})-([0-9a-fA-F]{12})$/);
+  if(!m) return null;
+  const hex = m.slice(1).join('');
+  const bytes = new Uint8Array(16);
+  for(let i=0;i<16;i++) bytes[i] = parseInt(hex.slice(i*2,i*2+2),16);
+  return __base64UrlFromBytes(bytes);
+}
+function shortPostKey(id){
+  const uuidKey = __uuidToShortKey(id);
+  return uuidKey || String(id || '');
+}
+function resolveShortPostKey(key){
+  if(!key || !Array.isArray(__allPosts) || !__allPosts.length) return null;
+  const k = String(key);
+  const found = __allPosts.find(p => shortPostKey(p.id) === k);
+  return found ? String(found.id) : null;
+}
+
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
-  const postId = params.get('post') || params.get('p');
+  const hash = String(window.location.hash || '').replace(/^#/, '');
+  // নতুন ultra-short link: https://alamingazi533.github.io/#<22-char-key>
+  const postId = params.get('post') || resolveShortPostKey(params.get('p')) || resolveShortPostKey(hash);
   const blogParam = params.get('blog');
 
   if(!postId && !blogParam) return; // স্বাভাবিক হোমপেজ, কিছু করার দরকার নেই
@@ -4684,7 +4729,7 @@ function renderBlogArchiveGrid(query, cat){
 function renderFeatureHero(p){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, 80));
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '#' + shortPostKey(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -4700,7 +4745,7 @@ function renderFeatureHero(p){
 
 function renderThumbItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '#' + shortPostKey(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -4716,7 +4761,7 @@ function renderThumbItem(p){
 
 function renderBlogListItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?post=' + encodeURIComponent(p.id);
+  const href = '#' + shortPostKey(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   return '<a class="blog-list-item" href="' + href + '"' + clickAttr + '>' +
     '<span class="blog-list-title">' + safeTitle + '</span>' +
@@ -4905,16 +4950,12 @@ function likeCurrentPost(postId){
   });
 }
 
-// ============ পোস্ট শেয়ার — SEO/OG প্রিভিউসহ লিংক ============
-// GitHub Pages-এর ?post= লিংকটি JS-নির্ভর হওয়ায় Facebook/WhatsApp-এর মতো
-// crawler অনেক সময় পোস্টের title/image দেখতে পারে না। Apps Script-এর postSEO
-// endpoint server-side OG metadata দেয় এবং সাধারণ visitor-কে আসল পোস্টে পাঠায়।
+// ============ পোস্ট শেয়ার (Web Share API, নাহলে লিংক কপি) ============
 async function sharePost(postId, title){
-  const seoShareUrl = 'https://script.google.com/macros/s/AKfycbw2Fjz0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=postSEO&id=' + encodeURIComponent(postId);
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: seoShareUrl
+    url: window.location.origin + window.location.pathname + '#' + shortPostKey(postId)
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
@@ -5002,7 +5043,8 @@ function refreshBlogDataSilently(){
         renderRecentWidget();
       } else if(isDetailOpen){
         const params = new URLSearchParams(window.location.search);
-        const postId = params.get('post') || params.get('p');
+        const hash = String(window.location.hash || '').replace(/^#/, '');
+        const postId = params.get('post') || resolveShortPostKey(params.get('p')) || resolveShortPostKey(hash);
         if(postId){
           loadPostComments(postId); // নতুন কমেন্ট এলে দেখাবে, লেখার বক্স স্পর্শ করা হয় না
           const post = __allPosts.find(p => String(p.id) === String(postId));
