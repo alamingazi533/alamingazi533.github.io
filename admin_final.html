@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>অ্যাডমিন প্যানেল - সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="admin-manifest.json">
+<meta name="theme-color" content="#1F3B2C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="অ্যাডমিন প্যানেল">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBF6EA;
+    --paper-dark:#F2EBDA;
+    --ink:#22281F;
+    --forest:#1F3B2C;
+    --forest-2:#2C4F3A;
+    --gold:#B8863B;
+    --gold-light:#D9AE6B;
+    --maroon:#7A2E2E;
+    --line:#D8CDAE;
+    --ok:#2C6B4F;
+    --card-bg:#fff;
+    --muted:#6b6752;
+    --badge-bg:#e9e4d2;
+    --badge-done-bg:#E6F0EA;
+    --badge-progress-bg:#FDF1DC;
+    --badge-progress-text:#8a5a12;
+    --badge-cancel-bg:#F6E7E4;
+  }
+  [data-theme="dark"]{
+    --paper:#161A15;
+    --paper-dark:#1F251C;
+    --ink:#E8E4D5;
+    --forest:#3E7A5C;
+    --forest-2:#4F9670;
+    --gold:#D9AE6B;
+    --gold-light:#E8C98A;
+    --maroon:#E37272;
+    --line:#333B2E;
+    --ok:#4CAF7D;
+    --card-bg:#1F251C;
+    --muted:#A6A08A;
+    --badge-bg:#2C332A;
+    --badge-done-bg:#20362A;
+    --badge-progress-bg:#3A2E18;
+    --badge-progress-text:#E0B15C;
+    --badge-cancel-bg:#3A2222;
+  }
+  [data-theme="dark"] input,
+  [data-theme="dark"] select,
+  [data-theme="dark"] textarea{
+    background:var(--card-bg); color:var(--ink);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    font-family:'Hind Siliguri', sans-serif;
+    color:var(--ink);
+    padding:0 0 60px;
+  }
+  header{
+    background:linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
+    color:var(--paper);
+    padding:22px 16px;
+    text-align:center;
+  }
+  header h1{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:20px;
+    margin:0;
+  }
+  main{max-width:640px; margin:0 auto; padding:16px;}
+
+  /* লগইন স্ক্রিন */
+  #loginBox{
+    max-width:360px;
+    margin:60px auto;
+    background:var(--card-bg);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:26px 22px;
+    box-shadow:0 18px 40px -20px rgba(31,59,44,0.35);
+    text-align:center;
+    position:relative;
+  }
+  #loginBox h2{font-family:'Noto Serif Bengali', serif; color:var(--forest); font-size:19px; margin:0 0 16px;}
+  #loginBox input{
+    width:100%; padding:12px; border-radius:8px; border:1.5px solid var(--line);
+    font-size:16px; font-family:inherit; margin-bottom:12px; outline:none;
+  }
+  #loginBox button, .btn{
+    width:100%; padding:12px; border:none; border-radius:9px;
+    background:var(--forest); color:var(--paper); font-family:inherit;
+    font-size:15.5px; font-weight:700; cursor:pointer;
+  }
+  #loginErr{color:var(--maroon); font-size:13.5px; margin-top:8px; display:none;}
+
+  /* টুলবার */
+  .toolbar{display:flex; gap:8px; margin-bottom:14px;}
+  .toolbar input{
+    flex:1; padding:11px 12px; border-radius:8px; border:1.5px solid var(--line);
+    font-size:15px; font-family:inherit; outline:none;
+  }
+  .toolbar button{
+    padding:11px 16px; border-radius:8px; border:1.5px solid var(--forest);
+    background:var(--card-bg); color:var(--forest); font-weight:700; font-family:inherit; cursor:pointer;
+  }
+  .summary{font-size:13px; color:var(--muted); margin-bottom:12px;}
+
+  /* কার্ড */
+  .card{
+    background:var(--card-bg); border:1px solid var(--line); border-radius:14px;
+    padding:0; margin-bottom:14px; box-shadow:0 12px 28px -18px rgba(31,59,44,0.32); overflow:hidden;
+  }
+  .card-top{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:14px 16px; background:var(--paper-dark); border-bottom:1px solid var(--line);
+  }
+  .applicant-photo{
+    width:48px; height:48px; border-radius:9px; object-fit:cover;
+    border:1.5px solid var(--gold-light); cursor:pointer; flex-shrink:0;
+  }
+  .card-name{font-size:16.5px; font-weight:700; color:var(--forest);}
+  .card-id{font-size:11.5px; color:var(--gold); font-weight:700; letter-spacing:.02em;}
+  .card-top > div:first-child{flex:1; min-width:0; display:flex; align-items:center; gap:10px;}
+  .badge{
+    display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700;
+    background:var(--badge-bg); color:var(--forest); white-space:nowrap; flex-shrink:0;
+  }
+  .badge.done{background:var(--badge-done-bg); color:var(--ok);}
+  .badge.progress{background:var(--badge-progress-bg); color:var(--badge-progress-text);}
+  .badge.cancel{background:var(--badge-cancel-bg); color:var(--maroon);}
+
+  .card-body{ padding:14px 16px 16px; display:none; }
+  .card-body.open{ display:block; }
+  .card-top{ cursor:pointer; }
+  .cardArrow{ font-size:13px; color:var(--muted); margin-left:2px; flex-shrink:0; }
+  .postExpandBtn{ background:none; border:none; color:var(--forest); font-size:12.5px; font-weight:700; padding:4px 0; cursor:pointer; font-family:inherit; }
+  .info-grid{ display:flex; flex-direction:column; gap:9px; }
+  .info-item{ display:flex; gap:9px; align-items:flex-start; font-size:13.5px; line-height:1.5; }
+  .info-item .ic{ flex-shrink:0; width:18px; text-align:center; }
+  .info-item .lbl{ color:var(--muted); font-size:11.5px; display:block; margin-bottom:1px; }
+  .info-item .val{ color:var(--ink); font-weight:600; word-break:break-word; }
+
+  .link-row{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .link-chip{
+    display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px;
+    background:var(--paper-dark); border:1px solid var(--line); color:var(--forest);
+    font-size:12.5px; font-weight:700; text-decoration:none;
+  }
+
+  .card-comment{
+    background:var(--paper-dark); border-radius:9px; padding:11px 13px; margin-top:12px; font-size:13.5px; line-height:1.55;
+  }
+  .screenshot-block{ margin-top:12px; }
+  .screenshot-label{
+    font-size:11.5px; letter-spacing:.05em; color:var(--gold); font-weight:700;
+    text-transform:uppercase; margin-bottom:6px;
+  }
+  .screenshot-img{
+    width:100%; max-height:340px; object-fit:contain; border-radius:10px;
+    border:1.5px solid var(--line); background:var(--paper-dark); cursor:pointer; display:block;
+  }
+
+  .card-divider{ border:none; border-top:1px dashed var(--line); margin:14px 0 0; }
+
+  .card-actions{display:flex; gap:8px; margin-top:12px;}
+  .card-actions input.statusInput{
+    flex:1; padding:10px 11px; border-radius:9px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; outline:none;
+  }
+  .card-actions button{
+    padding:10px 14px; border:none; border-radius:9px; background:var(--forest); color:#fff;
+    font-weight:700; font-family:inherit; cursor:pointer; font-size:14px;
+  }
+  .card-actions button:disabled{opacity:.6; cursor:wait;}
+  #loadingMsg, #emptyMsg{text-align:center; color:var(--muted); padding:30px 0; display:none;}
+
+  .dashboard{display:flex; gap:8px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px;}
+  .dash-item{
+    flex:0 0 auto; background:var(--card-bg); border:1px solid var(--line); border-radius:10px;
+    padding:8px 14px; text-align:center; min-width:76px;
+  }
+  .dash-item .num{font-size:18px; font-weight:700; color:var(--forest);}
+  .dash-item .lbl{font-size:11px; color:var(--muted); margin-top:2px;}
+
+  .filterRow{display:flex; gap:7px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px;}
+  .chip{
+    flex:0 0 auto; padding:7px 13px; border-radius:999px; border:1.5px solid var(--line);
+    background:var(--card-bg); color:var(--ink); font-size:13px; font-family:inherit; cursor:pointer; font-weight:600;
+  }
+  .chip.active{background:var(--forest); border-color:var(--forest); color:#fff;}
+
+  .exportBtn{
+    width:100%; padding:10px; border:1.5px solid var(--forest); border-radius:8px;
+    background:var(--card-bg); color:var(--forest); font-family:inherit; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .deleteBtn{
+    padding:10px 13px; border:1.5px solid var(--maroon); border-radius:9px; background:var(--card-bg);
+    color:var(--maroon); font-family:inherit; font-weight:700; cursor:pointer; font-size:13px;
+  }
+  .waBtn{
+    width:100%; padding:11px; border:none; border-radius:9px; background:#25D366;
+    color:#fff; font-family:inherit; font-weight:700; cursor:pointer; font-size:14px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  #logoutBtn{
+    background:transparent; border:1px solid rgba(255,255,255,0.5); color:var(--paper);
+    padding:6px 12px; border-radius:7px; font-size:12.5px; font-family:inherit; cursor:pointer;
+    position:absolute; right:14px; top:22px;
+  }
+  #themeToggleBtn{
+    background:transparent; border:1px solid rgba(255,255,255,0.5); color:var(--paper);
+    padding:6px 10px; border-radius:7px; font-size:14px; font-family:inherit; cursor:pointer;
+    position:absolute; left:14px; top:22px;
+  }
+  header{position:relative;}
+  /* সেভ করা লগইন থাকলে যাচাই চলার সময় লগইন ফর্ম না দেখিয়ে "লোড হচ্ছে" দেখানো হয় */
+  #sessionLoading{display:none; text-align:center; padding:80px 20px; color:var(--muted); font-size:15px;}
+  .has-session #loginBox{display:none !important;}
+  .has-session #sessionLoading{display:block;}
+</style>
+<script>try{ var __t = sessionStorage.getItem('adminPw'); if(__t && __t.indexOf('tk_') === 0){ document.documentElement.className += ' has-session'; } }catch(e){}</script>
+<style id="admin-enhancements">.admin-tools-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.admin-tools-extra button{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer}@media(max-width:600px){.admin-tools-extra{grid-template-columns:1fr}}</style><style id="admin-professional-upgrade">
+.admin-quick-nav{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px;padding:8px;background:var(--card-bg);border:1px solid var(--line);border-radius:11px;position:sticky;top:8px;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,.06)}.admin-quick-nav button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 10px;font-size:11.5px;font-weight:700;cursor:pointer}.admin-quick-nav button:hover{border-color:var(--forest);color:var(--forest)}
+</style></head>
+<body>
+
+<div id="sessionLoading">⏳ লোড হচ্ছে...</div>
+<div id="loginBox">
+  <button id="loginThemeToggleBtn" onclick="toggleTheme()" title="ডার্ক/লাইট মোড" style="position:absolute; left:14px; top:14px; background:transparent; border:1px solid var(--line); color:var(--ink); padding:6px 10px; border-radius:7px; font-size:14px; cursor:pointer;">🌙</button>
+  <h2>অ্যাডমিন লগইন</h2>
+  <input type="password" id="pwInput" placeholder="পাসওয়ার্ড দিন" autocomplete="off">
+  <button onclick="login()" id="loginBtn">লগইন করুন</button>
+  <div id="loginErr">পাসওয়ার্ড ভুল হয়েছে, আবার চেষ্টা করুন।</div>
+  <div style="margin-top:14px; font-size:13px;">
+    <a href="#" onclick="showForgotBox(); return false;" style="color:var(--forest); font-weight:600;">পাসওয়ার্ড ভুলে গেছেন?</a>
+  </div>
+</div>
+
+<div id="forgotBox" style="display:none; max-width:360px; margin:30px auto; background:var(--card-bg); border:1px solid var(--line); border-radius:14px; padding:26px 22px; box-shadow:0 18px 40px -20px rgba(31,59,44,0.35); text-align:center;">
+  <h2 style="font-family:'Noto Serif Bengali', serif; color:var(--forest); font-size:19px; margin:0 0 12px;">পাসওয়ার্ড রিসেট</h2>
+
+  <div id="forgotStep1">
+    <p style="font-size:13.5px; color:var(--muted); margin:0 0 14px;">আপনার রেজিস্টার্ড ইমেইলে একটি ৬-সংখ্যার কোড পাঠানো হবে।</p>
+    <button onclick="sendResetCode()" id="sendCodeBtn" style="width:100%; padding:12px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer;">কোড পাঠান</button>
+  </div>
+
+  <div id="forgotStep2" style="display:none;">
+    <input type="text" id="otpInput" placeholder="৬-সংখ্যার কোড দিন" inputmode="numeric" style="width:100%; padding:12px; border-radius:8px; border:1.5px solid var(--line); font-size:16px; font-family:inherit; margin-bottom:12px; outline:none;">
+    <input type="password" id="newPwInput" placeholder="নতুন পাসওয়ার্ড দিন" style="width:100%; padding:12px; border-radius:8px; border:1.5px solid var(--line); font-size:16px; font-family:inherit; margin-bottom:12px; outline:none;">
+    <button onclick="confirmResetPassword()" id="resetPwBtn" style="width:100%; padding:12px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer;">পাসওয়ার্ড পরিবর্তন করুন</button>
+  </div>
+
+  <div id="forgotMsg" style="font-size:13.5px; margin-top:10px; display:none;"></div>
+  <div style="margin-top:14px; font-size:13px;">
+    <a href="#" onclick="hideForgotBox(); return false;" style="color:var(--forest); font-weight:600;">← লগইনে ফিরে যান</a>
+  </div>
+</div>
+
+<div id="panel" style="display:none;">
+  <header>
+    <button id="themeToggleBtn" onclick="toggleTheme()" title="ডার্ক/লাইট মোড">🌙</button>
+    <h1>রেজিস্ট্রেশন - অ্যাডমিন প্যানেল</h1>
+    <button id="logoutBtn" onclick="logout()">লগ-আউট</button>
+  </header>
+  <main>
+    <div class="toolbar">
+      <input type="text" id="searchBox" placeholder="নাম, ফোন বা আবেদন নম্বর দিয়ে খুঁজুন">
+      <button onclick="manualRefresh()">রিফ্রেশ</button>
+    </div>
+    <div class="dashboard" id="dashboard"></div>
+    <div class="filterRow" id="filterRow"></div>
+    <div class="filterRow" id="dateFilterRow" style="margin-top:-6px;">
+      <button class="chip active" data-days="0" onclick="setDateFilter(0, this)">সব সময়</button>
+      <button class="chip" data-days="1" onclick="setDateFilter(1, this)">আজ</button>
+      <button class="chip" data-days="7" onclick="setDateFilter(7, this)">গত ৭ দিন</button>
+      <button class="chip" data-days="30" onclick="setDateFilter(30, this)">গত ৩০ দিন</button>
+    </div>
+
+    <div id="bulkActionBar" style="display:none; background:var(--card-bg); border:1px solid var(--gold); border-radius:10px; padding:10px 12px; margin-bottom:12px; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span id="bulkSelectedCount" style="font-size:13px; font-weight:700; color:var(--forest);"></span>
+      <select id="bulkStatusSelect" style="flex:1; min-width:120px; padding:8px; border-radius:6px; border:1px solid var(--line);">
+        <option value="অপেক্ষমান">অপেক্ষমান</option>
+        <option value="কাজ চলছে">কাজ চলছে</option>
+        <option value="সম্পন্ন">সম্পন্ন</option>
+        <option value="বাতিল">বাতিল</option>
+      </select>
+      <button onclick="applyBulkStatus()" style="padding:8px 14px; border:none; border-radius:6px; background:var(--forest); color:#fff; font-size:13px; font-weight:700;">সবগুলোতে প্রয়োগ করুন</button>
+      <button onclick="clearBulkSelection()" style="padding:8px 14px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); font-size:13px;">বাতিল</button>
+    </div>
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('visitAnalyticsBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 📊 ভিজিটর অ্যানালিটিক্স <span id="liveNowBadge"></span></div>
+        <button onclick="event.stopPropagation(); loadVisitStats();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      </div>
+      <div id="visitAnalyticsBody" style="display:none; margin-top:10px;">
+      <div class="dashboard" id="visitDashboard" style="margin-bottom:12px;"></div>
+      <div id="deviceBreakdown" style="display:flex; gap:8px; margin-bottom:14px;"></div>
+      <div id="dailyTrendBlock" style="margin-bottom:14px; display:none;">
+        <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">গত ১৪ দিনের ভিজিট ট্রেন্ড</div>
+        <div id="dailyTrendChart" style="display:flex; align-items:flex-end; gap:3px; height:90px; padding-top:6px;"></div>
+      </div>
+      <div id="topLocationsBlock" style="margin-bottom:14px; display:none;">
+        <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">শীর্ষ লোকেশন</div>
+        <div id="topLocationsList"></div>
+      </div>
+      <div id="insightsBlock"></div>
+      <div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">সাম্প্রতিক ভিজিট</div>
+      <div id="recentVisitsList" style="max-height:260px; overflow-y:auto;">লোড হচ্ছে...</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:center;">প্রতি ৫ সেকেন্ডে অটো-আপডেট হয়</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('reviewsBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> গ্রাহক রিভিউ <span id="pendingReviewBadge"></span></div>
+        <div style="display:flex; gap:6px;">
+          <button onclick="event.stopPropagation(); exportReviewsCsv();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">CSV</button>
+          <button onclick="event.stopPropagation(); loadAdminReviews();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+        </div>
+      </div>
+      <div id="reviewsBody" style="display:none; margin-top:10px;">
+      <div id="reviewsList">লোড হচ্ছে...</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('commentsBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 💬 পোস্ট কমেন্ট <span id="pendingCommentBadge"></span></div>
+        <button onclick="event.stopPropagation(); loadAdminComments();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      </div>
+      <div id="commentsBody" style="display:none; margin-top:10px;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">সাবমিট করলেই সাথে সাথে পাবলিশ হয় — এখান থেকে অনুপযুক্ত কমেন্ট মুছে ফেলুন।</div>
+      <div id="commentsListAdmin">লোড হচ্ছে...</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('postFormBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 📢 আপডেট/পোস্ট ম্যানেজমেন্ট</div>
+        <button onclick="event.stopPropagation(); loadAdminPosts();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      </div>
+      <div id="postFormBody" style="display:none; margin-top:10px;">
+      <input type="text" id="newPostTitle" placeholder="পোস্টের শিরোনাম" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
+      <select id="newPostCategory" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
+        <option value="সাধারণ আপডেট">সাধারণ আপডেট</option>
+        <option value="রিকভারি">রিকভারি</option>
+        <option value="মনিটাইজেশন">মনিটাইজেশন</option>
+        <option value="টিপস">টিপস</option>
+        <option value="সতর্কতা">সতর্কতা</option>
+      </select>
+      <textarea id="newPostContent" placeholder="বিস্তারিত লিখুন..." style="width:100%; min-height:80px; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; resize:vertical; margin-bottom:8px;"></textarea>
+
+      <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px;">পোস্ট সিডিউল (ঐচ্ছিক — খালি রাখলে সাথে সাথেই প্রকাশিত হবে)</label>
+      <input type="datetime-local" id="newPostSchedule" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
+
+      <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px;">ছবি (ঐচ্ছিক, সর্বোচ্চ ৫ এমবি)</label>
+      <input type="file" id="newPostImage" accept="image/*" style="width:100%; margin-bottom:4px; font-size:13px;">
+      <div id="newPostImagePreviewWrap" style="display:none; margin-bottom:8px;">
+        <img id="newPostImagePreview" style="max-width:100%; max-height:160px; border-radius:8px; display:block;">
+        <button type="button" onclick="clearNewPostImage()" style="margin-top:4px; padding:4px 10px; font-size:12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon);">ছবি বাদ দিন</button>
+      </div>
+
+      <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px;">ভিডিও (ঐচ্ছিক, সর্বোচ্চ ২৫ এমবি, ছোট ক্লিপ রাখুন)</label>
+      <input type="file" id="newPostVideo" accept="video/*" style="width:100%; margin-bottom:4px; font-size:13px;">
+      <div id="newPostVideoPreviewWrap" style="display:none; margin-bottom:8px;">
+        <video id="newPostVideoPreview" controls style="max-width:100%; max-height:180px; border-radius:8px; display:block;"></video>
+        <button type="button" onclick="clearNewPostVideo()" style="margin-top:4px; padding:4px 10px; font-size:12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon);">ভিডিও বাদ দিন</button>
+      </div>
+
+      <button id="addPostBtn" onclick="addPost(false)" style="width:100%; padding:11px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer;">পোস্ট করুন</button>
+      <button id="draftPostBtn" onclick="addPost(true)" style="width:100%; padding:10px; margin-top:8px; border:1.5px solid var(--muted); border-radius:9px; background:var(--card-bg); color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer;">📝 খসড়া হিসেবে সেভ করুন</button>
+      <div id="postMsg" style="display:none; margin-top:10px; padding:9px 11px; border-radius:7px; font-size:13px;"></div>
+      <hr class="card-divider" style="margin:16px 0 12px;">
+      <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
+      <div id="postsList">লোড হচ্ছে...</div>
+      </div>
+    </div>
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('subscribersBody', this)">
+        <div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> 📧 ব্লগ সাবস্ক্রাইবার <span id="subscriberBadge"></span></div>
+        <button onclick="event.stopPropagation(); loadSubscribers();" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">রিফ্রেশ</button>
+      </div>
+      <div id="subscribersBody" style="display:none; margin-top:10px;">
+        <div style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:8px;">
+          <button onclick="exportSubscribersCsv()" class="exportBtn" style="width:auto; flex:1; min-width:150px;">📥 Subscriber CSV</button>
+        </div>
+        <div id="subscribersList">লোড হচ্ছে...</div>
+      </div>
+    </div>
+
+
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSection('settingsBody', this)"><div style="font-weight:700; color:var(--forest);"><span class="secArrow">▸</span> ⚙️ সাইট সেটিংস</div><button onclick="event.stopPropagation(); loadSiteSettings();" style="padding:6px 12px;">লোড</button></div>
+      <div id="settingsBody" style="display:none; margin-top:10px;">
+        <label>সাইটের নাম</label><input id="siteSetTitle" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>WhatsApp নম্বর</label><input id="siteSetWhatsapp" style="width:100%;padding:9px;margin:4px 0 8px;" placeholder="017xxxxxxxx">
+        <label>Facebook Page URL</label><input id="siteSetFacebook" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>YouTube URL</label><input id="siteSetYoutube" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>Telegram URL</label><input id="siteSetTelegram" style="width:100%;padding:9px;margin:4px 0 8px;">
+        <label>Contact Email</label><input id="siteSetEmail" type="email" style="width:100%;padding:9px;margin:4px 0 10px;">
+        <button onclick="saveSiteSettings()" style="width:100%;padding:10px;border:0;border-radius:8px;background:var(--forest);color:#fff;font-weight:700;">💾 সেটিংস সেভ করুন</button><div id="siteSettingsMsg" style="margin-top:8px;font-size:12.5px;"></div>
+      </div>
+    </div>
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">💾 ডেটা ব্যাকআপ</div><p style="font-size:12.5px;color:var(--muted);margin:0 0 9px;">Google Drive-এ Main, Posts, Reviews, Comments, Subscribers ও Visits-এর CSV ব্যাকআপ তৈরি হবে।</p>
+      <button onclick="backupNow()" id="backupNowBtn" style="width:100%;padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">☁️ এখনই ব্যাকআপ নিন</button><div id="backupNowMsg" style="margin-top:8px;font-size:12.5px;"></div><div class="admin-tools-extra"><button type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆️ উপরে যান</button><button type="button" onclick="clearAdminLocalCache()">🧹 লোকাল ক্যাশ পরিষ্কার</button></div><div id="adminLocalMsg" style="font-size:12px;margin-top:6px;color:var(--muted)"></div>
+    </div>
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">🛡️ নিরাপত্তা ও রিকভারি</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+        <button type="button" onclick="enableDailyBackup()" style="padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">🕐 Daily Backup চালু</button>
+        <button type="button" onclick="loadTrash()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">🗑️ Trash</button>
+        <button type="button" onclick="loadAdminActivity()" style="padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">📋 Activity Log</button>
+      </div>
+      <div id="securityToolsMsg" style="font-size:12px;margin-top:8px;color:var(--muted);"></div>
+      <div id="trashPanel" style="display:none;margin-top:10px;"></div>
+      <div id="activityPanel" style="display:none;margin-top:10px;"></div>
+    </div>
+    <div class="toolbar" style="margin-top:0; flex-direction:column; align-items:stretch;">
+      <button class="exportBtn" onclick="exportCsv()" title="বর্তমানে যা ফিল্টার/সার্চ করা আছে ঠিক তাই এক্সপোর্ট হবে">CSV ডাউনলোড করুন</button>
+      <div id="backupReminder" style="font-size:12px; color:var(--muted); margin-top:6px; text-align:center;"></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="summary" id="lastUpdated" style="margin-top:-6px;">প্রতি ৩০ সেকেন্ডে অটো-আপডেট হয়</div>
+    <div id="loadingMsg">লোড হচ্ছে...</div>
+    <div id="emptyMsg">কোনো এন্ট্রি পাওয়া যায়নি।</div>
+    <div id="list"></div>
+  </main>
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
+
+// ============ পাসওয়ার্ড URL-এ না পাঠিয়ে POST-এর বডিতে পাঠানো ============
+// ব্রাউজার হিস্ট্রি ও লগে যেন পাসওয়ার্ড না থাকে, তাই ?password=... বা newPassword=... থাকা GET কল
+// স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভার একই কাজ করে)।
+// ============ সেশন-এক্সপায়ারি/লক গ্লোবালি ধরা ============
+// আগে টোকেন মেয়াদ শেষ হয়ে গেলে ব্যাকগ্রাউন্ড অটো-রিফ্রেশ (প্রতি ৩০ সেকেন্ডে) বারবার
+// "ভুল পাসওয়ার্ড" হিসেবে গণনা হতো, যা কিছুক্ষণ পরই পুরো অ্যাডমিন প্যানেল ১৫ মিনিটের
+// জন্য লক করে দিত (লোডিং/সংযোগ সমস্যা/পোস্ট ফেল দেখাত)। সার্ভার-সাইডে সেটা ঠিক করার
+// পাশাপাশি, এখানে যেকোনো রেসপন্সে "session expired"/"locked" পেলে সাথে সাথে সব
+// ব্যাকগ্রাউন্ড টাইমার বন্ধ করে দেওয়া হচ্ছে, যাতে সমস্যা আরও না বাড়ে।
+let __sessionIssueShown = false;
+function __handleAuthIssue(errCode){
+  try{ if(typeof autoRefreshTimer !== 'undefined' && autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }catch(e){}
+  try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
+  if(errCode === 'session expired'){
+    sessionStorage.removeItem('adminPw');
+  }
+  if(!__sessionIssueShown){
+    __sessionIssueShown = true;
+    const msg = errCode === 'locked'
+      ? 'নিরাপত্তার কারণে সাময়িকভাবে অ্যাডমিন প্যানেল লক আছে — কিছুক্ষণ পর আবার চেষ্টা করুন।'
+      : 'আপনার সেশনের মেয়াদ শেষ হয়ে গেছে — আবার লগইন করুন।';
+    setTimeout(function(){
+      alert(msg);
+      if(errCode === 'session expired') location.reload();
+    }, 50);
+  }
+}
+
+(function(){
+  const origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try{
+      if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
+         /[?&](password|newPassword)=/.test(input) &&
+         (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
+        const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
+        const params = {};
+        new URLSearchParams(qs).forEach(function(v, k){ params[k] = v; });
+        return origFetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ __get: true, params: params })
+        }).then(function(resp){
+          resp.clone().json().then(function(data){
+            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
+          }).catch(function(){});
+          return resp;
+        });
+      }
+      const isScriptCall = typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0;
+      const result = origFetch(input, init);
+      if(isScriptCall){
+        result.then(function(resp){
+          resp.clone().json().then(function(data){
+            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
+          }).catch(function(){});
+        }).catch(function(){});
+      }
+      return result;
+    }catch(err){}
+    return origFetch(input, init);
+  };
+})();
+const STATUS_OPTIONS = ["অপেক্ষমান", "কাজ চলছে", "সম্পন্ন", "বাতিল"];
+// স্ট্যাটাস আগে ফ্রি-টেক্সট ইনপুট দিয়ে টাইপ করা হতো বলে ভুলবশত অতিরিক্ত স্পেস/টাইপো ঢুকে যেতে পারত,
+// যার ফলে ফিল্টার চিপে ক্লিক করলে "মিল না পাওয়ায়" এন্ট্রি বাদ পড়ে যেত। তাই তুলনা করার আগে সবসময়
+// ট্রিম করে নেওয়া হচ্ছে (এখন থেকে স্ট্যাটাস ড্রপডাউন থেকে বাছাই করা হয় বলে নতুন করে এই সমস্যা হবে না)।
+function normStatus(s){ return String(s || '').trim(); }
+
+let allRows = [];
+let autoRefreshTimer = null;
+let activeStatusFilter = 'সব';
+let activeDateFilterDays = 0;
+let selectedRowIndexes = new Set();
+
+const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody', 'subscribersBody', 'settingsBody'];
+
+function toggleSection(id, headerEl){
+  const body = document.getElementById(id);
+  const arrow = headerEl.querySelector('.secArrow');
+  const opening = body.style.display === 'none';
+  body.style.display = opening ? 'block' : 'none';
+  if(arrow) arrow.textContent = opening ? '▾' : '▸';
+  saveOpenSections();
+}
+
+// রিফ্রেশ/পুল-টু-রিফ্রেশ করলেও কোন সেকশন খোলা ছিল তা মনে রাখা হয়, যাতে ব্যবহারকারী যেখানে ছিলেন সেখানেই থাকেন
+function saveOpenSections(){
+  try{
+    const open = COLLAPSIBLE_SECTION_IDS.filter(id => {
+      const el = document.getElementById(id);
+      return el && el.style.display !== 'none';
+    });
+    localStorage.setItem('adminOpenSections', JSON.stringify(open));
+  }catch(err){}
+}
+
+function restoreOpenSections(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('adminOpenSections') || '[]');
+    saved.forEach(id => {
+      const body = document.getElementById(id);
+      if(!body) return;
+      body.style.display = 'block';
+      const header = body.previousElementSibling;
+      const arrow = header ? header.querySelector('.secArrow') : null;
+      if(arrow) arrow.textContent = '▾';
+    });
+  }catch(err){}
+}
+
+function parseAdminDate(dateStr){
+  // ফরম্যাট: dd/MM/yyyy HH:mm
+  if(!dateStr) return null;
+  const parts = String(dateStr).split(/[\/\s:]/);
+  if(parts.length < 3) return null;
+  return new Date(parts[2], parts[1] - 1, parts[0], parts[3] || 0, parts[4] || 0);
+}
+
+function setDateFilter(days, btnEl){
+  activeDateFilterDays = days;
+  document.querySelectorAll('#dateFilterRow .chip').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+  try{ localStorage.setItem('adminFilterDays', String(days)); }catch(err){}
+  applyCurrentFilter();
+}
+
+function applyCurrentFilter(){
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  let filtered = allRows;
+  if(activeStatusFilter !== 'সব'){
+    filtered = filtered.filter(r => normStatus(r.status) === normStatus(activeStatusFilter));
+  }
+  if(activeDateFilterDays > 0){
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - activeDateFilterDays);
+    filtered = filtered.filter(r => {
+      const d = parseAdminDate(r.date);
+      return d && d >= cutoff;
+    });
+  }
+  if(q){
+    filtered = filtered.filter(r =>
+      (r.fullName || '').toLowerCase().includes(q) ||
+      (r.phone || '').includes(q) ||
+      (r.appId || '').toLowerCase().includes(q) ||
+      (r.platform || '').toLowerCase().includes(q)
+    );
+  }
+  renderList(filtered);
+  window.__lastFilteredRows = filtered;
+  renderDashboard(getDateFilteredRows());
+  renderFilterChips();
+}
+
+function getDateFilteredRows(){
+  if(activeDateFilterDays <= 0) return allRows;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - activeDateFilterDays);
+  return allRows.filter(r => {
+    const d = parseAdminDate(r.date);
+    return d && d >= cutoff;
+  });
+}
+
+let persistentStats = null; // getStats থেকে পাওয়া স্থায়ী কাউন্টার — ডিলিট করলেও কমে না
+function fetchPersistentStats(){
+  fetch(SCRIPT_URL + '?action=getStats')
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        persistentStats = { totalApplications: data.totalApplications, solvedCount: data.solvedCount };
+        // "সব সময়" ভিউতে থাকলে নতুন সংখ্যা দিয়ে ড্যাশবোর্ড রিফ্রেশ করা হচ্ছে
+        if(activeDateFilterDays === 0) renderDashboard(getDateFilteredRows());
+      }
+    })
+    .catch(()=>{});
+}
+
+function renderDashboard(rows){
+  rows = rows || getDateFilteredRows();
+  const dash = document.getElementById('dashboard');
+  const counts = {};
+  STATUS_OPTIONS.forEach(s => counts[s] = 0);
+  let otherCount = 0;
+  rows.forEach(r => {
+    const s = normStatus(r.status);
+    if(STATUS_OPTIONS.includes(s)){
+      counts[s] = (counts[s] || 0) + 1;
+    } else {
+      otherCount++; // পুরনো ফ্রি-টেক্সট যুগের কোনো টাইপো/অস্বাভাবিক স্ট্যাটাস থাকলে এখানে ধরা পড়বে
+    }
+  });
+  // "সব সময়" ভিউতে "মোট" ও "সম্পন্ন" ব্যাকএন্ডের স্থায়ী কাউন্টার থেকে দেখানো হয় (deleteRow করলেও
+  // এই সংখ্যা কমে না — শুধু তারিখ-ফিল্টার করা ভিউতে (আজ/৭দিন/৩০দিন) বর্তমানে শিটে থাকা এন্ট্রি গোনা হয়,
+  // কারণ ডিলিট হওয়া পুরনো এন্ট্রির আসল তারিখ আর জানার উপায় থাকে না)
+  const showPersistent = activeDateFilterDays === 0 && persistentStats;
+  const totalNum = showPersistent ? persistentStats.totalApplications : rows.length;
+  const solvedNum = showPersistent ? persistentStats.solvedCount : (counts["সম্পন্ন"] || 0);
+  let html = '<div class="dash-item"><div class="num">' + totalNum + '</div><div class="lbl">মোট</div></div>';
+  STATUS_OPTIONS.forEach(s => {
+    const num = (s === "সম্পন্ন") ? solvedNum : (counts[s] || 0);
+    html += '<div class="dash-item"><div class="num">' + num + '</div><div class="lbl">' + s + '</div></div>';
+  });
+  if(otherCount > 0){
+    html += '<div class="dash-item" style="border-color:var(--maroon);"><div class="num" style="color:var(--maroon);">' + otherCount + '</div><div class="lbl">⚠️ অস্বাভাবিক স্ট্যাটাস</div></div>';
+  }
+  dash.innerHTML = html;
+}
+
+function renderFilterChips(){
+  const row = document.getElementById('filterRow');
+  const options = ['সব'].concat(STATUS_OPTIONS);
+  row.innerHTML = options.map(s =>
+    '<button class="chip' + (s === activeStatusFilter ? ' active' : '') + '" data-status="' + s + '">' + s + '</button>'
+  ).join('');
+  row.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeStatusFilter = btn.getAttribute('data-status');
+      try{ localStorage.setItem('adminFilterStatus', activeStatusFilter); }catch(err){}
+      applyCurrentFilter();
+    });
+  });
+}
+
+// ============ রিফ্রেশ করলেও ফিল্টার, সার্চ ও স্ক্রল পজিশন যেন হারিয়ে না যায় ============
+function restoreFilterState(){
+  try{
+    const savedStatus = localStorage.getItem('adminFilterStatus');
+    if(savedStatus) activeStatusFilter = savedStatus;
+    const savedDays = localStorage.getItem('adminFilterDays');
+    if(savedDays !== null){
+      activeDateFilterDays = parseInt(savedDays, 10) || 0;
+      document.querySelectorAll('#dateFilterRow .chip').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-days') === String(activeDateFilterDays));
+      });
+    }
+    const savedQuery = localStorage.getItem('adminSearchQuery');
+    if(savedQuery) document.getElementById('searchBox').value = savedQuery;
+  }catch(err){}
+}
+
+let scrollRestoreDone = false;
+function restoreScrollPosition(){
+  if(scrollRestoreDone) return;
+  scrollRestoreDone = true;
+  try{
+    const saved = sessionStorage.getItem('adminScrollY');
+    if(saved){
+      const y = parseInt(saved, 10) || 0;
+      // খোলা সেকশনের ডেটা (রিভিউ/কমেন্ট/পোস্ট) অ্যাসিঙ্ক্রোনাসভাবে লোড হয় বলে সাথে সাথে স্ক্রল করলে
+      // লেআউট এখনো ছোট থাকে; একটু সময় দিয়ে তারপর স্ক্রল করা হচ্ছে যেন সঠিক জায়গায় যায়।
+      [300, 900, 1800, 3000].forEach(ms => setTimeout(() => {
+        if(document.documentElement.scrollHeight >= y + window.innerHeight * 0.5){ window.scrollTo(0, y); }
+      }, ms));
+    }
+  }catch(err){}
+}
+let scrollSaveTimer = null;
+window.addEventListener('scroll', () => {
+  clearTimeout(scrollSaveTimer);
+  scrollSaveTimer = setTimeout(() => {
+    try{ sessionStorage.setItem('adminScrollY', String(window.scrollY)); }catch(err){}
+  }, 200);
+});
+
+function loadSubscribers(){
+  const list = document.getElementById('subscribersList');
+  const badge = document.getElementById('subscriberBadge');
+  if(!list) return;
+  list.textContent = 'লোড হচ্ছে...';
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=listSubscribers&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success){ list.textContent = 'সাবস্ক্রাইবার লোড করতে সমস্যা হয়েছে।'; return; }
+      window.__subscribersData = data.subscribers || [];
+      if(badge) badge.textContent = '(' + window.__subscribersData.length + ')';
+      if(!window.__subscribersData.length){ list.textContent = 'এখনো কোনো সাবস্ক্রাইবার নেই।'; return; }
+      list.innerHTML = window.__subscribersData.map(s =>
+        '<div style="display:flex; justify-content:space-between; gap:8px; align-items:center; border-bottom:1px solid var(--line); padding:9px 0;">' +
+          '<div style="min-width:0;"><div style="font-size:13.5px; font-weight:600; word-break:break-all;">' + String(s.email).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' +
+          '<div style="font-size:11.5px; color:var(--muted);">' + String(s.date || '') + '</div></div>' +
+          '<button onclick="deleteSubscriber(' + s.rowIndex + ')" style="flex:0 0 auto; padding:6px 9px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon); font-size:12px;">মুছুন</button>' +
+        '</div>'
+      ).join('');
+    })
+    .catch(()=>{ list.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+}
+
+function deleteSubscriber(row){
+  if(!confirm('এই সাবস্ক্রাইবারকে মুছে ফেলবেন?')) return;
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=deleteSubscriber&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(row))
+    .then(r => r.json())
+    .then(data => { if(data.success) loadSubscribers(); else alert('মুছতে সমস্যা হয়েছে।'); })
+    .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function exportSubscribersCsv(){
+  const rows = window.__subscribersData || [];
+  if(!rows.length){ alert('এক্সপোর্ট করার মতো কোনো সাবস্ক্রাইবার নেই।'); return; }
+  const csv = ['তারিখ,ইমেইল'].concat(rows.map(r => '"' + String(r.date || '').replace(/"/g,'""') + '","' + String(r.email || '').replace(/"/g,'""') + '"')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'blog-subscribers.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+function exportCsv(){
+  const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
+  if(!rows.length){ alert('ডাউনলোড করার মতো কোনো এন্ট্রি নেই।'); return; }
+  const headers = ['তারিখ','নাম','ফোন','জন্ম তারিখ','লিঙ্গ','ইমেইল','বিভাগ','জেলা','এলাকা','মন্তব্য','পেমেন্ট মেথড','TxnID','প্রেরক নম্বর','আবেদন নম্বর','স্ট্যাটাস','প্রাইভেট নোট','ছবি লিংক','আইডি/প্রোফাইল লিংক'];
+  const csvRows = [headers.join(',')];
+  rows.forEach(r => {
+    const line = [r.date, r.fullName, r.phone, r.dob, r.gender, r.email, r.division, r.district, r.areaDetail, r.comment, r.paymentMethod, r.txnId, r.senderNumber, r.appId, r.status, r.note, r.photoUrl, r.idLink]
+      .map(v => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"')
+      .join(',');
+    csvRows.push(line);
+  });
+  const csvContent = '\uFEFF' + csvRows.join('\n');
+  const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'registrations_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  localStorage.setItem('lastCsvExport', String(Date.now()));
+  updateBackupReminder();
+}
+
+function deleteEntry(rowIndex, fullName, cardEl){
+  const pw = sessionStorage.getItem('adminPw');
+  if(!confirm(fullName + ' এর আবেদনটি সম্পূর্ণ মুছে ফেলতে চান? এটা আর ফেরত পাওয়া যাবে না।')) return;
+  fetch(SCRIPT_URL + '?action=deleteRow&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        cardEl.remove();
+        allRows = allRows.filter(r => r.rowIndex !== rowIndex);
+        renderDashboard(getDateFilteredRows());
+        document.getElementById('summary').textContent = 'মোট ' + document.querySelectorAll('.card').length + 'টি আবেদন দেখানো হচ্ছে';
+      } else {
+        alert('ডিলিট করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(() => alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadEntries(); }, 60000);
+}
+
+function stopAutoRefresh(){
+  if(autoRefreshTimer){
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+}
+
+function badgeClass(status){
+  const s = normStatus(status);
+  if(s === "সম্পন্ন") return "badge done";
+  if(s === "কাজ চলছে") return "badge progress";
+  if(s === "বাতিল") return "badge cancel";
+  return "badge";
+}
+
+// ============ স্ট্যাটাস এখন ফ্রি-টেক্সট না — নির্দিষ্ট ড্রপডাউন থেকে বাছাই করতে হয়, যাতে টাইপো/অতিরিক্ত
+// স্পেসের কারণে ফিল্টার চিপে ভুল ফলাফল না আসে। পুরনো কোনো এন্ট্রিতে অস্বাভাবিক (ফ্রি-টেক্সট যুগের) স্ট্যাটাস
+// থেকে থাকলে সেটাও অপশন হিসেবে দেখানো হচ্ছে (একটা সতর্কীকরণ চিহ্নসহ), যাতে বাছাই করে ঠিক করে দেওয়া যায়। ============
+function buildStatusSelectHtml(currentStatus){
+  const current = normStatus(currentStatus);
+  const isKnown = STATUS_OPTIONS.includes(current);
+  let options = STATUS_OPTIONS.map(s =>
+    '<option value="' + s + '"' + (s === current ? ' selected' : '') + '>' + s + '</option>'
+  ).join('');
+  if(current && !isKnown){
+    options = '<option value="' + esc(current) + '" selected>⚠️ ' + esc(current) + ' (অস্বাভাবিক)</option>' + options;
+  }
+  return '<select class="statusInput" style="flex:1; min-width:120px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit;">' + options + '</select>';
+}
+
+function showForgotBox(){
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('forgotBox').style.display = 'block';
+  document.getElementById('forgotStep1').style.display = 'block';
+  document.getElementById('forgotStep2').style.display = 'none';
+  document.getElementById('forgotMsg').style.display = 'none';
+}
+
+function hideForgotBox(){
+  document.getElementById('forgotBox').style.display = 'none';
+  document.getElementById('loginBox').style.display = 'block';
+}
+
+function showForgotMsg(text, isError){
+  const el = document.getElementById('forgotMsg');
+  el.textContent = text;
+  el.style.color = isError ? 'var(--maroon)' : 'var(--ok)';
+  el.style.display = 'block';
+}
+
+function sendResetCode(){
+  const btn = document.getElementById('sendCodeBtn');
+  btn.disabled = true;
+  btn.textContent = 'পাঠানো হচ্ছে...';
+  fetch(SCRIPT_URL + '?action=sendResetCode')
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'কোড পাঠান';
+      if(data.success){
+        document.getElementById('forgotStep1').style.display = 'none';
+        document.getElementById('forgotStep2').style.display = 'block';
+        showForgotMsg('কোড পাঠানো হয়েছে, ইমেইল চেক করুন (স্প্যাম ফোল্ডারও দেখুন)।', false);
+      } else {
+        showForgotMsg('কোড পাঠাতে সমস্যা হয়েছে' + (data.error ? ' — ' + data.error : '') + '।', true);
+      }
+    })
+    .catch((err) => {
+      btn.disabled = false;
+      btn.textContent = 'কোড পাঠান';
+      showForgotMsg('সংযোগে সমস্যা হয়েছে।', true);
+    });
+}
+
+function confirmResetPassword(){
+  const otp = document.getElementById('otpInput').value.trim();
+  const newPw = document.getElementById('newPwInput').value.trim();
+  if(!otp || !newPw){
+    showForgotMsg('কোড এবং নতুন পাসওয়ার্ড দুটোই দিন।', true);
+    return;
+  }
+  if(newPw.length < 10){
+    showForgotMsg('পাসওয়ার্ড কমপক্ষে ১০ অক্ষরের হতে হবে।', true);
+    return;
+  }
+  const btn = document.getElementById('resetPwBtn');
+  btn.disabled = true;
+  btn.textContent = 'পরিবর্তন হচ্ছে...';
+  fetch(SCRIPT_URL + '?action=resetPassword&otp=' + encodeURIComponent(otp) + '&newPassword=' + encodeURIComponent(newPw))
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'পাসওয়ার্ড পরিবর্তন করুন';
+      if(data.success){
+        showForgotMsg('✓ পাসওয়ার্ড পরিবর্তন হয়েছে! এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।', false);
+        setTimeout(hideForgotBox, 2500);
+      } else if(data.error === 'expired'){
+        showForgotMsg('কোডের মেয়াদ শেষ হয়ে গেছে, আবার কোড চান।', true);
+      } else if(data.error === 'wrong otp'){
+        showForgotMsg('কোডটি ভুল হয়েছে, আবার চেষ্টা করুন।', true);
+      } else {
+        showForgotMsg('পাসওয়ার্ড পরিবর্তন করতে সমস্যা হয়েছে' + (data.error ? ' — ' + data.error : '') + '।', true);
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'পাসওয়ার্ড পরিবর্তন করুন';
+      showForgotMsg('সংযোগে সমস্যা হয়েছে।', true);
+    });
+}
+
+// ============ রিভিউ মডারেশন (এখন সবসময় দৃশ্যমান, ড্যাশবোর্ডের অংশ) ============
+function loadAdminReviews(){
+  const listEl = document.getElementById('reviewsList');
+  const badgeEl = document.getElementById('pendingReviewBadge');
+  listEl.textContent = 'লোড হচ্ছে...';
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success){
+        listEl.textContent = 'রিভিউ লোড করতে সমস্যা হয়েছে।';
+        return;
+      }
+      const pendingCount = data.reviews.filter(r => r.status === 'pending').length;
+      badgeEl.innerHTML = pendingCount > 0
+        ? '<span style="background:var(--maroon); color:#fff; font-size:11.5px; padding:2px 8px; border-radius:999px; margin-left:6px;">' + pendingCount + ' নতুন</span>'
+        : '';
+      if(data.reviews.length === 0){
+        listEl.textContent = 'কোনো রিভিউ নেই।';
+        return;
+      }
+      listEl.innerHTML = data.reviews.map(rev => {
+        const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+        const statusColor = rev.status === 'approved' ? '#2C6B4F' : (rev.status === 'rejected' ? '#7A2E2E' : '#B8863B');
+        const safeName = String(rev.name).replace(/</g,'&lt;');
+        const safeText = String(rev.text).replace(/</g,'&lt;');
+        return '<div style="border-bottom:1px solid var(--line); padding:10px 0;">' +
+          '<div style="font-size:13px; color:' + statusColor + '; font-weight:700;">' + rev.status + ' • ' + stars + '</div>' +
+          '<div style="font-size:13.5px; margin:6px 0;">' + safeText + '</div>' +
+          '<div style="font-size:12px; color:var(--muted); margin-bottom:8px;">— ' + safeName + ' • ' + rev.date + '</div>' +
+          '<div style="display:flex; gap:6px;">' +
+            (rev.status !== 'approved' ? '<button onclick="reviewAction(' + rev.rowIndex + ',\'approved\')" style="padding:6px 12px; border:none; border-radius:6px; background:var(--ok); color:#fff; font-size:12.5px;">অনুমোদন</button>' : '') +
+            (rev.status !== 'rejected' ? '<button onclick="reviewAction(' + rev.rowIndex + ',\'rejected\')" style="padding:6px 12px; border:none; border-radius:6px; background:var(--maroon); color:#fff; font-size:12.5px;">বাতিল</button>' : '') +
+            '<button onclick="reviewAction(' + rev.rowIndex + ',\'delete\')" style="padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--ink); font-size:12.5px;">মুছুন</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(()=>{ listEl.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+}
+
+function reviewAction(row, status){
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=reviewAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
+    .then(r => r.json())
+    .then(()=> loadAdminReviews());
+}
+
+// ============ পোস্টের কমেন্ট মডারেশন ============
+function loadAdminComments(){
+  const listEl = document.getElementById('commentsListAdmin');
+  const badgeEl = document.getElementById('pendingCommentBadge');
+  listEl.textContent = 'লোড হচ্ছে...';
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=listComments&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success){
+        listEl.textContent = 'কমেন্ট লোড করতে সমস্যা হয়েছে।';
+        return;
+      }
+      const pendingCount = data.comments.filter(c => c.status === 'pending').length;
+      badgeEl.innerHTML = pendingCount > 0
+        ? '<span style="background:var(--maroon); color:#fff; font-size:11.5px; padding:2px 8px; border-radius:999px; margin-left:6px;">' + pendingCount + ' নতুন</span>'
+        : '';
+      if(data.comments.length === 0){
+        listEl.textContent = 'কোনো কমেন্ট নেই।';
+        return;
+      }
+      listEl.innerHTML = data.comments.map(c => {
+        const statusColor = c.status === 'approved' ? '#2C6B4F' : (c.status === 'rejected' ? '#7A2E2E' : '#B8863B');
+        const safeName = String(c.name).replace(/</g,'&lt;');
+        const safeText = String(c.text).replace(/</g,'&lt;');
+        return '<div style="border-bottom:1px solid var(--line); padding:10px 0;">' +
+          '<div style="font-size:13px; color:' + statusColor + '; font-weight:700;">' + c.status + '</div>' +
+          '<div style="font-size:13.5px; margin:6px 0;">' + safeText + '</div>' +
+          '<div style="font-size:12px; color:var(--muted); margin-bottom:8px;">— ' + safeName + ' • ' + c.date + '</div>' +
+          '<div style="display:flex; gap:6px;">' +
+            (c.status !== 'approved' ? '<button onclick="commentAction(' + c.rowIndex + ',\'approved\')" style="padding:6px 12px; border:none; border-radius:6px; background:var(--ok); color:#fff; font-size:12.5px;">অনুমোদন</button>' : '') +
+            (c.status !== 'rejected' ? '<button onclick="commentAction(' + c.rowIndex + ',\'rejected\')" style="padding:6px 12px; border:none; border-radius:6px; background:var(--maroon); color:#fff; font-size:12.5px;">বাতিল</button>' : '') +
+            '<button onclick="commentAction(' + c.rowIndex + ',\'delete\')" style="padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--ink); font-size:12.5px;">মুছুন</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(()=>{ listEl.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+}
+
+function commentAction(row, status){
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=commentAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
+    .then(r => r.json())
+    .then(()=> loadAdminComments());
+}
+
+// ============ পোস্ট অ্যানালিটিক্স সামারি — টোটাল ভিউ/ক্লিক/লাইক/কমেন্ট ও টপ পোস্ট এক নজরে ============
+function renderPostsAnalyticsSummary(posts){
+  const wrap = document.getElementById('postsAnalyticsSummary');
+  if(!wrap) return;
+  if(!posts || posts.length === 0){ wrap.innerHTML = ''; return; }
+
+  const totals = posts.reduce((acc, p) => {
+    acc.views += Number(p.views) || 0;
+    acc.clicks += Number(p.clicks) || 0;
+    acc.likes += Number(p.likes) || 0;
+    acc.comments += Number(p.commentCount) || 0;
+    return acc;
+  }, { views: 0, clicks: 0, likes: 0, comments: 0 });
+
+  const scheduledCount = posts.filter(p => p.publishAt && p.published === false && !p.draft).length;
+  const draftCount = posts.filter(p => p.draft).length;
+
+  const top3 = posts.filter(p => !p.draft).sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0)).slice(0, 3);
+  const topHtml = top3.length
+    ? top3.map((p, i) => {
+        const medal = ['🥇', '🥈', '🥉'][i] || '•';
+        const t = String(p.title || '').replace(/</g, '&lt;');
+        return '<div style="display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:3px 0;">' +
+          '<span>' + medal + ' ' + t + '</span>' +
+          '<span style="color:var(--muted); white-space:nowrap;">👁 ' + (Number(p.views) || 0) + '</span>' +
+        '</div>';
+      }).join('')
+    : '<div style="font-size:12.5px; color:var(--muted);">এখনো কোনো ভিউ নেই।</div>';
+
+  wrap.innerHTML =
+    '<div style="background:var(--card-bg-alt, #f6f4ee); border:1px solid var(--line); border-radius:10px; padding:12px;">' +
+      '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">📊 মোট (' + posts.length + 'টা পোস্ট' + (scheduledCount ? ', ' + scheduledCount + 'টা সিডিউল করা' : '') + (draftCount ? ', ' + draftCount + 'টা খসড়া' : '') + ')</div>' +
+      '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center; margin-bottom:10px;">' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.views + '</div><div style="font-size:11px; color:var(--muted);">👁 ভিউ</div></div>' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.clicks + '</div><div style="font-size:11px; color:var(--muted);">🖱 ক্লিক</div></div>' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.likes + '</div><div style="font-size:11px; color:var(--muted);">❤️ লাইক</div></div>' +
+        '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.comments + '</div><div style="font-size:11px; color:var(--muted);">💬 কমেন্ট</div></div>' +
+      '</div>' +
+      '<div style="font-size:12px; font-weight:700; color:var(--forest); margin-bottom:4px; border-top:1px dashed var(--line); padding-top:8px;">সবচেয়ে বেশি দেখা পোস্ট</div>' +
+      topHtml +
+    '</div>';
+}
+
+// ============ আপডেট/পোস্ট ম্যানেজমেন্ট ============
+function loadAdminPosts(){
+  const listEl = document.getElementById('postsList');
+  listEl.textContent = 'লোড হচ্ছে...';
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success){
+        listEl.textContent = 'পোস্ট লোড করতে সমস্যা হয়েছে।';
+        return;
+      }
+      renderPostsAnalyticsSummary(data.posts || []);
+      if(!data.posts || data.posts.length === 0){
+        listEl.textContent = 'এখনো কোনো পোস্ট নেই।';
+        return;
+      }
+      window.__adminPostsData = {};
+      data.posts.forEach(p => { window.__adminPostsData[p.rowIndex] = p; });
+      listEl.innerHTML = data.posts.map(p => {
+        const rawContent = String(p.content || '');
+        const safeTitle = String(p.title || '').replace(/</g,'&lt;');
+        const isLongContent = rawContent.length > 220;
+        const shortRaw = isLongContent ? rawContent.slice(0, 220) + '…' : rawContent;
+        const safeShortContent = shortRaw.replace(/</g,'&lt;');
+        const safeId = String(p.id || '').replace(/</g,'&lt;');
+        const mediaHtml =
+          (p.imageUrl ? '<img src="' + p.imageUrl + '" style="max-width:100%; max-height:140px; border-radius:8px; margin:6px 0; display:block;">' : '') +
+          (p.videoUrl ? '<div style="font-size:12px; color:var(--forest); margin:4px 0;">🎬 ভিডিও যুক্ত আছে</div>' : '');
+        const isScheduled = p.publishAt && p.published === false;
+        const isDraft = !!p.draft;
+        const scheduleBadge = isDraft
+          ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#e6e6e6; color:#555; font-size:11.5px; font-weight:700; margin-left:6px;">📝 খসড়া</span>'
+          : (isScheduled
+            ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#fff3cd; color:#8a6100; font-size:11.5px; font-weight:700; margin-left:6px;">⏰ সিডিউল করা: ' + formatScheduleDisplay(p.publishAt) + '</span>'
+            : '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:var(--badge-done-bg); color:var(--ok); font-size:11.5px; font-weight:700; margin-left:6px;">প্রকাশিত</span>');
+        const statsRow =
+          '<div style="display:flex; gap:14px; margin-top:6px; font-size:12.5px; color:var(--muted);">' +
+            '<span>👁 দেখেছেন: <b style="color:var(--ink);">' + (p.views || 0) + '</b></span>' +
+            '<span>🖱 ক্লিক: <b style="color:var(--ink);">' + (p.clicks || 0) + '</b></span>' +
+            '<span>❤️ লাইক: <b style="color:var(--ink);">' + (p.likes || 0) + '</b></span>' +
+            '<span>💬 কমেন্ট: <b style="color:var(--ink);">' + (p.commentCount || 0) + '</b></span>' +
+          '</div>';
+        return '<div style="border-bottom:1px solid var(--line); padding:10px 0;" id="postCard' + p.rowIndex + '">' +
+          '<div style="font-size:12px; color:var(--muted);">' + (p.date || '') + ' &nbsp;·&nbsp; <span style="color:var(--forest); font-weight:600;">' + String(p.category || 'সাধারণ আপডেট').replace(/</g,'&lt;') + '</span>' + scheduleBadge + '</div>' +
+          '<div class="postView' + p.rowIndex + '">' +
+            '<div style="font-size:14.5px; font-weight:700; margin:4px 0;">' + safeTitle + '</div>' +
+            '<div class="postContentText' + p.rowIndex + '" data-full="' + encodeURIComponent(rawContent) + '" data-short="' + encodeURIComponent(shortRaw) + '" data-expanded="0" style="font-size:13.5px; line-height:1.5; white-space:pre-wrap;">' + safeShortContent + '</div>' +
+            (isLongContent ? '<button type="button" class="postExpandBtn" onclick="togglePostContent(' + p.rowIndex + ')">আরও দেখুন ▾</button>' : '') +
+            mediaHtml +
+            statsRow +
+            '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
+              '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">ছোট লিংক</button>' +
+  '<button onclick="copyPostPreviewLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">ছোট Preview</button>' +
+              '<button onclick="startEditPost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">এডিট</button>' +
+              (isDraft ? '<button onclick="publishDraftNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">প্রকাশ করুন</button>' : '') +
+              (isScheduled ? '<button onclick="publishPostNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #8a6100; border-radius:6px; background:var(--card-bg); color:#8a6100; font-size:12.5px;">এখনই প্রকাশ করুন</button>' : '') +
+              '<button onclick="deletePost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon); font-size:12.5px;">মুছুন</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(()=>{ listEl.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+}
+
+function togglePostContent(rowIndex){
+  const el = document.querySelector('.postContentText' + rowIndex);
+  if(!el) return;
+  const btn = el.nextElementSibling;
+  const expanded = el.dataset.expanded === '1';
+  if(expanded){
+    el.textContent = decodeURIComponent(el.dataset.short);
+    el.dataset.expanded = '0';
+    if(btn && btn.classList.contains('postExpandBtn')) btn.textContent = 'আরও দেখুন ▾';
+  } else {
+    el.textContent = decodeURIComponent(el.dataset.full);
+    el.dataset.expanded = '1';
+    if(btn && btn.classList.contains('postExpandBtn')) btn.textContent = 'সংক্ষিপ্ত করুন ▴';
+  }
+}
+
+function startEditPost(rowIndex){
+  const p = (window.__adminPostsData || {})[rowIndex];
+  const viewEls = document.querySelectorAll('.postView' + rowIndex);
+  if(!p || viewEls.length === 0) return;
+  const viewEl = viewEls[0];
+  if(!viewEl.dataset.originalHtml) viewEl.dataset.originalHtml = viewEl.innerHTML;
+
+  const categories = ['সাধারণ আপডেট', 'রিকভারি', 'মনিটাইজেশন', 'টিপস', 'সতর্কতা'];
+  const catOptions = categories.map(c =>
+    '<option value="' + c + '"' + (c === (p.category || 'সাধারণ আপডেট') ? ' selected' : '') + '>' + c + '</option>'
+  ).join('');
+  const safeTitleVal = String(p.title || '').replace(/</g,'&lt;');
+  const safeContentVal = String(p.content || '').replace(/</g,'&lt;');
+  const scheduleVal = p.publishAt ? isoToLocalDatetimeValue(p.publishAt) : '';
+
+  viewEl.innerHTML =
+    '<input type="text" id="editTitle' + rowIndex + '" value="' + safeTitleVal.replace(/"/g,'&quot;') + '" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:6px;">' +
+    '<select id="editCategory' + rowIndex + '" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:13.5px; margin-bottom:6px;">' + catOptions + '</select>' +
+    '<textarea id="editContent' + rowIndex + '" style="width:100%; min-height:80px; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:13.5px; resize:vertical; margin-bottom:6px;">' + safeContentVal + '</textarea>' +
+    '<label style="display:block; font-size:12px; color:var(--muted); margin-bottom:4px;">সিডিউল সময় (খালি রাখলে সাথে সাথেই প্রকাশিত থাকবে)</label>' +
+    '<input type="datetime-local" id="editSchedule' + rowIndex + '" value="' + scheduleVal + '" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:13.5px; margin-bottom:6px;">' +
+    '<div style="display:flex; gap:8px;">' +
+      '<button onclick="saveEditPost(' + rowIndex + ')" style="padding:6px 14px; border:none; border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">সেভ করুন</button>' +
+      '<button onclick="cancelEditPost(' + rowIndex + ')" style="padding:6px 14px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--ink); font-size:12.5px;">বাতিল</button>' +
+    '</div>';
+}
+
+function cancelEditPost(rowIndex){
+  const viewEl = document.querySelector('.postView' + rowIndex);
+  if(viewEl && viewEl.dataset.originalHtml) viewEl.innerHTML = viewEl.dataset.originalHtml;
+}
+
+// ============ সময়সংক্রান্ত হেল্পার: ISO স্ট্রিং <-> datetime-local ইনপুট ভ্যালু ============
+function isoToLocalDatetimeValue(iso){
+  try{
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }catch(e){ return ''; }
+}
+function formatScheduleDisplay(iso){
+  try{
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }catch(e){ return ''; }
+}
+
+function saveEditPost(rowIndex){
+  const pw = sessionStorage.getItem('adminPw') || '';
+  const title = document.getElementById('editTitle' + rowIndex).value.trim();
+  const content = document.getElementById('editContent' + rowIndex).value.trim();
+  const category = document.getElementById('editCategory' + rowIndex).value;
+  const scheduleEl = document.getElementById('editSchedule' + rowIndex);
+  const scheduleRaw = scheduleEl ? scheduleEl.value : '';
+  const publishAtIso = scheduleRaw ? new Date(scheduleRaw).toISOString() : '';
+  if(!title || !content){
+    alert('শিরোনাম ও বিস্তারিত খালি রাখা যাবে না।');
+    return;
+  }
+  fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
+    '&row=' + encodeURIComponent(rowIndex) +
+    '&title=' + encodeURIComponent(title) +
+    '&content=' + encodeURIComponent(content) +
+    '&category=' + encodeURIComponent(category) +
+    '&publishAt=' + encodeURIComponent(publishAtIso))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        loadAdminPosts();
+      } else {
+        alert('সেভ করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function copyPostLink(id){
+  // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
+  // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
+  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(id);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(()=>{
+      alert('লিংক কপি হয়েছে:\n' + link);
+    }).catch(()=>{
+      prompt('লিংকটি কপি করুন:', link);
+    });
+  } else {
+    prompt('লিংকটি কপি করুন:', link);
+  }
+}
+
+function copyPostPreviewLink(id){
+  const fullLink = 'https://script.google.com/macros/s/AKfycbw2Fjz0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=postSEO&id=' + encodeURIComponent(String(id || '').trim());
+  const fallback = () => {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(fullLink).then(()=>{
+        alert('Preview লিংক কপি হয়েছে:\n' + fullLink);
+      }).catch(()=> prompt('লিংকটি কপি করুন:', fullLink));
+    } else {
+      prompt('লিংকটি কপি করুন:', fullLink);
+    }
+  };
+  // ছোট URL তৈরি করে; এটি মূল Preview URL-এ redirect করবে।
+  fetch('https://is.gd/create.php?format=simple&url=' + encodeURIComponent(fullLink))
+    .then(r => r.text())
+    .then(shortLink => {
+      shortLink = String(shortLink || '').trim();
+      if(!/^https?:\/\/is\.gd\//i.test(shortLink)) throw new Error('shortener failed');
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(shortLink).then(()=>{
+          alert('ছোট Preview লিংক কপি হয়েছে:\n' + shortLink);
+        }).catch(()=> prompt('লিংকটি কপি করুন:', shortLink));
+      } else {
+        prompt('লিংকটি কপি করুন:', shortLink);
+      }
+    })
+    .catch(fallback);
+}
+
+// ============ ছবি/ভিডিও ফাইল → base64 (পোস্ট আপলোডের জন্য) ============
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function clearNewPostImage(){
+  document.getElementById('newPostImage').value = '';
+  document.getElementById('newPostImagePreviewWrap').style.display = 'none';
+}
+function clearNewPostVideo(){
+  document.getElementById('newPostVideo').value = '';
+  document.getElementById('newPostVideoPreviewWrap').style.display = 'none';
+}
+
+(function(){
+  const imgInput = document.getElementById('newPostImage');
+  if(imgInput){
+    imgInput.addEventListener('change', ()=>{
+      const file = imgInput.files[0];
+      if(!file) return;
+      if(file.size > 5 * 1024 * 1024){
+        alert('ছবির সাইজ ৫ এমবি এর কম হতে হবে।');
+        imgInput.value = '';
+        return;
+      }
+      fileToBase64(file).then(url=>{
+        document.getElementById('newPostImagePreview').src = url;
+        document.getElementById('newPostImagePreviewWrap').style.display = 'block';
+      });
+    });
+  }
+  const vidInput = document.getElementById('newPostVideo');
+  if(vidInput){
+    vidInput.addEventListener('change', ()=>{
+      const file = vidInput.files[0];
+      if(!file) return;
+      if(file.size > 25 * 1024 * 1024){
+        alert('ভিডিওর সাইজ ২৫ এমবি এর কম হতে হবে। ছোট ক্লিপ ব্যবহার করুন।');
+        vidInput.value = '';
+        return;
+      }
+      fileToBase64(file).then(url=>{
+        document.getElementById('newPostVideoPreview').src = url;
+        document.getElementById('newPostVideoPreviewWrap').style.display = 'block';
+      });
+    });
+  }
+})();
+
+function addPost(isDraft){
+  const titleEl = document.getElementById('newPostTitle');
+  const contentEl = document.getElementById('newPostContent');
+  const categoryEl = document.getElementById('newPostCategory');
+  const scheduleEl = document.getElementById('newPostSchedule');
+  const imgInput = document.getElementById('newPostImage');
+  const vidInput = document.getElementById('newPostVideo');
+  const btn = document.getElementById('addPostBtn');
+  const draftBtn = document.getElementById('draftPostBtn');
+  const msgBox = document.getElementById('postMsg');
+  const title = titleEl.value.trim();
+  const content = contentEl.value.trim();
+  const category = categoryEl ? categoryEl.value : 'সাধারণ আপডেট';
+  // datetime-local ভ্যালু (যেমন "2026-09-25T10:00") ব্রাউজারের লোকাল সময় ধরে নিয়ে
+  // ISO স্ট্রিং-এ (UTC সহ) বদলে পাঠানো হচ্ছে, যাতে সার্ভারে সময়ের হিসাব সবসময় ঠিক থাকে।
+  const scheduleRaw = scheduleEl ? scheduleEl.value : '';
+  const publishAtIso = scheduleRaw ? new Date(scheduleRaw).toISOString() : '';
+  const pw = sessionStorage.getItem('adminPw') || '';
+
+  function showPostMsg(text, ok){
+    msgBox.style.display = 'block';
+    msgBox.style.background = ok ? 'var(--badge-done-bg)' : 'var(--badge-cancel-bg)';
+    msgBox.style.color = ok ? 'var(--ok)' : 'var(--maroon)';
+    msgBox.textContent = text;
+  }
+
+  if(!title || !content){
+    showPostMsg('শিরোনাম ও বিস্তারিত দুটোই লিখুন।', false);
+    return;
+  }
+
+  btn.disabled = true;
+  draftBtn.disabled = true;
+  const activeBtn = isDraft ? draftBtn : btn;
+  const activeBtnDefaultText = isDraft ? '📝 খসড়া হিসেবে সেভ করুন' : 'পোস্ট করুন';
+  activeBtn.textContent = isDraft ? 'সেভ হচ্ছে...' : 'পোস্ট হচ্ছে...';
+
+  const payload = { action: 'addPost', password: pw, title: title, content: content, category: category, publishAt: publishAtIso, status: isDraft ? 'draft' : '' };
+  const imageFile = imgInput && imgInput.files[0];
+  const videoFile = vidInput && vidInput.files[0];
+
+  Promise.resolve()
+    .then(()=>{
+      if(imageFile){
+        return fileToBase64(imageFile).then(dataUrl=>{
+          payload.imageBase64 = dataUrl;
+          payload.imageName = imageFile.name;
+          payload.imageType = imageFile.type || 'image/jpeg';
+        });
+      }
+    })
+    .then(()=>{
+      if(videoFile){
+        showPostMsg('ভিডিও প্রস্তুত হচ্ছে, একটু সময় লাগতে পারে...', true);
+        return fileToBase64(videoFile).then(dataUrl=>{
+          payload.videoBase64 = dataUrl;
+          payload.videoName = videoFile.name;
+          payload.videoType = videoFile.type || 'video/mp4';
+        });
+      }
+    })
+    .then(()=>{
+      showPostMsg('আপলোড হচ্ছে, অপেক্ষা করুন...', true);
+      return fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+    })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      draftBtn.disabled = false;
+      btn.textContent = 'পোস্ট করুন';
+      draftBtn.textContent = '📝 খসড়া হিসেবে সেভ করুন';
+      if(data.success){
+        const msg = data.draft
+          ? '✓ খসড়া হিসেবে সেভ হয়েছে — এটা সাইটে দেখাবে না, পরে "প্রকাশ করুন" চাপলে লাইভ হবে।'
+          : (data.scheduled ? '✓ পোস্ট সিডিউল করা হয়েছে, নির্ধারিত সময়ে প্রকাশ পাবে।' : '✓ পোস্ট যোগ হয়েছে।');
+        showPostMsg(msg, true);
+        titleEl.value = '';
+        contentEl.value = '';
+        if(scheduleEl) scheduleEl.value = '';
+        clearNewPostImage();
+        clearNewPostVideo();
+        loadAdminPosts();
+      } else {
+        showPostMsg('পোস্ট করতে সমস্যা হয়েছে: ' + (data.error || ''), false);
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      draftBtn.disabled = false;
+      btn.textContent = 'পোস্ট করুন';
+      draftBtn.textContent = '📝 খসড়া হিসেবে সেভ করুন';
+      showPostMsg('সংযোগে সমস্যা হয়েছে।', false);
+    });
+}
+
+function publishDraftNow(rowIndex){
+  if(!confirm('এই খসড়া পোস্টটি এখনই প্রকাশ করতে চান? প্রকাশ হলে সাবস্ক্রাইবারদের নোটিফিকেশনও যাবে।')) return;
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
+    '&row=' + encodeURIComponent(rowIndex) +
+    '&status=')
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        loadAdminPosts();
+      } else {
+        alert('প্রকাশ করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(() => alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function publishPostNow(rowIndex){
+  if(!confirm('এই পোস্টটি এখনই প্রকাশ করতে চান?')) return;
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
+    '&row=' + encodeURIComponent(rowIndex) +
+    '&publishAt=')
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        loadAdminPosts();
+      } else {
+        alert('প্রকাশ করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(() => alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function deletePost(rowIndex){
+  if(!confirm('এই পোস্টটি মুছে ফেলতে চান?')) return;
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=deletePost&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        loadAdminPosts();
+      } else {
+        alert('মুছতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(() => alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+// ============ ভিজিটর অ্যানালিটিক্স (সময়, ডিভাইস ব্রেকডাউন, লাইভ) ============
+let visitStatsTimer = null;
+
+function renderVisitInsights(data){
+  const box = document.getElementById('insightsBlock');
+  if(!box) return;
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const bn = n => Number(n).toLocaleString('bn-BD');
+  const head = t => '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin:14px 0 8px;">' + t + '</div>';
+  const bar = (label, count, max) => {
+    const pct = max > 0 ? Math.round(count / max * 100) : 0;
+    return '<div style="margin-bottom:7px;">' +
+      '<div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px;"><span>' + esc(label) + '</span><span style="color:var(--muted);">' + bn(count) + '</span></div>' +
+      '<div style="background:var(--paper-dark); border-radius:5px; height:6px; overflow:hidden;"><div style="background:var(--forest); height:100%; width:' + pct + '%;"></div></div></div>';
+  };
+  let html = '';
+
+  if(data.topSources && data.topSources.length){
+    const max = data.topSources[0].count;
+    html += head('🔗 ভিজিটর কোথা থেকে আসছে') + data.topSources.map(s => bar(s.source, s.count, max)).join('');
+  }
+
+  const nv = data.newVisitors || 0, rv = data.returningVisitors || 0;
+  if(nv + rv > 0){
+    const rpct = Math.round(rv / (nv + rv) * 100);
+    html += head('🔁 নতুন ও ফিরে আসা ভিজিটর') +
+      '<div class="dashboard">' +
+        '<div class="dash-item"><div class="num">' + bn(nv) + '</div><div class="lbl">নতুন</div></div>' +
+        '<div class="dash-item"><div class="num">' + bn(rv) + '</div><div class="lbl">ফিরে এসেছেন</div></div>' +
+        '<div class="dash-item"><div class="num">' + bn(rpct) + '%</div><div class="lbl">ফেরত হার</div></div>' +
+      '</div>';
+  }
+
+  if(data.hourly && data.hourly.length === 24 && data.hourly.some(n => n > 0)){
+    const maxH = Math.max.apply(null, data.hourly.concat([1]));
+    html += head('🕒 কোন সময়ে বেশি ভিজিট (গত ৩০ দিন, বাংলাদেশ সময়)') +
+      '<div style="display:flex; align-items:flex-end; gap:2px; height:90px; padding-top:6px;">' +
+      data.hourly.map((n, h) => {
+        const ht = Math.max(Math.round(n / maxH * 100), n > 0 ? 6 : 2);
+        const lbl = (h % 3 === 0) ? ((h % 12 || 12) + (h < 12 ? 'AM' : 'PM')) : '';
+        return '<div title="' + h + ':00 → ' + n + ' ভিজিট" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">' +
+          '<div style="width:100%; height:' + ht + '%; background:var(--forest); border-radius:3px 3px 0 0; min-height:2px;"></div>' +
+          '<div style="font-size:8px; color:var(--muted); margin-top:3px; height:10px; white-space:nowrap;">' + lbl + '</div></div>';
+      }).join('') + '</div>';
+  }
+
+  const f = data.funnel;
+  if(f && f.visits > 0){
+    const pc = (a, b) => b > 0 ? ' (' + bn(Math.round(a / b * 100)) + '%)' : '';
+    html += head('📝 ফর্ম ফানেল (নতুন ভিজিট থেকে হিসাব)') +
+      bar('ভিজিট', f.visits, f.visits) +
+      bar('ফর্ম খুলেছেন' + pc(f.opened, f.visits), f.opened, f.visits) +
+      bar('লেখা শুরু করেছেন' + pc(f.started, f.opened), f.started, f.visits) +
+      bar('জমা দিয়েছেন' + pc(f.submitted, f.started), f.submitted, f.visits);
+  }
+
+  box.innerHTML = html;
+}
+
+function fmtDur(sec){
+  sec = parseInt(sec, 10) || 0;
+  if(sec <= 0) return '—';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  const bn = n => n.toLocaleString('bn-BD');
+  return m > 0 ? (bn(m) + ' মি ' + bn(s) + ' সে') : (bn(s) + ' সে');
+}
+
+function loadVisitStats(){
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=getVisitStats&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success) return;
+
+      const dash = document.getElementById('visitDashboard');
+      dash.innerHTML =
+        '<div class="dash-item"><div class="num">' + data.total + '</div><div class="lbl">মোট ভিজিট</div></div>' +
+        '<div class="dash-item"><div class="num">' + data.today + '</div><div class="lbl">আজ</div></div>' +
+        '<div class="dash-item"><div class="num">' + data.liveNow + '</div><div class="lbl">এখন অনলাইন</div></div>' +
+        '<div class="dash-item"><div class="num">' + fmtDur(data.avgDuration) + '</div><div class="lbl">গড় সময় (সব)</div></div>' +
+        '<div class="dash-item"><div class="num">' + fmtDur(data.avgDurationToday) + '</div><div class="lbl">গড় সময় (আজ)</div></div>';
+
+      const badgeEl = document.getElementById('liveNowBadge');
+      badgeEl.innerHTML = data.liveNow > 0
+        ? '<span style="background:var(--ok); color:#fff; font-size:11.5px; padding:2px 8px; border-radius:999px; margin-left:6px;">🟢 ' + data.liveNow + ' জন এখন আছে</span>'
+        : '';
+
+      const deviceEl = document.getElementById('deviceBreakdown');
+      deviceEl.innerHTML =
+        '<div class="dash-item" style="flex:1;"><div class="num">📱 ' + data.mobile + '</div><div class="lbl">মোবাইল</div></div>' +
+        '<div class="dash-item" style="flex:1;"><div class="num">💻 ' + data.desktop + '</div><div class="lbl">ডেস্কটপ</div></div>' +
+        '<div class="dash-item" style="flex:1;"><div class="num">📟 ' + data.tablet + '</div><div class="lbl">ট্যাবলেট</div></div>';
+
+      const trendBlock = document.getElementById('dailyTrendBlock');
+      const trendChart = document.getElementById('dailyTrendChart');
+      if (data.dailyTrend && data.dailyTrend.length > 0) {
+        trendBlock.style.display = 'block';
+        const maxVal = Math.max.apply(null, data.dailyTrend.map(d => d.count), 1);
+        trendChart.innerHTML = data.dailyTrend.map(d => {
+          const h = maxVal > 0 ? Math.max(Math.round((d.count / maxVal) * 100), d.count > 0 ? 6 : 2) : 2;
+          return '<div title="' + d.date + ': ' + d.count + ' ভিজিট" ' +
+            'style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">' +
+            '<div style="width:100%; max-width:16px; height:' + h + '%; background:var(--forest); border-radius:3px 3px 0 0; min-height:2px;"></div>' +
+            '<div style="font-size:9px; color:var(--muted); margin-top:3px; writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap;">' + d.date + '</div>' +
+          '</div>';
+        }).join('');
+      } else {
+        trendBlock.style.display = 'none';
+      }
+
+      const topLocBlock = document.getElementById('topLocationsBlock');
+      const topLocList = document.getElementById('topLocationsList');
+      if(data.topLocations && data.topLocations.length > 0){
+        topLocBlock.style.display = 'block';
+        const maxCount = data.topLocations[0].count;
+        topLocList.innerHTML = data.topLocations.map(loc => {
+          const pct = Math.round((loc.count / maxCount) * 100);
+          const safeLoc = String(loc.location).replace(/</g,'&lt;');
+          return '<div style="margin-bottom:7px;">' +
+            '<div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px;">' +
+              '<span>📍 ' + safeLoc + '</span><span style="color:var(--muted);">' + loc.count + '</span>' +
+            '</div>' +
+            '<div style="background:var(--paper-dark); border-radius:5px; height:6px; overflow:hidden;">' +
+              '<div style="background:var(--forest); height:100%; width:' + pct + '%;"></div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      } else {
+        topLocBlock.style.display = 'none';
+      }
+
+      try{ renderVisitInsights(data); }catch(err){}
+      const listEl = document.getElementById('recentVisitsList');
+      if(!data.recent || data.recent.length === 0){
+        listEl.textContent = 'এখনো কোনো ভিজিট রেকর্ড নেই।';
+        return;
+      }
+      const deviceIcon = { 'মোবাইল': '📱', 'ট্যাবলেট': '📟', 'ডেস্কটপ': '💻' };
+      listEl.innerHTML = data.recent.map(v =>
+        '<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; gap:8px;">' +
+          '<span>' + (deviceIcon[v.device] || '❔') + ' ' + v.device + (v.location ? ' • 📍 ' + String(v.location).replace(/</g,'&lt;') : '') + (v.source ? ' • 🔗 ' + String(v.source).replace(/</g,'&lt;') : '') + '</span>' +
+          '<span style="color:var(--muted); white-space:nowrap;">' + v.time + (v.duration ? ' • ⏱ ' + fmtDur(v.duration) : '') + '</span>' +
+        '</div>'
+      ).join('');
+    })
+    .catch(()=>{});
+}
+
+function startVisitStatsAutoRefresh(){
+  if(visitStatsTimer) return;
+  visitStatsTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadVisitStats(); }, 60000);
+}
+function stopVisitStatsAutoRefresh(){
+  if(visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; }
+}
+
+function exportReviewsCsv(){
+  const pw = sessionStorage.getItem('adminPw') || '';
+  fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success || !data.reviews.length){
+        alert('কোনো রিভিউ নেই।');
+        return;
+      }
+      const headers = ['তারিখ', 'নাম', 'রেটিং', 'মন্তব্য', 'স্ট্যাটাস'];
+      const csvRows = [headers.join(',')];
+      data.reviews.forEach(r => {
+        const line = [r.date, r.name, r.rating, '"' + String(r.text).replace(/"/g,'""') + '"', r.status];
+        csvRows.push(line.join(','));
+      });
+      const csvContent = '\uFEFF' + csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'reviews_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(()=> alert('ডাউনলোড করতে সমস্যা হয়েছে।'));
+}
+
+
+function loadSiteSettings(){const pw=sessionStorage.getItem('adminPw')||'';fetch(SCRIPT_URL+'?action=getSiteSettings&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{if(!d.success){__handleAuthIssue(d.error);return;}const s=d.settings||{};siteSetTitle.value=s.siteTitle||'';siteSetWhatsapp.value=s.whatsapp||'';siteSetFacebook.value=s.facebook||'';siteSetYoutube.value=s.youtube||'';siteSetTelegram.value=s.telegram||'';siteSetEmail.value=s.contactEmail||'';}).catch(()=>{});}
+function saveSiteSettings(){const pw=sessionStorage.getItem('adminPw')||'',q=new URLSearchParams({action:'saveSiteSettings',password:pw,siteTitle:siteSetTitle.value.trim(),whatsapp:siteSetWhatsapp.value.trim(),facebook:siteSetFacebook.value.trim(),youtube:siteSetYoutube.value.trim(),telegram:siteSetTelegram.value.trim(),contactEmail:siteSetEmail.value.trim()});fetch(SCRIPT_URL+'?'+q.toString()).then(r=>r.json()).then(d=>{siteSettingsMsg.textContent=d.success?'✓ সেটিংস সেভ হয়েছে।':'✕ '+(d.error||'সেভ করা যায়নি।');siteSettingsMsg.style.color=d.success?'var(--ok)':'var(--maroon)';});}
+function backupNow(){const b=backupNowBtn,m=backupNowMsg;b.disabled=true;b.textContent='ব্যাকআপ তৈরি হচ্ছে...';const pw=sessionStorage.getItem('adminPw')||'';fetch(SCRIPT_URL+'?action=backupNow&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{if(d.success){m.textContent='✓ '+d.folderName+' তৈরি হয়েছে ('+(d.files||[]).length+'টি CSV)। Google Drive-এর “Site Backups” ফোল্ডারে আছে।';m.style.color='var(--ok)';localStorage.setItem('lastCsvExport',String(Date.now()));updateBackupReminder();}else{m.textContent='✕ '+(d.error||'ব্যাকআপ ব্যর্থ হয়েছে।');m.style.color='var(--maroon)';}}).catch(()=>{m.textContent='✕ সংযোগে সমস্যা হয়েছে।';m.style.color='var(--maroon)';}).finally(()=>{b.disabled=false;b.textContent='☁️ এখনই ব্যাকআপ নিন';});}
+function updateBackupReminder(){
+  const el = document.getElementById('backupReminder');
+  const last = localStorage.getItem('lastCsvExport');
+  if(!last){
+    el.textContent = '⚠️ এখনো কোনো ব্যাকআপ নেওয়া হয়নি — উপরে চেপে একটা CSV ডাউনলোড করে রাখুন।';
+    el.style.color = 'var(--maroon)';
+    return;
+  }
+  const days = Math.floor((Date.now() - parseInt(last, 10)) / (1000*60*60*24));
+  if(days >= 7){
+    el.textContent = '⚠️ শেষ ব্যাকআপ ' + days + ' দিন আগে — নতুন করে ডাউনলোড করে রাখা ভালো।';
+    el.style.color = 'var(--maroon)';
+  } else if(days === 0){
+    el.textContent = '✓ আজই ব্যাকআপ নেওয়া হয়েছে।';
+    el.style.color = 'var(--ok)';
+  } else {
+    el.textContent = '✓ শেষ ব্যাকআপ ' + days + ' দিন আগে।';
+    el.style.color = 'var(--muted)';
+  }
+}
+
+
+function enableDailyBackup(){
+  const msg=document.getElementById('securityToolsMsg'); msg.textContent='Daily Backup চালু করা হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=setupDailyBackup&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
+    msg.textContent=d.success?'✓ প্রতিদিনের automatic backup চালু হয়েছে।':'✕ '+(d.error||'চালু করা যায়নি।');
+    msg.style.color=d.success?'var(--ok)':'var(--maroon)';
+  }).catch(()=>{msg.textContent='✕ সংযোগে সমস্যা হয়েছে।';msg.style.color='var(--maroon)';});
+}
+function loadTrash(){
+  const box=document.getElementById('trashPanel'); box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=listTrash&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
+    if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
+    if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">Trash খালি।</div>';return;}
+    box.innerHTML=d.rows.slice(0,50).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0;font-size:12.5px;"><span>🗑️ '+x.type+' · '+x.date+'</span><button onclick="restoreTrash('+x.rowIndex+')" style="padding:5px 9px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);">Restore</button></div>').join('');
+  }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
+}
+function restoreTrash(row){
+  if(!confirm('এই আইটেমটি আবার পোস্ট তালিকায় ফিরিয়ে আনবেন?')) return;
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=restoreTrash&password='+encodeURIComponent(pw)+'&row='+encodeURIComponent(row)).then(r=>r.json()).then(d=>{
+    if(d.success){loadTrash(); if(typeof loadAdminPosts==='function') loadAdminPosts();} else alert(d.error||'Restore করা যায়নি।');
+  }).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
+}
+function loadAdminActivity(){
+  const box=document.getElementById('activityPanel'); box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
+  const pw=sessionStorage.getItem('adminPw')||'';
+  fetch(SCRIPT_URL+'?action=listAdminActivity&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
+    if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
+    if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">এখনো কোনো activity log নেই।</div>';return;}
+    box.innerHTML='<div style="max-height:280px;overflow:auto;">'+d.rows.map(x=>'<div style="border-bottom:1px solid var(--line);padding:7px 0;font-size:12px;"><b>'+String(x.action||'').replace(/</g,'&lt;')+'</b> · '+String(x.date||'').replace(/</g,'&lt;')+'<div style="color:var(--muted);">'+String(x.details||'').replace(/</g,'&lt;')+'</div></div>').join('')+'</div>';
+  }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
+}
+
+function login(){
+  const pw = document.getElementById('pwInput').value.trim();
+  if(!pw){ return; }
+  const errEl = document.getElementById('loginErr');
+  const loginBtn = document.getElementById('loginBtn');
+  errEl.style.display = 'none';
+  if(loginBtn){
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'লগইন হচ্ছে...';
+    loginBtn.style.opacity = '0.7';
+  }
+  fetch(SCRIPT_URL + '?action=login&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success && data.token){
+        if(loginBtn){
+          loginBtn.textContent = 'লগইন সফল';
+          loginBtn.style.opacity = '1';
+        }
+        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের টোকেন রাখা হয়
+        document.getElementById('pwInput').value = '';
+        verifyAndEnter();
+      } else {
+        if(loginBtn){
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'লগইন';
+          loginBtn.style.opacity = '1';
+        }
+        errEl.textContent = data.error && data.error !== 'wrong password'
+          ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
+          : 'পাসওয়ার্ড ভুল হয়েছে, আবার চেষ্টা করুন।';
+        errEl.style.display = 'block';
+      }
+    })
+    .catch(() => {
+      if(loginBtn){
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'লগইন';
+        loginBtn.style.opacity = '1';
+      }
+      errEl.textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
+      errEl.style.display = 'block';
+    });
+}
+
+function verifyAndEnter(){
+  const pw = sessionStorage.getItem('adminPw');
+  if(!pw){ return; }
+  document.getElementById('loginErr').style.display = 'none';
+
+  // আগের সফল ডেটা থাকলে আগে সেটাই দেখাই — Admin খুলতেই টেবিল দেখা যাবে।
+  let hadCache = false;
+  try{
+    const raw = sessionStorage.getItem('adminListCacheV2');
+    if(raw){
+      const obj = JSON.parse(raw);
+      if(obj && Array.isArray(obj.rows) && obj.rows.length && (Date.now() - (obj.time || 0)) < 5 * 60 * 1000){
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('panel').style.display = 'block';
+        allRows = obj.rows;
+        restoreFilterState();
+        applyCurrentFilter();
+        restoreOpenSections();
+        restoreScrollPosition();
+        document.getElementById('lastUpdated').textContent = 'ক্যাশ ডেটা • আপডেট হচ্ছে…';
+        startAutoRefresh();
+        updateBackupReminder();
+        hadCache = true;
+      }
+    }
+  }catch(e){}
+
+  // Backend verification/background refresh — cache থাকলে এটি UI আটকে রাখবে না।
+  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
+    .then(r => r.json())
+    .then(data => {
+      document.documentElement.classList.remove('has-session');
+      if(data.success){
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('panel').style.display = 'block';
+        allRows = Array.isArray(data.rows) ? data.rows : [];
+        try{ sessionStorage.setItem('adminListCacheV2', JSON.stringify({time:Date.now(), rows:allRows})); }catch(e){}
+        restoreFilterState();
+        applyCurrentFilter();
+        restoreOpenSections();
+        restoreScrollPosition();
+        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
+        startAutoRefresh();
+        updateBackupReminder();
+        // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
+        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
+        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
+        setTimeout(() => { loadSubscribers(); }, 1000);
+        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
+      } else {
+        sessionStorage.removeItem('adminPw');
+        if(!hadCache){
+          document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
+            ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
+            : 'সেশনের মেয়াদ শেষ, আবার লগইন করুন';
+          document.getElementById('loginErr').style.display = 'block';
+        }
+      }
+    })
+    .catch(() => {
+      // পুরনো ক্যাশ থাকলে Admin চালু রেখেই offline/stale অবস্থায় ব্যবহার করা যাবে।
+      if(!hadCache){
+        document.documentElement.classList.remove('has-session');
+        document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
+        document.getElementById('loginErr').style.display = 'block';
+      }
+    });
+}
+
+function logout(){
+  document.documentElement.classList.remove('has-session');
+  const oldTok = sessionStorage.getItem('adminPw');
+  sessionStorage.removeItem('adminPw');
+  if(oldTok){ try{ fetch(SCRIPT_URL + '?action=logout&password=' + encodeURIComponent(oldTok)).catch(()=>{}); }catch(err){} }
+  stopAutoRefresh();
+  stopVisitStatsAutoRefresh();
+  document.getElementById('panel').style.display = 'none';
+  document.getElementById('loginBox').style.display = 'block';
+  document.getElementById('pwInput').value = '';
+}
+
+// ============ পেজ ছেড়ে বেরিয়ে গেলে (ট্যাব বন্ধ, অন্য সাইটে যাওয়া) অটো লগ-আউট ============
+// 'pagehide' শুধু তখনই ফায়ার হয় যখন পেজটা সত্যিই বন্ধ/আনলোড হয়ে যাচ্ছে (ট্যাব ক্লোজ, নতুন URL-এ যাওয়া)।
+// অ্যাপ মিনিমাইজ করলে বা অন্য অ্যাপে সুইচ করলে পেজটা ব্যাকগ্রাউন্ডে জীবিতই থাকে, তখন এটা ফায়ার হয় না —
+// তাই ব্যাকগ্রাউন্ড/মিনিমাইজে লগ-ইন অবস্থা ঠিকই থেকে যায়, শুধু আসলেই বের হয়ে গেলে লগ-আউট হবে।
+// (পুল-টু-রিফ্রেশে লগআউট হওয়া এড়াতে 'pagehide'-এ পাসওয়ার্ড মোছা বন্ধ করা হয়েছে;
+// এখন পাসওয়ার্ড sessionStorage-এ থাকে, তাই রিফ্রেশে লগইন থাকে আর ট্যাব বন্ধ করলে আপনাআপনি মুছে যায়)
+
+function loadEntries(){
+  const pw = sessionStorage.getItem('adminPw');
+  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        allRows = data.rows;
+        applyCurrentFilter();
+        fetchPersistentStats();
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+      }
+    })
+    .catch(() => {
+      // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
+    });
+}
+
+function manualRefresh(){
+  document.getElementById('loadingMsg').style.display = 'block';
+  document.getElementById('emptyMsg').style.display = 'none';
+  const pw = sessionStorage.getItem('adminPw');
+  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('loadingMsg').style.display = 'none';
+      if(data.success){
+        allRows = data.rows;
+        applyCurrentFilter();
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+      }
+    })
+    .catch(() => {
+      document.getElementById('loadingMsg').style.display = 'none';
+      alert('লোড করতে সমস্যা হয়েছে।');
+    });
+}
+
+function renderList(rows){
+  const listEl = document.getElementById('list');
+  const summaryEl = document.getElementById('summary');
+  listEl.innerHTML = '';
+  summaryEl.textContent = 'মোট ' + rows.length + 'টি আবেদন';
+  document.getElementById('emptyMsg').style.display = rows.length ? 'none' : 'block';
+
+  rows.forEach(row => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    card.innerHTML =
+      '<div class="card-top">' +
+        '<div style="display:flex; align-items:center; gap:8px;">' +
+          '<input type="checkbox" class="bulkCheck" data-row="' + row.rowIndex + '" style="width:18px; height:18px; flex-shrink:0;">' +
+          (row.photoUrl ? '<img class="applicant-photo" src="' + row.photoUrl + '" alt="ছবি" onclick="window.open(\'' + row.photoUrl + '\', \'_blank\')">' : '') +
+          '<div><div class="card-name">' + esc(row.fullName) + '</div><div class="card-id">' + (row.appId === 'N/A' ? 'সারি #' + row.rowIndex : esc(row.appId)) + (/^\d{2}\/\d{2}\/\d{4}/.test(String(row.date || '')) ? ' • ' + esc(row.date) : '') + '</div></div>' +
+        '</div>' +
+        '<div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">' +
+          '<span class="' + badgeClass(row.status) + '">' + esc(row.status) + '</span>' +
+          '<span class="cardArrow">▸</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="info-grid">' +
+          '<div class="info-item"><span class="ic">📅</span><div><span class="lbl">তারিখ</span><span class="val">' + esc(row.date) + '</span></div></div>' +
+          '<div class="info-item"><span class="ic">📱</span><div><span class="lbl">ফোন</span><span class="val">' + esc(row.phone) + '</span></div></div>' +
+          (row.platform ? '<div class="info-item"><span class="ic">🌐</span><div><span class="lbl">প্ল্যাটফর্ম</span><span class="val">' + esc(row.platform) + '</span></div></div>' : '') +
+          (row.email ? '<div class="info-item"><span class="ic">📧</span><div><span class="lbl">ইমেইল</span><span class="val">' + esc(row.email) + '</span></div></div>' : '') +
+          '<div class="info-item"><span class="ic">📍</span><div><span class="lbl">ঠিকানা</span><span class="val">' + esc(row.division) + ', ' + esc(row.district) + (row.areaDetail ? ' - ' + esc(row.areaDetail) : '') + '</span></div></div>' +
+          '<div class="info-item"><span class="ic">💳</span><div><span class="lbl">পেমেন্ট</span><span class="val">' + esc(row.paymentMethod) + ' • TxnID: ' + esc(row.txnId) + ' • ' + esc(row.senderNumber) + '</span></div></div>' +
+        '</div>' +
+        (row.idLink ?
+          '<div class="link-row">' +
+            '<a class="link-chip" href="' + row.idLink + '" target="_blank">🔗 আইডি/প্রোফাইল</a>' +
+          '</div>' : '') +
+        (row.comment ? '<div class="card-comment">' + esc(row.comment) + '</div>' : '') +
+        (row.screenshotUrl ?
+          '<div class="screenshot-block">' +
+            '<div class="screenshot-label">সমস্যার স্ক্রিনশট</div>' +
+            '<img class="screenshot-img" src="' + row.screenshotUrl + '" alt="সমস্যার স্ক্রিনশট" onclick="window.open(\'' + row.screenshotUrl + '\', \'_blank\')">' +
+          '</div>' : '') +
+        '<hr class="card-divider">' +
+        '<div class="card-actions">' +
+          buildStatusSelectHtml(row.status) +
+          '<button class="saveBtn">আপডেট</button>' +
+          '<button class="deleteBtn">🗑️</button>' +
+        '</div>' +
+        '<div class="card-actions" style="margin-top:8px;">' +
+          '<button class="waBtn">📱 WhatsApp পাঠান</button>' +
+        '</div>' +
+        '<div style="margin-top:10px;">' +
+          '<textarea class="noteInput" placeholder="প্রাইভেট নোট (শুধু আপনি দেখবেন)..." style="width:100%; min-height:44px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit; font-size:13px; resize:vertical;">' + esc(row.note || '') + '</textarea>' +
+          '<button class="noteSaveBtn" style="margin-top:6px; padding:6px 12px; font-size:12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">নোট সেভ করুন</button>' +
+        '</div>' +
+      '</div>';
+
+    const saveBtn = card.querySelector('.saveBtn');
+    const select = card.querySelector('.statusInput');
+    const deleteBtn = card.querySelector('.deleteBtn');
+    const waBtn = card.querySelector('.waBtn');
+    const bulkCheck = card.querySelector('.bulkCheck');
+    const noteInput = card.querySelector('.noteInput');
+    const noteSaveBtn = card.querySelector('.noteSaveBtn');
+    saveBtn.addEventListener('click', () => updateStatus(row.rowIndex, select.value, saveBtn, card));
+    deleteBtn.addEventListener('click', () => deleteEntry(row.rowIndex, row.fullName, card));
+    waBtn.addEventListener('click', () => sendWhatsApp(row.phone, row.fullName, row.appId, select.value));
+    bulkCheck.checked = selectedRowIndexes.has(row.rowIndex);
+    bulkCheck.addEventListener('change', () => {
+      if(bulkCheck.checked) selectedRowIndexes.add(row.rowIndex);
+      else selectedRowIndexes.delete(row.rowIndex);
+      updateBulkBar();
+    });
+    noteSaveBtn.addEventListener('click', () => saveNote(row.rowIndex, noteInput.value, noteSaveBtn));
+
+    // ============ কার্ড ট্যাপ করলে বিস্তারিত খোলা/বন্ধ হয় (পেজ ছোট রাখতে ডিফল্টে বন্ধ থাকে) ============
+    const topEl = card.querySelector('.card-top');
+    const bodyEl = card.querySelector('.card-body');
+    const arrowEl = card.querySelector('.cardArrow');
+    topEl.addEventListener('click', (e) => {
+      if(e.target.closest('.bulkCheck') || e.target.closest('.applicant-photo')) return;
+      const isOpen = bodyEl.classList.toggle('open');
+      if(arrowEl) arrowEl.textContent = isOpen ? '▾' : '▸';
+    });
+    // অপেক্ষমান আবেদন — মনোযোগ দরকার, তাই ডিফল্টে খোলা থাকবে
+    if(row.status === 'অপেক্ষমান'){
+      bodyEl.classList.add('open');
+      if(arrowEl) arrowEl.textContent = '▾';
+    }
+
+    listEl.appendChild(card);
+  });
+}
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkActionBar');
+  const countEl = document.getElementById('bulkSelectedCount');
+  if(selectedRowIndexes.size > 0){
+    bar.style.display = 'flex';
+    countEl.textContent = selectedRowIndexes.size + 'টি নির্বাচিত';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearBulkSelection(){
+  selectedRowIndexes.clear();
+  document.querySelectorAll('.bulkCheck').forEach(c => c.checked = false);
+  updateBulkBar();
+}
+
+function applyBulkStatus(){
+  const status = document.getElementById('bulkStatusSelect').value;
+  const pw = sessionStorage.getItem('adminPw');
+  const rowsCsv = Array.from(selectedRowIndexes).join(',');
+  if(!rowsCsv) return;
+  fetch(SCRIPT_URL + '?action=bulkUpdateStatus&password=' + encodeURIComponent(pw) + '&rows=' + encodeURIComponent(rowsCsv) + '&status=' + encodeURIComponent(status))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        clearBulkSelection();
+        manualRefresh();
+      } else {
+        alert('আপডেট করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function saveNote(rowIndex, note, btn){
+  const pw = sessionStorage.getItem('adminPw');
+  btn.disabled = true;
+  btn.textContent = 'সেভ হচ্ছে...';
+  fetch(SCRIPT_URL + '?action=updateNote&password=' + encodeURIComponent(pw) + '&row=' + rowIndex + '&note=' + encodeURIComponent(note))
+    .then(r => r.json())
+    .then(data => {
+      btn.textContent = data.success ? '✓ সেভ হয়েছে' : 'ব্যর্থ হয়েছে';
+      setTimeout(()=>{ btn.textContent = 'নোট সেভ করুন'; btn.disabled = false; }, 1500);
+    })
+    .catch(()=>{
+      btn.textContent = 'ব্যর্থ হয়েছে';
+      btn.disabled = false;
+    });
+}
+
+function updateStatus(rowIndex, newStatus, btn, card){
+  const pw = sessionStorage.getItem('adminPw');
+  btn.disabled = true;
+  btn.textContent = 'সেভ হচ্ছে...';
+  fetch(SCRIPT_URL + '?action=updateStatus&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex) + '&status=' + encodeURIComponent(newStatus))
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'আপডেট';
+      if(data.success){
+        const badge = card.querySelector('.badge');
+        badge.textContent = newStatus;
+        badge.className = badgeClass(newStatus);
+      } else {
+        alert('আপডেট করতে সমস্যা হয়েছে।');
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'আপডেট';
+      alert('সংযোগে সমস্যা হয়েছে।');
+    });
+}
+
+function normalizePhone(phone){
+  let digits = String(phone || '').replace(/\D/g, '');
+  if(digits.startsWith('0')) digits = '88' + digits;
+  else if(digits.startsWith('880')) digits = digits;
+  else if(!digits.startsWith('88')) digits = '880' + digits;
+  return digits;
+}
+
+function statusMessage(fullName, appId, status){
+  const idLine = (appId && appId !== 'N/A') ? ('আবেদন নম্বর: ' + appId + '\n') : '';
+  let line;
+  if(status === 'সম্পন্ন') line = 'আপনার আবেদনটির কাজ সম্পন্ন হয়েছে। ধন্যবাদ।\n\nআপনার অভিজ্ঞতা কেমন ছিল আমাদের জানাতে একটা ছোট্ট রিভিউ দিতে পারেন:\nhttps://alamingazi533.github.io/';
+  else if(status === 'কাজ চলছে') line = 'আপনার আবেদনটি নিয়ে কাজ চলছে। একটু অপেক্ষা করুন।';
+  else if(status === 'বাতিল') line = 'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।';
+  else line = 'আপনার আবেদনটি জমা হয়েছে, বর্তমানে অপেক্ষমান আছে।';
+  return 'প্রিয় ' + fullName + ',\n' + idLine + 'স্ট্যাটাস: ' + status + '\n' + line;
+}
+
+function sendWhatsApp(phone, fullName, appId, status){
+  if(!phone){ alert('এই আবেদনকারীর ফোন নম্বর পাওয়া যায়নি।'); return; }
+  const number = normalizePhone(phone);
+  const message = statusMessage(fullName, appId, status);
+  const url = 'https://wa.me/' + number + '?text=' + encodeURIComponent(message);
+  window.open(url, '_blank');
+}
+function esc(str){
+  if(str === undefined || str === null) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+// ============ ডার্ক/লাইট মোড ============
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = theme === 'dark' ? '☀️' : '🌙';
+  const btn1 = document.getElementById('themeToggleBtn');
+  const btn2 = document.getElementById('loginThemeToggleBtn');
+  if(btn1) btn1.textContent = icon;
+  if(btn2) btn2.textContent = icon;
+}
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('adminTheme', next);
+  applyTheme(next);
+}
+(function(){
+  const saved = localStorage.getItem('adminTheme');
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+})();
+
+document.getElementById('searchBox').addEventListener('input', function(){
+  try{ localStorage.setItem('adminSearchQuery', this.value); }catch(err){}
+  applyCurrentFilter();
+});
+
+document.getElementById('pwInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') login();
+});
+
+// পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
+try{
+  sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
+  const savedTok = sessionStorage.getItem('adminPw');
+  if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
+  if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
+}catch(err){}
+if(sessionStorage.getItem('adminPw')){
+  verifyAndEnter();
+}
+</script>
+<script>function clearAdminLocalCache(){try{['lastCsvExport','adminOpenSections'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem('adminPw');const m=document.getElementById('adminLocalMsg');if(m)m.textContent='✓ লোকাল ক্যাশ/সেশন পরিষ্কার হয়েছে। নিরাপত্তার জন্য আবার লগইন করুন।';}catch(e){}}</script></body>
+</html>
