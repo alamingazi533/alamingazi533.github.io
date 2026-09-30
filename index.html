@@ -38,7 +38,7 @@
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
-      if(params.get('post') || params.get('p')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('post')) return { label: 'ব্লগ পোস্ট', icon: 'post' };
       if(params.get('blog')){
         const cat = params.get('blog');
         return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
@@ -58,7 +58,7 @@
     // iOS হোম স্ক্রিন আইকনও manifest.json থেকে না নিয়ে এই <link rel="apple-touch-icon"> থেকে নেয়
     if(route.icon){
       const appleIconEl = document.querySelector('link[rel="apple-touch-icon"]');
-      if(appleIconEl) appleIconEl.setAttribute('href', 'icon-' + route.icon + '-192.png');
+      if(appleIconEl) appleIconEl.setAttribute('href', 'icons/icon-' + route.icon + '-192.png');
     }
 
     // Android/Chrome manifest.json থেকে নাম ও আইকন নেয়, তাই সেটাও বদলে দেওয়া হচ্ছে
@@ -68,8 +68,8 @@
       m.short_name = route.label.length > 12 ? route.label.slice(0, 12) : route.label;
       if(route.icon){
         m.icons = [
-          { src: 'icon-' + route.icon + '-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icon-' + route.icon + '-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
+          { src: 'icons/icon-' + route.icon + '-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-' + route.icon + '-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
         ];
       }
       const blob = new Blob([JSON.stringify(m)], { type: 'application/json' });
@@ -2315,6 +2315,15 @@
 <style id="site-enhancements">
 .site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
 </style>
+<script>
+/* ALAMIN_COMPAT_ROUTE_V1 */
+(function(){try{var u=new URL(window.location.href),oldPost=u.searchParams.get('post'),p=u.searchParams.get('p');if(oldPost&&!p){u.searchParams.delete('post');u.searchParams.set('p',String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));window.history.replaceState({},'',u.toString());}}catch(e){}})();
+</script>
+<!-- ALAMIN_PERF_PRECONNECT_V1 -->
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<link rel="dns-prefetch" href="//embed.tawk.to">
+<link rel="dns-prefetch" href="//cdn.onesignal.com">
 </head>
 <body>
 
@@ -2382,7 +2391,7 @@
       <span id="themeToggleLabel">ডার্ক মোড</span>
     </button>
   </div>
-  <img class="profile-pic" src="profile.jpg" alt="মোঃ আলামিন ইসলাম">
+  <img class="profile-pic" src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
   <div class="eyebrow" data-i18n="hero.eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
   <p class="tagline" data-i18n="hero.tagline">আপনার স্বপ্নই হোক আপনার ভবিষ্যৎ</p>
   <h1 data-i18n="hero.h1">ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ/চ্যানেল হ্যাক, ডিজেবল, মনিটাইজেশন সমস্যা সমাধান</h1>
@@ -2591,7 +2600,7 @@
 
     <label for="applicantPhoto">আপনার ছবি আপলোড করুন <span class="req">*</span></label>
     <input type="file" id="applicantPhoto" accept="image/*" required>
-    <img id="photoPreview" class="photo-preview" alt="ছবি প্রিভিউ">
+    <img id="photoPreview" class="photo-preview" alt="ছবি প্রিভিউ" loading="lazy" decoding="async">
 
     <label for="platform">কোন প্ল্যাটফর্মের সমস্যা? <span class="req">*</span></label>
     <select id="platform" required>
@@ -2867,7 +2876,7 @@
   <div class="r-watermark">✓ যাচাইকৃত</div>
   <div class="r-stamp">অনুমোদিত<br>✓</div>
   <div class="r-header">
-    <img src="profile.jpg" alt="মোঃ আলামিন ইসলাম">
+    <img src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
     <div class="r-eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
     <div class="r-title">আবেদন রশিদ</div>
     <div class="r-sub">মোঃ আলামিন ইসলাম • গোপসেনা, কেশবপুর, যশোর</div>
@@ -2879,7 +2888,7 @@
         <div class="r-idlabel">আবেদন নম্বর</div>
         <div class="r-idvalue" id="r-id"></div>
       </div>
-      <img class="r-applicant-photo" id="r-applicant-photo" src="" alt="আবেদনকারীর ছবি" style="display:none;">
+      <img class="r-applicant-photo" id="r-applicant-photo" src="" alt="আবেদনকারীর ছবি" style="display:none;" loading="lazy" decoding="async">
     </div>
     <div class="r-row"><span class="label">প্ল্যাটফর্ম</span><span class="value" id="r-platform"></span></div>
     <div class="r-row"><span class="label">আইডি/প্রোফাইল লিংক</span><span class="value" id="r-idlink"></span></div>
@@ -4242,7 +4251,7 @@ loadHomeData(false);
 // ঘন ঘন API কল না করে ৬০ সেকেন্ড পরপর ব্যাকগ্রাউন্ডে আপডেট। ট্যাব লুকানো থাকলে কল হবে না।
 setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true); }, 60000);
 
-// ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?p=SHORT_ID / ?blog=all) ============
+// ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?post=ID / ?blog=all) ============
 let __allPosts = [];
 
 function blogEscape(s){
@@ -4308,7 +4317,7 @@ function renderTickerList(){
   if(__allPosts.length === 0){ wrap.style.display = 'none'; return; }
   wrap.style.display = '';
   list.innerHTML = __allPosts.slice(0, 8).map((p, i) =>
-    '<li><span class="num">' + (i + 1) + '.</span><a href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' + blogEscape(p.title) + '</a></li>'
+    '<li><span class="num">' + (i + 1) + '.</span><a href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a></li>'
   ).join('');
 }
 
@@ -4319,7 +4328,7 @@ function renderPhotoGrid(){
   const withImages = __allPosts.filter(p => blogSafeUrl(p.imageUrl)).slice(0, 5);
   if(withImages.length === 0){ wrap.innerHTML = ''; return; }
   wrap.innerHTML = withImages.map(p =>
-    '<a class="blog-photo-card" href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' +
+    '<a class="blog-photo-card" href="?post=' + encodeURIComponent(p.id) + '">' +
       '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + blogEscape(p.title) + '" loading="lazy">' +
       '<div class="post-title">' + blogEscape(p.title) + '</div>' +
     '</a>'
@@ -4383,7 +4392,7 @@ function renderCategorySections(){
           '<a class="blog-viewall-link" href="?blog=' + encodeURIComponent(cat) + '">সব দেখুন →</a>' +
         '</div>' +
         '<div class="blog-cat-block-body">' +
-          '<a class="blog-cat-main-post" href="?p=' + encodeURIComponent(shortPostKey(mainPost.id)) + '">' +
+          '<a class="blog-cat-main-post" href="?post=' + encodeURIComponent(mainPost.id) + '">' +
             mainImg +
             '<div class="post-date">' + cleanPostDate(mainPost.date) + '</div>' +
             '<div class="post-title">' + blogEscape(mainPost.title) + '</div>' +
@@ -4394,7 +4403,7 @@ function renderCategorySections(){
             ? '<ul class="blog-cat-side-list">' + sideList.map(p =>
                 '<li>' +
                   (p.imageUrl ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + blogEscape(p.title) + '" loading="lazy">' : '') +
-                  '<a href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' + blogEscape(p.title) + '</a>' +
+                  '<a href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a>' +
                 '</li>'
               ).join('') + '</ul>'
             : '') +
@@ -4407,7 +4416,7 @@ function renderCategorySections(){
 function renderBlogCard(p, featured, small){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, featured ? 150 : (small ? 60 : 110)));
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
@@ -4543,19 +4552,9 @@ function updateCanonicalUrl(url){
   if(ogUrlEl) ogUrlEl.setAttribute('content', url);
 }
 
-function shortPostKey(id){
-  return String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-}
-function resolveShortPostKey(key){
-  if(!key || !Array.isArray(__allPosts) || !__allPosts.length) return null;
-  const found = __allPosts.find(p => shortPostKey(p.id) === String(key));
-  return found ? String(found.id) : null;
-}
-
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
-  const shortKey = params.get('p');
-  const postId = params.get('post') || resolveShortPostKey(shortKey);
+  const postId = params.get('post');
   const blogParam = params.get('blog');
 
   if(!postId && !blogParam) return; // স্বাভাবিক হোমপেজ, কিছু করার দরকার নেই
@@ -4689,7 +4688,7 @@ function renderBlogArchiveGrid(query, cat){
 function renderFeatureHero(p){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, 80));
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -4705,7 +4704,7 @@ function renderFeatureHero(p){
 
 function renderThumbItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -4721,7 +4720,7 @@ function renderThumbItem(p){
 
 function renderBlogListItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   return '<a class="blog-list-item" href="' + href + '"' + clickAttr + '>' +
     '<span class="blog-list-title">' + safeTitle + '</span>' +
@@ -4770,7 +4769,7 @@ function showBlogDetail(postId){
       '<span class="post-eyebrow">আপডেট</span>' +
       '<h1>' + safeTitle + '</h1>' +
       '<div class="byline">' +
-        '<img src="profile.jpg" alt="মোঃ আলামিন ইসলাম">' +
+        '<img src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">' +
         '<div>' +
           '<div class="byline-name">মোঃ আলামিন ইসলাম</div>' +
           '<div class="byline-date">' + cleanPostDate(post.date) + '</div>' +
@@ -4818,7 +4817,7 @@ function showBlogDetail(postId){
   loadPostComments(String(post.id));
 
   document.title = post.title + ' | সোশ্যাল মিডিয়া সমস্যা সমাধান — যশোর';
-  updateCanonicalUrl('https://alamingazi533.github.io/?p=' + encodeURIComponent(shortPostKey(post.id)));
+  updateCanonicalUrl('https://alamingazi533.github.io/?post=' + encodeURIComponent(post.id));
   const metaDesc = document.querySelector('meta[name="description"]');
   const postExcerpt = blogExcerpt(post.content, 155);
   if(metaDesc) metaDesc.setAttribute('content', postExcerpt);
@@ -4838,7 +4837,7 @@ function renderRelatedPosts(post){
     .slice(0, 4);
   if(related.length === 0) return;
   const itemsHtml = related.map(p =>
-    '<a class="blog-related-item" href="?p=' + encodeURIComponent(shortPostKey(p.id)) + '">' + blogEscape(p.title) + '</a>'
+    '<a class="blog-related-item" href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a>'
   ).join('');
   const html =
     '<div class="blog-related-wrap">' +
@@ -4915,7 +4914,7 @@ async function sharePost(postId, title){
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: window.location.origin + window.location.pathname + '?p=' + encodeURIComponent(shortPostKey(postId))
+    url: window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId)
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
@@ -5379,3 +5378,4 @@ function openSitePolicy(type){const m=document.getElementById('sitePolicyModal')
 </script>
 </body>
   </html>
+<link rel="stylesheet" href="professional.css">
