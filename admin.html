@@ -1209,47 +1209,31 @@ function saveEditPost(rowIndex){
     .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
 }
 
+function __postShortKey(id){
+  const s = String(id || '').trim();
+  const m = s.match(/^([0-9a-fA-F]{8})-([0-9a-fA-F]{4})-([0-9a-fA-F]{4})-([0-9a-fA-F]{4})-([0-9a-fA-F]{12})$/);
+  if(!m) return s;
+  const hex = m.slice(1).join('');
+  const bytes = new Uint8Array(16);
+  for(let i=0;i<16;i++) bytes[i] = parseInt(hex.slice(i*2,i*2+2),16);
+  let bin = '';
+  for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
 function copyPostLink(id){
-  // Apps Script এর postSEO এন্ডপয়েন্ট দিয়ে লিংক দেওয়া হয় যাতে শেয়ার করলে
-  // ফেসবুক/হোয়াটসঅ্যাপে আসল টাইটেল-ছবি সহ প্রিভিউ দেখায়।
-  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(id);
+  const key = __postShortKey(id);
+  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
+  const link = base + '?p=' + encodeURIComponent(key);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(()=>{
-      alert('লিংক কপি হয়েছে:\n' + link);
-    }).catch(()=>{
-      prompt('লিংকটি কপি করুন:', link);
-    });
+      alert('একই ছোট লিংক কপি হয়েছে:\n' + link);
+    }).catch(()=> prompt('লিংকটি কপি করুন:', link));
   } else {
     prompt('লিংকটি কপি করুন:', link);
   }
 }
-
 function copyPostPreviewLink(id){
-  const fullLink = 'https://script.google.com/macros/s/AKfycbw2Fjz0Wj1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec?action=postSEO&id=' + encodeURIComponent(String(id || '').trim());
-  const fallback = () => {
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(fullLink).then(()=>{
-        alert('Preview লিংক কপি হয়েছে:\n' + fullLink);
-      }).catch(()=> prompt('লিংকটি কপি করুন:', fullLink));
-    } else {
-      prompt('লিংকটি কপি করুন:', fullLink);
-    }
-  };
-  // ছোট URL তৈরি করে; এটি মূল Preview URL-এ redirect করবে।
-  fetch('https://is.gd/create.php?format=simple&url=' + encodeURIComponent(fullLink))
-    .then(r => r.text())
-    .then(shortLink => {
-      shortLink = String(shortLink || '').trim();
-      if(!/^https?:\/\/is\.gd\//i.test(shortLink)) throw new Error('shortener failed');
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(shortLink).then(()=>{
-          alert('ছোট Preview লিংক কপি হয়েছে:\n' + shortLink);
-        }).catch(()=> prompt('লিংকটি কপি করুন:', shortLink));
-      } else {
-        prompt('লিংকটি কপি করুন:', shortLink);
-      }
-    })
-    .catch(fallback);
+  copyPostLink(id);
 }
 
 // ============ ছবি/ভিডিও ফাইল → base64 (পোস্ট আপলোডের জন্য) ============
