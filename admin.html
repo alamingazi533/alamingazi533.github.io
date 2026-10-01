@@ -452,7 +452,9 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
 // পাশাপাশি, এখানে যেকোনো রেসপন্সে "session expired"/"locked" পেলে সাথে সাথে সব
 // ব্যাকগ্রাউন্ড টাইমার বন্ধ করে দেওয়া হচ্ছে, যাতে সমস্যা আরও না বাড়ে।
 let __sessionIssueShown = false;
-function __handleAuthIssue(errCode){
+let __authGeneration = 0;
+function __handleAuthIssue(errCode, generation){
+  if(generation !== undefined && generation !== __authGeneration) return;
   try{ if(typeof autoRefreshTimer !== 'undefined' && autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }catch(e){}
   try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
   if(errCode === 'session expired'){
@@ -1684,9 +1686,12 @@ function login(){
           loginBtn.textContent = 'লগইন সফল';
           loginBtn.style.opacity = '1';
         }
-        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের টোকেন রাখা হয়
+        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের signed token
+        __sessionIssueShown = false;
         document.getElementById('pwInput').value = '';
-        verifyAndEnter();
+        // token write-এর পর একই execution-এ list request না ছুঁড়ে এক tick পরে verify করি।
+        // এতে mobile Chrome/WebView-এ sessionStorage write/read race এড়ানো যায়।
+        setTimeout(function(){ verifyAndEnter(); }, 0);
       } else {
         if(loginBtn){
           loginBtn.disabled = false;
@@ -1711,6 +1716,7 @@ function login(){
 }
 
 function verifyAndEnter(){
+  const generation = ++__authGeneration;
   const pw = sessionStorage.getItem('adminPw');
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
@@ -1750,6 +1756,7 @@ function verifyAndEnter(){
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
     .then(data => {
+      if(generation !== __authGeneration) return;
       document.documentElement.classList.remove('has-session');
       if(data.success){
         document.getElementById('loginBox').style.display = 'none';
@@ -1793,6 +1800,7 @@ function verifyAndEnter(){
 }
 
 function logout(){
+  ++__authGeneration;
   document.documentElement.classList.remove('has-session');
   const oldTok = sessionStorage.getItem('adminPw');
   sessionStorage.removeItem('adminPw');
