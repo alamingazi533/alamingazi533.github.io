@@ -452,21 +452,21 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
 // পাশাপাশি, এখানে যেকোনো রেসপন্সে "session expired"/"locked" পেলে সাথে সাথে সব
 // ব্যাকগ্রাউন্ড টাইমার বন্ধ করে দেওয়া হচ্ছে, যাতে সমস্যা আরও না বাড়ে।
 let __sessionIssueShown = false;
-let __authGeneration = 0;
-function __handleAuthIssue(errCode, generation){
-  if(generation !== undefined && generation !== __authGeneration) return;
+function __handleAuthIssue(errCode){
   try{ if(typeof autoRefreshTimer !== 'undefined' && autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }catch(e){}
   try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
-  // কোনো background/admin section request ব্যর্থ হলেই sessionStorage মুছে বা page reload করা যাবে না।
-  // এতে আসল server/network error-এর বদলে "অটো লগআউট" দেখা যায়। প্রকৃত লগআউট শুধু logout() থেকে হবে।
+  if(errCode === 'session expired'){
+    sessionStorage.removeItem('adminPw');
+  }
   if(!__sessionIssueShown){
     __sessionIssueShown = true;
     const msg = errCode === 'locked'
       ? 'নিরাপত্তার কারণে সাময়িকভাবে অ্যাডমিন প্যানেল লক আছে — কিছুক্ষণ পর আবার চেষ্টা করুন।'
-      : (errCode === 'session expired'
-        ? 'সেশন যাচাই ব্যর্থ হয়েছে। প্যানেল বন্ধ না করে আবার অনুরোধ করুন; প্রয়োজনে নিজে লগ-আউট করে পুনরায় লগইন করুন।'
-        : ('অ্যাডমিন অনুরোধ ব্যর্থ হয়েছে — ' + String(errCode || 'অজানা সমস্যা')));
-    setTimeout(function(){ alert(msg); }, 50);
+      : 'আপনার সেশনের মেয়াদ শেষ হয়ে গেছে — আবার লগইন করুন।';
+    setTimeout(function(){
+      alert(msg);
+      if(errCode === 'session expired') location.reload();
+    }, 50);
   }
 }
 
@@ -680,7 +680,7 @@ function loadSubscribers(){
   const badge = document.getElementById('subscriberBadge');
   if(!list) return;
   list.textContent = 'লোড হচ্ছে...';
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listSubscribers&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -701,7 +701,7 @@ function loadSubscribers(){
 
 function deleteSubscriber(row){
   if(!confirm('এই সাবস্ক্রাইবারকে মুছে ফেলবেন?')) return;
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=deleteSubscriber&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(row))
     .then(r => r.json())
     .then(data => { if(data.success) loadSubscribers(); else alert('মুছতে সমস্যা হয়েছে।'); })
@@ -881,7 +881,7 @@ function loadAdminReviews(){
   const listEl = document.getElementById('reviewsList');
   const badgeEl = document.getElementById('pendingReviewBadge');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -918,7 +918,7 @@ function loadAdminReviews(){
 }
 
 function reviewAction(row, status){
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=reviewAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
     .then(r => r.json())
     .then(()=> loadAdminReviews());
@@ -929,7 +929,7 @@ function loadAdminComments(){
   const listEl = document.getElementById('commentsListAdmin');
   const badgeEl = document.getElementById('pendingCommentBadge');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listComments&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -965,7 +965,7 @@ function loadAdminComments(){
 }
 
 function commentAction(row, status){
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=commentAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
     .then(r => r.json())
     .then(()=> loadAdminComments());
@@ -1018,7 +1018,7 @@ function renderPostsAnalyticsSummary(posts){
 function loadAdminPosts(){
   const listEl = document.getElementById('postsList');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1147,7 +1147,7 @@ function formatScheduleDisplay(iso){
 }
 
 function saveEditPost(rowIndex){
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   const title = document.getElementById('editTitle' + rowIndex).value.trim();
   const content = document.getElementById('editContent' + rowIndex).value.trim();
   const category = document.getElementById('editCategory' + rowIndex).value;
@@ -1291,7 +1291,7 @@ function addPost(isDraft){
   // ISO স্ট্রিং-এ (UTC সহ) বদলে পাঠানো হচ্ছে, যাতে সার্ভারে সময়ের হিসাব সবসময় ঠিক থাকে।
   const scheduleRaw = scheduleEl ? scheduleEl.value : '';
   const publishAtIso = scheduleRaw ? new Date(scheduleRaw).toISOString() : '';
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
 
   function showPostMsg(text, ok){
     msgBox.style.display = 'block';
@@ -1375,7 +1375,7 @@ function addPost(isDraft){
 
 function publishDraftNow(rowIndex){
   if(!confirm('এই খসড়া পোস্টটি এখনই প্রকাশ করতে চান? প্রকাশ হলে সাবস্ক্রাইবারদের নোটিফিকেশনও যাবে।')) return;
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&status=')
@@ -1392,7 +1392,7 @@ function publishDraftNow(rowIndex){
 
 function publishPostNow(rowIndex){
   if(!confirm('এই পোস্টটি এখনই প্রকাশ করতে চান?')) return;
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&publishAt=')
@@ -1409,7 +1409,7 @@ function publishPostNow(rowIndex){
 
 function deletePost(rowIndex){
   if(!confirm('এই পোস্টটি মুছে ফেলতে চান?')) return;
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=deletePost&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex))
     .then(r => r.json())
     .then(data => {
@@ -1490,7 +1490,7 @@ function fmtDur(sec){
 }
 
 function loadVisitStats(){
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=getVisitStats&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1579,7 +1579,7 @@ function stopVisitStatsAutoRefresh(){
 }
 
 function exportReviewsCsv(){
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw') || '';
   fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1665,11 +1665,6 @@ function loadAdminActivity(){
   }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
 }
 
-let __adminLoginPassword = "";
-function getAdminAuthValue(){
-  return __adminLoginPassword || sessionStorage.getItem('adminPw') || '';
-}
-
 function login(){
   const pw = document.getElementById('pwInput').value.trim();
   if(!pw){ return; }
@@ -1689,13 +1684,9 @@ function login(){
           loginBtn.textContent = 'লগইন সফল';
           loginBtn.style.opacity = '1';
         }
-        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের server-side token
-        __adminLoginPassword = pw;
-        __sessionIssueShown = false;
+        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের টোকেন রাখা হয়
         document.getElementById('pwInput').value = '';
-        // token write-এর পর একই execution-এ list request না ছুঁড়ে এক tick পরে verify করি।
-        // এতে mobile Chrome/WebView-এ sessionStorage write/read race এড়ানো যায়।
-        setTimeout(function(){ verifyAndEnter(); }, 0);
+        verifyAndEnter();
       } else {
         if(loginBtn){
           loginBtn.disabled = false;
@@ -1720,19 +1711,9 @@ function login(){
 }
 
 function verifyAndEnter(){
-  const generation = ++__authGeneration;
-  const pw = getAdminAuthValue();
+  const pw = sessionStorage.getItem('adminPw');
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
-
-  // Performance: token already verified by login/session; show the Admin shell immediately
-  // instead of making the whole page wait for the application list request.
-  document.getElementById('loginBox').style.display = 'none';
-  document.getElementById('panel').style.display = 'block';
-  const initialLoading = document.getElementById('loadingMsg');
-  if(initialLoading) initialLoading.style.display = 'block';
-  const initialUpdated = document.getElementById('lastUpdated');
-  if(initialUpdated) initialUpdated.textContent = 'ডেটা লোড হচ্ছে…';
 
   // আগের সফল ডেটা থাকলে আগে সেটাই দেখাই — Admin খুলতেই টেবিল দেখা যাবে।
   let hadCache = false;
@@ -1758,21 +1739,12 @@ function verifyAndEnter(){
 
   // Backend verification/background refresh — cache থাকলে এটি UI আটকে রাখবে না।
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
-    .then(async r => {
-      const raw = await r.text();
-      let data;
-      try{ data = JSON.parse(raw); }
-      catch(e){ throw new Error('server_non_json_' + r.status); }
-      if(!r.ok) throw new Error('http_' + r.status + '_' + String(data.error || 'request_failed'));
-      return data;
-    })
+    .then(r => r.json())
     .then(data => {
-      if(generation !== __authGeneration) return;
       document.documentElement.classList.remove('has-session');
       if(data.success){
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('panel').style.display = 'block';
-        if(initialLoading) initialLoading.style.display = 'none';
         allRows = Array.isArray(data.rows) ? data.rows : [];
         try{ sessionStorage.setItem('adminListCacheV2', JSON.stringify({time:Date.now(), rows:allRows})); }catch(e){}
         restoreFilterState();
@@ -1782,38 +1754,32 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // লগইনের সময় ভারী section/analytics কোনোভাবেই auto-load হবে না।
-        // ব্যবহারকারী section খুললে toggleSection() থেকে প্রয়োজনীয় data load হবে।
+        // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
+        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
+        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
+        setTimeout(() => { loadSubscribers(); }, 1000);
+        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
       } else {
-        if(initialLoading) initialLoading.style.display = 'none';
-        // Login already succeeded. A failed background list request must NOT immediately log the admin out.
-        document.getElementById('panel').style.display = 'block';
+        sessionStorage.removeItem('adminPw');
         if(!hadCache){
-          document.getElementById('loginErr').textContent = data.error === 'session expired'
-            ? 'সেশন যাচাই ব্যর্থ হয়েছে। প্যানেল খোলা রাখা হয়েছে—রিফ্রেশ না করে আবার চেষ্টা করুন।'
-            : ('ডেটা লোড করা যায়নি — ' + (data.error || 'অজানা সমস্যা'));
+          document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
+            ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
+            : 'সেশনের মেয়াদ শেষ, আবার লগইন করুন';
           document.getElementById('loginErr').style.display = 'block';
         }
       }
     })
-    .catch((err) => {
-      if(initialLoading) initialLoading.style.display = 'none';
-      // Login সফল হওয়ার পর list request ব্যর্থ হলেও কখনো login screen-এ ফেরত যাবে না।
-      // এটাই আগের "লগইন হচ্ছে → অটো লগআউট" সমস্যার মূল UI bug ছিল।
-      document.getElementById('panel').style.display = 'block';
-      document.getElementById('loginBox').style.display = 'none';
-      document.documentElement.classList.remove('has-session');
-      const detail = String(err && err.message ? err.message : 'request_failed');
-      document.getElementById('loginErr').textContent =
-        'ডেটা লোড করা যায়নি। অ্যাডমিন প্যানেল খোলা আছে। (' + detail + ')';
-      document.getElementById('loginErr').style.display = 'block';
-      try{ document.getElementById('lastUpdated').textContent = 'ডেটা সার্ভার থেকে পাওয়া যায়নি — পুনরায় চেষ্টা করুন'; }catch(e){}
+    .catch(() => {
+      // পুরনো ক্যাশ থাকলে Admin চালু রেখেই offline/stale অবস্থায় ব্যবহার করা যাবে।
+      if(!hadCache){
+        document.documentElement.classList.remove('has-session');
+        document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
+        document.getElementById('loginErr').style.display = 'block';
+      }
     });
 }
 
 function logout(){
-  ++__authGeneration;
-  __adminLoginPassword = '';
   document.documentElement.classList.remove('has-session');
   const oldTok = sessionStorage.getItem('adminPw');
   sessionStorage.removeItem('adminPw');
@@ -1832,47 +1798,43 @@ function logout(){
 // (পুল-টু-রিফ্রেশে লগআউট হওয়া এড়াতে 'pagehide'-এ পাসওয়ার্ড মোছা বন্ধ করা হয়েছে;
 // এখন পাসওয়ার্ড sessionStorage-এ থাকে, তাই রিফ্রেশে লগইন থাকে আর ট্যাব বন্ধ করলে আপনাআপনি মুছে যায়)
 
-let __adminListRequest = null;
-
-function fetchAdminList_(onDone){
-  if(__adminListRequest) return __adminListRequest;
-  const pw = sessionStorage.getItem('adminPw');
-  if(!pw) return Promise.resolve(null);
-  __adminListRequest = fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
-    .then(r => r.json())
-    .then(data => { if(typeof onDone === 'function') onDone(data); return data; })
-    .finally(() => { __adminListRequest = null; });
-  return __adminListRequest;
-}
-
 function loadEntries(){
-  fetchAdminList_(data => {
-    if(data && data.success){
-      allRows = Array.isArray(data.rows) ? data.rows : [];
-      applyCurrentFilter();
-      const now = new Date();
-      document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
-    }
-  }).catch(() => {
-    // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
-  });
+  const pw = sessionStorage.getItem('adminPw');
+  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        allRows = data.rows;
+        applyCurrentFilter();
+        fetchPersistentStats();
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+      }
+    })
+    .catch(() => {
+      // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
+    });
 }
 
 function manualRefresh(){
   document.getElementById('loadingMsg').style.display = 'block';
   document.getElementById('emptyMsg').style.display = 'none';
-  fetchAdminList_(data => {
-    document.getElementById('loadingMsg').style.display = 'none';
-    if(data && data.success){
-      allRows = Array.isArray(data.rows) ? data.rows : [];
-      applyCurrentFilter();
-      const now = new Date();
-      document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
-    }
-  }).catch(() => {
-    document.getElementById('loadingMsg').style.display = 'none';
-    alert('লোড করতে সমস্যা হয়েছে।');
-  });
+  const pw = sessionStorage.getItem('adminPw');
+  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('loadingMsg').style.display = 'none';
+      if(data.success){
+        allRows = data.rows;
+        applyCurrentFilter();
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+      }
+    })
+    .catch(() => {
+      document.getElementById('loadingMsg').style.display = 'none';
+      alert('লোড করতে সমস্যা হয়েছে।');
+    });
 }
 
 function renderList(rows){
@@ -2108,6 +2070,7 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
+  sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
   const savedTok = sessionStorage.getItem('adminPw');
   if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
   if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
@@ -2196,7 +2159,7 @@ if(sessionStorage.getItem('adminPw')){
     if(typeof window.renderFilterChips==='function') window.renderFilterChips();
   };
   const originalFetch=window.fetchPersistentStats;
-  window.addEventListener('load',()=>setTimeout(()=>{addFilters();},300));
+  window.addEventListener('load',()=>setTimeout(()=>{addFilters();try{window.applyCurrentFilter();}catch(e){}},300));
 })();
 
 </script>
@@ -2225,7 +2188,6 @@ if(sessionStorage.getItem('adminPw')){
       #applicationTimelineModal .tlDate{font-size:11px;opacity:.62;margin-bottom:3px}
       #applicationTimelineModal .tlAction{font-size:13px;font-weight:800;margin-bottom:3px}
       #applicationTimelineModal .tlDetails{font-size:12px;line-height:1.5;opacity:.78;word-break:break-word}
-      #applicationTimelineModal .tlActor{font-size:10.5px;line-height:1.4;margin-top:5px;opacity:.58;word-break:break-word}
       #applicationTimelineModal .tlEmpty{padding:22px;text-align:center;opacity:.65}
       @media(max-width:520px){#applicationTimelineModal .tlSummary{grid-template-columns:1fr}.tlBox{border-radius:16px}}
     `;
@@ -2252,7 +2214,7 @@ if(sessionStorage.getItem('adminPw')){
     var events=Array.isArray(data.events)?data.events:[];
     if(!events.length) html+='<div class="tlEmpty">এই আবেদনের কোনো ইতিহাস পাওয়া যায়নি।</div>';
     else events.forEach(function(ev){
-      html+='<div class="tlEvent"><i class="tlDot"></i><div class="tlDate">'+esc(ev.date||'')+'</div><div class="tlAction">'+esc(ev.action||'পরিবর্তন')+'</div><div class="tlDetails">'+esc(ev.details||'')+'</div><div class="tlActor">👤 পরিবর্তন করেছেন: '+esc(ev.actor||'অজানা')+'</div></div>';
+      html+='<div class="tlEvent"><i class="tlDot"></i><div class="tlDate">'+esc(ev.date||'')+'</div><div class="tlAction">'+esc(ev.action||'পরিবর্তন')+'</div><div class="tlDetails">'+esc(ev.details||'')+'</div></div>';
     });
     c.innerHTML=html;
   }
@@ -2288,7 +2250,7 @@ if(sessionStorage.getItem('adminPw')){
   }
   window.addEventListener('load',function(){
     ensureModal();
-    setTimeout(function(){decorate();},450);
+    setTimeout(function(){decorate();try{if(typeof window.applyCurrentFilter==='function')window.applyCurrentFilter();}catch(e){}},450);
   });
 })();
 </script>
