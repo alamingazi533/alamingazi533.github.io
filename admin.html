@@ -682,7 +682,7 @@ function loadSubscribers(){
   const badge = document.getElementById('subscriberBadge');
   if(!list) return;
   list.textContent = 'লোড হচ্ছে...';
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=listSubscribers&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -703,7 +703,7 @@ function loadSubscribers(){
 
 function deleteSubscriber(row){
   if(!confirm('এই সাবস্ক্রাইবারকে মুছে ফেলবেন?')) return;
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=deleteSubscriber&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(row))
     .then(r => r.json())
     .then(data => { if(data.success) loadSubscribers(); else alert('মুছতে সমস্যা হয়েছে।'); })
@@ -883,7 +883,7 @@ function loadAdminReviews(){
   const listEl = document.getElementById('reviewsList');
   const badgeEl = document.getElementById('pendingReviewBadge');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -920,7 +920,7 @@ function loadAdminReviews(){
 }
 
 function reviewAction(row, status){
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=reviewAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
     .then(r => r.json())
     .then(()=> loadAdminReviews());
@@ -931,7 +931,7 @@ function loadAdminComments(){
   const listEl = document.getElementById('commentsListAdmin');
   const badgeEl = document.getElementById('pendingCommentBadge');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=listComments&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -967,7 +967,7 @@ function loadAdminComments(){
 }
 
 function commentAction(row, status){
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=commentAction&password=' + encodeURIComponent(pw) + '&row=' + row + '&status=' + status)
     .then(r => r.json())
     .then(()=> loadAdminComments());
@@ -1020,7 +1020,7 @@ function renderPostsAnalyticsSummary(posts){
 function loadAdminPosts(){
   const listEl = document.getElementById('postsList');
   listEl.textContent = 'লোড হচ্ছে...';
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1149,7 +1149,7 @@ function formatScheduleDisplay(iso){
 }
 
 function saveEditPost(rowIndex){
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   const title = document.getElementById('editTitle' + rowIndex).value.trim();
   const content = document.getElementById('editContent' + rowIndex).value.trim();
   const category = document.getElementById('editCategory' + rowIndex).value;
@@ -1293,7 +1293,7 @@ function addPost(isDraft){
   // ISO স্ট্রিং-এ (UTC সহ) বদলে পাঠানো হচ্ছে, যাতে সার্ভারে সময়ের হিসাব সবসময় ঠিক থাকে।
   const scheduleRaw = scheduleEl ? scheduleEl.value : '';
   const publishAtIso = scheduleRaw ? new Date(scheduleRaw).toISOString() : '';
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
 
   function showPostMsg(text, ok){
     msgBox.style.display = 'block';
@@ -1377,7 +1377,7 @@ function addPost(isDraft){
 
 function publishDraftNow(rowIndex){
   if(!confirm('এই খসড়া পোস্টটি এখনই প্রকাশ করতে চান? প্রকাশ হলে সাবস্ক্রাইবারদের নোটিফিকেশনও যাবে।')) return;
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&status=')
@@ -1394,7 +1394,7 @@ function publishDraftNow(rowIndex){
 
 function publishPostNow(rowIndex){
   if(!confirm('এই পোস্টটি এখনই প্রকাশ করতে চান?')) return;
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&publishAt=')
@@ -1411,7 +1411,7 @@ function publishPostNow(rowIndex){
 
 function deletePost(rowIndex){
   if(!confirm('এই পোস্টটি মুছে ফেলতে চান?')) return;
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=deletePost&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex))
     .then(r => r.json())
     .then(data => {
@@ -1492,7 +1492,7 @@ function fmtDur(sec){
 }
 
 function loadVisitStats(){
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=getVisitStats&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1581,7 +1581,7 @@ function stopVisitStatsAutoRefresh(){
 }
 
 function exportReviewsCsv(){
-  const pw = sessionStorage.getItem('adminPw') || '';
+  const pw = getAdminAuthValue();
   fetch(SCRIPT_URL + '?action=listReviews&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
@@ -1667,6 +1667,11 @@ function loadAdminActivity(){
   }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
 }
 
+let __adminLoginPassword = "";
+function getAdminAuthValue(){
+  return __adminLoginPassword || sessionStorage.getItem('adminPw') || '';
+}
+
 function login(){
   const pw = document.getElementById('pwInput').value.trim();
   if(!pw){ return; }
@@ -1686,7 +1691,8 @@ function login(){
           loginBtn.textContent = 'লগইন সফল';
           loginBtn.style.opacity = '1';
         }
-        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের signed token
+        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের server-side token
+        __adminLoginPassword = pw;
         __sessionIssueShown = false;
         document.getElementById('pwInput').value = '';
         // token write-এর পর একই execution-এ list request না ছুঁড়ে এক tick পরে verify করি।
@@ -1717,7 +1723,7 @@ function login(){
 
 function verifyAndEnter(){
   const generation = ++__authGeneration;
-  const pw = sessionStorage.getItem('adminPw');
+  const pw = getAdminAuthValue();
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
 
@@ -1774,14 +1780,13 @@ function verifyAndEnter(){
         // লগইনের সময় ভারী section/analytics কোনোভাবেই auto-load হবে না।
         // ব্যবহারকারী section খুললে toggleSection() থেকে প্রয়োজনীয় data load হবে।
       } else {
-        sessionStorage.removeItem('adminPw');
-        document.getElementById('panel').style.display = 'none';
-        document.getElementById('loginBox').style.display = 'block';
         if(initialLoading) initialLoading.style.display = 'none';
+        // Login already succeeded. A failed background list request must NOT immediately log the admin out.
+        document.getElementById('panel').style.display = 'block';
         if(!hadCache){
-          document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
-            ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
-            : 'সেশনের মেয়াদ শেষ, আবার লগইন করুন';
+          document.getElementById('loginErr').textContent = data.error === 'session expired'
+            ? 'সেশন যাচাই ব্যর্থ হয়েছে। প্যানেল খোলা রাখা হয়েছে—রিফ্রেশ না করে আবার চেষ্টা করুন।'
+            : ('ডেটা লোড করা যায়নি — ' + (data.error || 'অজানা সমস্যা'));
           document.getElementById('loginErr').style.display = 'block';
         }
       }
@@ -1801,6 +1806,7 @@ function verifyAndEnter(){
 
 function logout(){
   ++__authGeneration;
+  __adminLoginPassword = '';
   document.documentElement.classList.remove('has-session');
   const oldTok = sessionStorage.getItem('adminPw');
   sessionStorage.removeItem('adminPw');
@@ -2095,7 +2101,6 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
-  sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
   const savedTok = sessionStorage.getItem('adminPw');
   if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
   if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
