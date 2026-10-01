@@ -2188,6 +2188,7 @@ if(sessionStorage.getItem('adminPw')){
       #applicationTimelineModal .tlDate{font-size:11px;opacity:.62;margin-bottom:3px}
       #applicationTimelineModal .tlAction{font-size:13px;font-weight:800;margin-bottom:3px}
       #applicationTimelineModal .tlDetails{font-size:12px;line-height:1.5;opacity:.78;word-break:break-word}
+      #applicationTimelineModal .tlActor{font-size:10.5px;line-height:1.4;margin-top:5px;opacity:.58;word-break:break-word}
       #applicationTimelineModal .tlEmpty{padding:22px;text-align:center;opacity:.65}
       @media(max-width:520px){#applicationTimelineModal .tlSummary{grid-template-columns:1fr}.tlBox{border-radius:16px}}
     `;
@@ -2214,7 +2215,7 @@ if(sessionStorage.getItem('adminPw')){
     var events=Array.isArray(data.events)?data.events:[];
     if(!events.length) html+='<div class="tlEmpty">এই আবেদনের কোনো ইতিহাস পাওয়া যায়নি।</div>';
     else events.forEach(function(ev){
-      html+='<div class="tlEvent"><i class="tlDot"></i><div class="tlDate">'+esc(ev.date||'')+'</div><div class="tlAction">'+esc(ev.action||'পরিবর্তন')+'</div><div class="tlDetails">'+esc(ev.details||'')+'</div></div>';
+      html+='<div class="tlEvent"><i class="tlDot"></i><div class="tlDate">'+esc(ev.date||'')+'</div><div class="tlAction">'+esc(ev.action||'পরিবর্তন')+'</div><div class="tlDetails">'+esc(ev.details||'')+'</div><div class="tlActor">👤 পরিবর্তন করেছেন: '+esc(ev.actor||'অজানা')+'</div></div>';
     });
     c.innerHTML=html;
   }
