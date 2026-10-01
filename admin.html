@@ -1691,7 +1691,9 @@ function login(){
           loginBtn.textContent = 'লগইন সফল';
           loginBtn.style.opacity = '1';
         }
-        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের server-side token
+        // স্থিতিশীল compatibility mode: sessionStorage-তে শুধু এই tab-এর session password রাখা হয়।
+        // এতে নতুন/পুরনো Apps Script deployment—দুই সংস্করণের সাথেই auth কাজ করে।
+        sessionStorage.setItem('adminPw', pw);
         __adminLoginPassword = pw;
         __sessionIssueShown = false;
         document.getElementById('pwInput').value = '';
@@ -2102,7 +2104,8 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
   const savedTok = sessionStorage.getItem('adminPw');
-  if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
+  // পুরনো token এবং নতুন password-session—দুটিই গ্রহণযোগ্য।
+  if(savedTok && savedTok.indexOf('tk_') === 0){ /* token compatible */ }
   if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
 }catch(err){}
 if(sessionStorage.getItem('adminPw')){
