@@ -1715,6 +1715,15 @@ function verifyAndEnter(){
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
 
+  // Performance: token already verified by login/session; show the Admin shell immediately
+  // instead of making the whole page wait for the application list request.
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
+  const initialLoading = document.getElementById('loadingMsg');
+  if(initialLoading) initialLoading.style.display = 'block';
+  const initialUpdated = document.getElementById('lastUpdated');
+  if(initialUpdated) initialUpdated.textContent = 'ডেটা লোড হচ্ছে…';
+
   // আগের সফল ডেটা থাকলে আগে সেটাই দেখাই — Admin খুলতেই টেবিল দেখা যাবে।
   let hadCache = false;
   try{
@@ -1745,6 +1754,7 @@ function verifyAndEnter(){
       if(data.success){
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('panel').style.display = 'block';
+        if(initialLoading) initialLoading.style.display = 'none';
         allRows = Array.isArray(data.rows) ? data.rows : [];
         try{ sessionStorage.setItem('adminListCacheV2', JSON.stringify({time:Date.now(), rows:allRows})); }catch(e){}
         restoreFilterState();
@@ -1761,6 +1771,9 @@ function verifyAndEnter(){
         setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
       } else {
         sessionStorage.removeItem('adminPw');
+        document.getElementById('panel').style.display = 'none';
+        document.getElementById('loginBox').style.display = 'block';
+        if(initialLoading) initialLoading.style.display = 'none';
         if(!hadCache){
           document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
             ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
@@ -1770,8 +1783,11 @@ function verifyAndEnter(){
       }
     })
     .catch(() => {
+      if(initialLoading) initialLoading.style.display = 'none';
       // পুরনো ক্যাশ থাকলে Admin চালু রেখেই offline/stale অবস্থায় ব্যবহার করা যাবে।
       if(!hadCache){
+        document.getElementById('panel').style.display = 'none';
+        document.getElementById('loginBox').style.display = 'block';
         document.documentElement.classList.remove('has-session');
         document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
         document.getElementById('loginErr').style.display = 'block';
@@ -1798,43 +1814,47 @@ function logout(){
 // (পুল-টু-রিফ্রেশে লগআউট হওয়া এড়াতে 'pagehide'-এ পাসওয়ার্ড মোছা বন্ধ করা হয়েছে;
 // এখন পাসওয়ার্ড sessionStorage-এ থাকে, তাই রিফ্রেশে লগইন থাকে আর ট্যাব বন্ধ করলে আপনাআপনি মুছে যায়)
 
-function loadEntries(){
+let __adminListRequest = null;
+
+function fetchAdminList_(onDone){
+  if(__adminListRequest) return __adminListRequest;
   const pw = sessionStorage.getItem('adminPw');
-  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+  if(!pw) return Promise.resolve(null);
+  __adminListRequest = fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
-    .then(data => {
-      if(data.success){
-        allRows = data.rows;
-        applyCurrentFilter();
-        fetchPersistentStats();
-        const now = new Date();
-        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
-      }
-    })
-    .catch(() => {
-      // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
-    });
+    .then(data => { if(typeof onDone === 'function') onDone(data); return data; })
+    .finally(() => { __adminListRequest = null; });
+  return __adminListRequest;
+}
+
+function loadEntries(){
+  fetchAdminList_(data => {
+    if(data && data.success){
+      allRows = Array.isArray(data.rows) ? data.rows : [];
+      applyCurrentFilter();
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+    }
+  }).catch(() => {
+    // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
+  });
 }
 
 function manualRefresh(){
   document.getElementById('loadingMsg').style.display = 'block';
   document.getElementById('emptyMsg').style.display = 'none';
-  const pw = sessionStorage.getItem('adminPw');
-  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
-    .then(r => r.json())
-    .then(data => {
-      document.getElementById('loadingMsg').style.display = 'none';
-      if(data.success){
-        allRows = data.rows;
-        applyCurrentFilter();
-        const now = new Date();
-        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
-      }
-    })
-    .catch(() => {
-      document.getElementById('loadingMsg').style.display = 'none';
-      alert('লোড করতে সমস্যা হয়েছে।');
-    });
+  fetchAdminList_(data => {
+    document.getElementById('loadingMsg').style.display = 'none';
+    if(data && data.success){
+      allRows = Array.isArray(data.rows) ? data.rows : [];
+      applyCurrentFilter();
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+    }
+  }).catch(() => {
+    document.getElementById('loadingMsg').style.display = 'none';
+    alert('লোড করতে সমস্যা হয়েছে।');
+  });
 }
 
 function renderList(rows){
