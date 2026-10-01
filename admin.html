@@ -1099,8 +1099,7 @@ function loadAdminPosts(){
             mediaHtml +
             statsRow +
             '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
-              '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">ছোট লিংক</button>' +
-  '<button onclick="copyPostPreviewLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">ছোট Preview</button>' +
+              '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">🔗 লিংক কপি</button>' +
               '<button onclick="startEditPost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">এডিট</button>' +
               (isDraft ? '<button onclick="publishDraftNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">প্রকাশ করুন</button>' : '') +
               (isScheduled ? '<button onclick="publishPostNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #8a6100; border-radius:6px; background:var(--card-bg); color:#8a6100; font-size:12.5px;">এখনই প্রকাশ করুন</button>' : '') +
@@ -1221,19 +1220,15 @@ function __postShortKey(id){
   return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function copyPostLink(id){
-  const key = __postShortKey(id);
-  const base = window.location.origin + window.location.pathname.replace(/admin\.html$/i, '');
-  const link = base + '?p=' + encodeURIComponent(key);
+  // প্রতিটি পোস্টের জন্য একটিই শেয়ার লিংক।
+  // Apps Script postSEO server-side OG metadata দেয়, তাই Facebook/WhatsApp preview পাওয়ার জন্য এটিই ব্যবহার হবে।
+  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(String(id || '').trim());
+  const done = () => alert('একটি শেয়ার লিংক কপি হয়েছে:\n' + link);
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(link).then(()=>{
-      alert('একই ছোট লিংক কপি হয়েছে:\n' + link);
-    }).catch(()=> prompt('লিংকটি কপি করুন:', link));
+    navigator.clipboard.writeText(link).then(done).catch(() => prompt('লিংকটি কপি করুন:', link));
   } else {
     prompt('লিংকটি কপি করুন:', link);
   }
-}
-function copyPostPreviewLink(id){
-  copyPostLink(id);
 }
 
 // ============ ছবি/ভিডিও ফাইল → base64 (পোস্ট আপলোডের জন্য) ============
