@@ -472,6 +472,47 @@ function __handleAuthIssue(errCode){
 
 // Admin API calls use normal GET so Google Apps Script Web App can return JSON reliably.
 
+// ============ অ্যাডমিন লোডিং আটকে যাওয়া ঠেকাতে: টাইমআউট + স্বয়ংক্রিয় রিট্রাই ============
+// Apps Script মাঝে মাঝে ধীর হয় বা JSON-এর বদলে HTML এরর পেজ ফেরত দেয়। আগে তখন
+// "লোড হচ্ছে..." লেখা চিরতরে থেকে যেত। এখন শুধু পড়ার (read-only) রিকোয়েস্ট ২ বার পর্যন্ত
+// নিজে থেকে আবার চেষ্টা করে; তারপরও না হলে {success:false} ফেরত দেয়, যাতে স্ক্রিনে
+// স্পষ্ট এরর মেসেজ দেখায়। লেখার (edit/delete/update) রিকোয়েস্ট কখনো রিট্রাই হয় না।
+(function(){
+  const origFetch = window.fetch.bind(window);
+  const READ_ACTIONS = ['list','listPosts','listReviews','listComments','listTrash','listSubscribers',
+    'listAdminActivity','getVisitStats','getStats','getSiteSettings','getApplicationHistory'];
+  function actionOf(url){
+    const m = /[?&]action=([a-zA-Z_]+)/.exec(url);
+    return m ? m[1] : '';
+  }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function failResp(){
+    return new Response(JSON.stringify({success:false, error:'network'}), {status:200, headers:{'Content-Type':'application/json'}});
+  }
+  window.fetch = function(input, init){
+    if(typeof input !== 'string' || input.indexOf(SCRIPT_URL) !== 0 || READ_ACTIONS.indexOf(actionOf(input)) === -1 ||
+       (init && init.method && String(init.method).toUpperCase() !== 'GET')){
+      return origFetch(input, init);
+    }
+    return (async function(){
+      for(let attempt = 0; attempt < 3; attempt++){
+        try{
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 30000);
+          const resp = await origFetch(input, Object.assign({}, init || {}, {signal: ctrl.signal}));
+          clearTimeout(timer);
+          const text = await resp.text();
+          JSON.parse(text); // JSON না হলে (HTML এরর পেজ) catch-এ গিয়ে রিট্রাই হবে
+          return new Response(text, {status:200, headers:{'Content-Type':'application/json'}});
+        }catch(err){
+          if(attempt < 2) await sleep(1500 * (attempt + 1));
+        }
+      }
+      return failResp();
+    })();
+  };
+})();
+
 const STATUS_OPTIONS = ["অপেক্ষমান", "কাজ চলছে", "সম্পন্ন", "বাতিল"];
 // স্ট্যাটাস আগে ফ্রি-টেক্সট ইনপুট দিয়ে টাইপ করা হতো বলে ভুলবশত অতিরিক্ত স্পেস/টাইপো ঢুকে যেতে পারত,
 // যার ফলে ফিল্টার চিপে ক্লিক করলে "মিল না পাওয়ায়" এন্ট্রি বাদ পড়ে যেত। তাই তুলনা করার আগে সবসময়
@@ -1023,7 +1064,7 @@ function loadAdminPosts(){
     .then(r => r.json())
     .then(data => {
       if(!data.success){
-        listEl.textContent = 'পোস্ট লোড করতে সমস্যা হয়েছে।';
+        listEl.innerHTML = 'পোস্ট লোড করতে সমস্যা হয়েছে। <button type="button" onclick="loadAdminPosts()" style="margin-left:6px; padding:4px 10px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">আবার চেষ্টা করুন</button>';
         return;
       }
       renderPostsAnalyticsSummary(data.posts || []);
