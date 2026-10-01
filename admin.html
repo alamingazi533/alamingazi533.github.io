@@ -2079,5 +2079,89 @@ if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
 }
 </script>
-<script>function clearAdminLocalCache(){try{['lastCsvExport','adminOpenSections'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem('adminPw');const m=document.getElementById('adminLocalMsg');if(m)m.textContent='✓ লোকাল ক্যাশ/সেশন পরিষ্কার হয়েছে। নিরাপত্তার জন্য আবার লগইন করুন।';}catch(e){}}</script></body>
+<script>function clearAdminLocalCache(){try{['lastCsvExport','adminOpenSections'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem('adminPw');const m=document.getElementById('adminLocalMsg');if(m)m.textContent='✓ লোকাল ক্যাশ/সেশন পরিষ্কার হয়েছে। নিরাপত্তার জন্য আবার লগইন করুন।';}catch(e){}}</script><script id="admin-workflow-upgrade">
+/* Admin Workflow Upgrade
+ * Add this file after the main admin.html script (before </body>):
+ * <script src="admin_workflow_patch.js">
+ * Requires Code_Hardened_Fixed.gs workflow endpoints.
+ */
+(function(){
+  'use strict';
+  const PAYMENTS=['সব','অযাচাইকৃত','যাচাই হচ্ছে','ভেরিফাইড','বাতিল'];
+  let paymentFilter='সব', overdueOnly=false;
+  try{ paymentFilter=localStorage.getItem('adminPaymentFilter')||'সব'; overdueOnly=localStorage.getItem('adminOverdueOnly')==='1'; }catch(e){}
+  const esc = s => { const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; };
+  function parseDate(s){
+    if(!s) return null; const p=String(s).split(/[\/\s:]/); if(p.length<3) return null;
+    const d=new Date(Number(p[2]),Number(p[1])-1,Number(p[0]),Number(p[3]||0),Number(p[4]||0));
+    return isNaN(d.getTime())?null:d;
+  }
+  function overdue(r){
+    if(['সম্পন্ন','বাতিল'].includes(String(r.status||'').trim())) return false;
+    const d=parseDate(r.date); return !!d && Date.now()-d.getTime()>=86400000;
+  }
+  function followupDue(r){
+    if(!r.followupDate) return false; const d=new Date(r.followupDate);
+    return !isNaN(d.getTime()) && d.getTime()<=Date.now();
+  }
+  function fmtInput(v){
+    if(!v) return ''; const d=new Date(v); if(isNaN(d.getTime())) return '';
+    const p=n=>String(n).padStart(2,'0');
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+  }
+  function api(action, payload){
+    const body=Object.assign({action:action,password:sessionStorage.getItem('adminPw')||''},payload||{});
+    return fetch(typeof SCRIPT_URL==='string'?SCRIPT_URL:'',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)}).then(r=>r.json());
+  }
+  function addFilters(){
+    if(document.getElementById('workflowPatchFilters')) return;
+    const date=document.getElementById('dateFilterRow'); if(!date) return;
+    const box=document.createElement('div'); box.id='workflowPatchFilters'; box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:-4px 0 12px;';
+    box.innerHTML='<select id="workflowPaymentFilter" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:999px;background:var(--card-bg);color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:600;">'+PAYMENTS.map(x=>'<option value="'+esc(x)+'">'+(x==='সব'?'💳 সব পেমেন্ট':x)+'</option>').join('')+'</select><button id="workflowOverdueBtn" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:999px;background:var(--card-bg);color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">🔴 শুধু Overdue</button><button id="workflowResetBtn" style="padding:7px 10px;border:1.5px solid var(--line);border-radius:999px;background:var(--card-bg);color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">ফিল্টার রিসেট</button>';
+    date.after(box);
+    const s=document.getElementById('workflowPaymentFilter'), b=document.getElementById('workflowOverdueBtn'); s.value=PAYMENTS.includes(paymentFilter)?paymentFilter:'সব';
+    const paint=()=>{b.style.background=overdueOnly?'var(--maroon)':'var(--card-bg)';b.style.color=overdueOnly?'#fff':'var(--ink)';}; paint();
+    s.onchange=()=>{paymentFilter=s.value;try{localStorage.setItem('adminPaymentFilter',paymentFilter);}catch(e){};window.applyCurrentFilter();};
+    b.onclick=()=>{overdueOnly=!overdueOnly;try{localStorage.setItem('adminOverdueOnly',overdueOnly?'1':'0');}catch(e){};paint();window.applyCurrentFilter();};
+    document.getElementById('workflowResetBtn').onclick=()=>{paymentFilter='সব';overdueOnly=false;s.value='সব';try{localStorage.removeItem('adminPaymentFilter');localStorage.removeItem('adminOverdueOnly');}catch(e){};paint();window.applyCurrentFilter();};
+  }
+  const originalRenderList=window.renderList;
+  window.renderList=function(rows){
+    originalRenderList(rows);
+    addFilters();
+    const cards=[...document.querySelectorAll('#list .card')];
+    cards.forEach(card=>{
+      if(card.querySelector('.workflowPatchBox')) return;
+      const cb=card.querySelector('.bulkCheck'); const rowIndex=cb&&Number(cb.dataset.row); const row=(allRows||[]).find(x=>Number(x.rowIndex)===rowIndex);
+      if(!row) return;
+      const body=card.querySelector('.card-body'); const divider=card.querySelector('.card-divider'); if(!body) return;
+      const box=document.createElement('div'); box.className='workflowPatchBox'; box.style.cssText='margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card-bg);';
+      box.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;">💳 Payment Verification</label><select class="wpPayment" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--card-bg);color:var(--ink);font-family:inherit;">'+PAYMENTS.slice(1).map(x=>'<option value="'+esc(x)+'"'+(x===String(row.paymentStatus||'অযাচাইকৃত')?' selected':'')+'>'+x+'</option>').join('')+'</select><button class="wpPaySave" style="margin-top:5px;width:100%;padding:7px;border:1px solid var(--forest);border-radius:7px;background:var(--card-bg);color:var(--forest);font-weight:700;">পেমেন্ট সেভ</button></div><div><label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;">⏰ Follow-up / Reminder</label><input class="wpFollow" type="datetime-local" value="'+esc(fmtInput(row.followupDate))+'" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--card-bg);color:var(--ink);font-family:inherit;"><button class="wpFollowSave" style="margin-top:5px;width:100%;padding:7px;border:1px solid var(--forest);border-radius:7px;background:var(--card-bg);color:var(--forest);font-weight:700;">রিমাইন্ডার সেভ</button></div></div>'+(followupDue(row)?'<div style="margin-top:7px;color:var(--maroon);font-size:12px;font-weight:700;">🔔 Follow-up এখন বাকি</div>':'')+(overdue(row)?'<div style="margin-top:7px;color:var(--maroon);font-size:12px;font-weight:700;">🔴 ২৪ ঘণ্টার বেশি সময় ধরে সমাধান হয়নি</div>':'');
+      if(divider) body.insertBefore(box,divider); else body.appendChild(box);
+      const ps=box.querySelector('.wpPayment'), pb=box.querySelector('.wpPaySave'), fi=box.querySelector('.wpFollow'), fb=box.querySelector('.wpFollowSave');
+      pb.onclick=()=>{pb.disabled=true;pb.textContent='সেভ হচ্ছে...';api('updatePaymentStatus',{row:rowIndex,paymentStatus:ps.value}).then(d=>{pb.disabled=false;if(d.success){row.paymentStatus=ps.value;pb.textContent='✓ সেভ হয়েছে';setTimeout(()=>pb.textContent='পেমেন্ট সেভ',1000);refreshFiltersOnly();}else{pb.textContent='পেমেন্ট সেভ';alert(d.error||'সেভ হয়নি');}}).catch(()=>{pb.disabled=false;pb.textContent='পেমেন্ট সেভ';alert('সংযোগে সমস্যা হয়েছে।');});};
+      fb.onclick=()=>{fb.disabled=true;fb.textContent='সেভ হচ্ছে...';let v='';if(fi.value){const d=new Date(fi.value);if(isNaN(d.getTime())){fb.disabled=false;fb.textContent='রিমাইন্ডার সেভ';alert('তারিখ সঠিক নয়।');return;}v=d.toISOString();}api('updateFollowup',{row:rowIndex,followupDate:v}).then(d=>{fb.disabled=false;if(d.success){row.followupDate=v;fb.textContent='✓ সেভ হয়েছে';setTimeout(()=>fb.textContent='রিমাইন্ডার সেভ',1000);refreshFiltersOnly();}else{fb.textContent='রিমাইন্ডার সেভ';alert(d.error||'সেভ হয়নি');}}).catch(()=>{fb.disabled=false;fb.textContent='রিমাইন্ডার সেভ';alert('সংযোগে সমস্যা হয়েছে।');});};
+    });
+  };
+  function refreshFiltersOnly(){ if(typeof window.applyCurrentFilter==='function') window.applyCurrentFilter(); }
+  const originalApply=window.applyCurrentFilter;
+  window.applyCurrentFilter=function(){
+    const q=(document.getElementById('searchBox')?.value||'').trim().toLowerCase();
+    let rows=(allRows||[]).slice();
+    const status=activeStatusFilter||'সব', days=Number(activeDateFilterDays||0);
+    if(status!=='সব') rows=rows.filter(r=>String(r.status||'').trim()===status);
+    if(days>0){const cut=new Date();cut.setDate(cut.getDate()-days);rows=rows.filter(r=>{const d=parseDate(r.date);return d&&d>=cut;});}
+    if(paymentFilter!=='সব') rows=rows.filter(r=>String(r.paymentStatus||'অযাচাইকৃত')===paymentFilter);
+    if(overdueOnly) rows=rows.filter(r=>overdue(r)||followupDue(r));
+    if(q) rows=rows.filter(r=>(r.fullName||'').toLowerCase().includes(q)||(r.phone||'').includes(q)||(r.appId||'').toLowerCase().includes(q)||(r.platform||'').toLowerCase().includes(q));
+    window.__lastFilteredRows=rows; window.renderList(rows);
+    if(typeof window.renderDashboard==='function') window.renderDashboard(typeof window.getDateFilteredRows==='function'?window.getDateFilteredRows():rows);
+    if(typeof window.renderFilterChips==='function') window.renderFilterChips();
+  };
+  const originalFetch=window.fetchPersistentStats;
+  window.addEventListener('load',()=>setTimeout(()=>{addFilters();try{window.applyCurrentFilter();}catch(e){}},300));
+})();
+
+</script>
+</body>
 </html>
