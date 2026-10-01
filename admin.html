@@ -470,41 +470,8 @@ function __handleAuthIssue(errCode){
   }
 }
 
-(function(){
-  const origFetch = window.fetch.bind(window);
-  window.fetch = function(input, init){
-    try{
-      if(typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0 &&
-         /[?&](password|newPassword)=/.test(input) &&
-         (!init || !init.method || String(init.method).toUpperCase() === 'GET')){
-        const qs = input.slice(SCRIPT_URL.length).replace(/^\?/, '');
-        const params = {};
-        new URLSearchParams(qs).forEach(function(v, k){ params[k] = v; });
-        return origFetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ __get: true, params: params })
-        }).then(function(resp){
-          resp.clone().json().then(function(data){
-            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
-          }).catch(function(){});
-          return resp;
-        });
-      }
-      const isScriptCall = typeof input === 'string' && input.indexOf(SCRIPT_URL) === 0;
-      const result = origFetch(input, init);
-      if(isScriptCall){
-        result.then(function(resp){
-          resp.clone().json().then(function(data){
-            if(data && (data.error === 'session expired' || data.error === 'locked')) __handleAuthIssue(data.error);
-          }).catch(function(){});
-        }).catch(function(){});
-      }
-      return result;
-    }catch(err){}
-    return origFetch(input, init);
-  };
-})();
+// Admin API calls use normal GET so Google Apps Script Web App can return JSON reliably.
+
 const STATUS_OPTIONS = ["অপেক্ষমান", "কাজ চলছে", "সম্পন্ন", "বাতিল"];
 // স্ট্যাটাস আগে ফ্রি-টেক্সট ইনপুট দিয়ে টাইপ করা হতো বলে ভুলবশত অতিরিক্ত স্পেস/টাইপো ঢুকে যেতে পারত,
 // যার ফলে ফিল্টার চিপে ক্লিক করলে "মিল না পাওয়ায়" এন্ট্রি বাদ পড়ে যেত। তাই তুলনা করার আগে সবসময়
