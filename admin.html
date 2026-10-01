@@ -457,18 +457,16 @@ function __handleAuthIssue(errCode, generation){
   if(generation !== undefined && generation !== __authGeneration) return;
   try{ if(typeof autoRefreshTimer !== 'undefined' && autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }catch(e){}
   try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
-  if(errCode === 'session expired'){
-    sessionStorage.removeItem('adminPw');
-  }
+  // কোনো background/admin section request ব্যর্থ হলেই sessionStorage মুছে বা page reload করা যাবে না।
+  // এতে আসল server/network error-এর বদলে "অটো লগআউট" দেখা যায়। প্রকৃত লগআউট শুধু logout() থেকে হবে।
   if(!__sessionIssueShown){
     __sessionIssueShown = true;
     const msg = errCode === 'locked'
       ? 'নিরাপত্তার কারণে সাময়িকভাবে অ্যাডমিন প্যানেল লক আছে — কিছুক্ষণ পর আবার চেষ্টা করুন।'
-      : 'আপনার সেশনের মেয়াদ শেষ হয়ে গেছে — আবার লগইন করুন।';
-    setTimeout(function(){
-      alert(msg);
-      if(errCode === 'session expired') location.reload();
-    }, 50);
+      : (errCode === 'session expired'
+        ? 'সেশন যাচাই ব্যর্থ হয়েছে। প্যানেল বন্ধ না করে আবার অনুরোধ করুন; প্রয়োজনে নিজে লগ-আউট করে পুনরায় লগইন করুন।'
+        : ('অ্যাডমিন অনুরোধ ব্যর্থ হয়েছে — ' + String(errCode || 'অজানা সমস্যা')));
+    setTimeout(function(){ alert(msg); }, 50);
   }
 }
 
@@ -1691,9 +1689,7 @@ function login(){
           loginBtn.textContent = 'লগইন সফল';
           loginBtn.style.opacity = '1';
         }
-        // স্থিতিশীল compatibility mode: sessionStorage-তে শুধু এই tab-এর session password রাখা হয়।
-        // এতে নতুন/পুরনো Apps Script deployment—দুই সংস্করণের সাথেই auth কাজ করে।
-        sessionStorage.setItem('adminPw', pw);
+        sessionStorage.setItem('adminPw', data.token);  // পাসওয়ার্ড নয়, ১৪ দিনের server-side token
         __adminLoginPassword = pw;
         __sessionIssueShown = false;
         document.getElementById('pwInput').value = '';
@@ -1762,7 +1758,14 @@ function verifyAndEnter(){
 
   // Backend verification/background refresh — cache থাকলে এটি UI আটকে রাখবে না।
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
-    .then(r => r.json())
+    .then(async r => {
+      const raw = await r.text();
+      let data;
+      try{ data = JSON.parse(raw); }
+      catch(e){ throw new Error('server_non_json_' + r.status); }
+      if(!r.ok) throw new Error('http_' + r.status + '_' + String(data.error || 'request_failed'));
+      return data;
+    })
     .then(data => {
       if(generation !== __authGeneration) return;
       document.documentElement.classList.remove('has-session');
@@ -1793,16 +1796,18 @@ function verifyAndEnter(){
         }
       }
     })
-    .catch(() => {
+    .catch((err) => {
       if(initialLoading) initialLoading.style.display = 'none';
-      // পুরনো ক্যাশ থাকলে Admin চালু রেখেই offline/stale অবস্থায় ব্যবহার করা যাবে।
-      if(!hadCache){
-        document.getElementById('panel').style.display = 'none';
-        document.getElementById('loginBox').style.display = 'block';
-        document.documentElement.classList.remove('has-session');
-        document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
-        document.getElementById('loginErr').style.display = 'block';
-      }
+      // Login সফল হওয়ার পর list request ব্যর্থ হলেও কখনো login screen-এ ফেরত যাবে না।
+      // এটাই আগের "লগইন হচ্ছে → অটো লগআউট" সমস্যার মূল UI bug ছিল।
+      document.getElementById('panel').style.display = 'block';
+      document.getElementById('loginBox').style.display = 'none';
+      document.documentElement.classList.remove('has-session');
+      const detail = String(err && err.message ? err.message : 'request_failed');
+      document.getElementById('loginErr').textContent =
+        'ডেটা লোড করা যায়নি। অ্যাডমিন প্যানেল খোলা আছে। (' + detail + ')';
+      document.getElementById('loginErr').style.display = 'block';
+      try{ document.getElementById('lastUpdated').textContent = 'ডেটা সার্ভার থেকে পাওয়া যায়নি — পুনরায় চেষ্টা করুন'; }catch(e){}
     });
 }
 
@@ -2104,8 +2109,7 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
   const savedTok = sessionStorage.getItem('adminPw');
-  // পুরনো token এবং নতুন password-session—দুটিই গ্রহণযোগ্য।
-  if(savedTok && savedTok.indexOf('tk_') === 0){ /* token compatible */ }
+  if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
   if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
 }catch(err){}
 if(sessionStorage.getItem('adminPw')){
