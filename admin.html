@@ -486,12 +486,25 @@ let selectedRowIndexes = new Set();
 
 const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody', 'subscribersBody', 'settingsBody'];
 
+const __sectionLoaded = {};
+function loadSectionData_(id){
+  if(__sectionLoaded[id]) return;
+  __sectionLoaded[id] = true;
+  try{
+    if(id === 'visitAnalyticsBody'){ loadVisitStats(); startVisitStatsAutoRefresh(); }
+    else if(id === 'reviewsBody'){ loadAdminReviews(); }
+    else if(id === 'commentsBody'){ loadAdminComments(); }
+    else if(id === 'postFormBody'){ loadAdminPosts(); }
+    else if(id === 'subscribersBody'){ loadSubscribers(); }
+  }catch(e){ __sectionLoaded[id] = false; }
+}
 function toggleSection(id, headerEl){
   const body = document.getElementById(id);
   const arrow = headerEl.querySelector('.secArrow');
   const opening = body.style.display === 'none';
   body.style.display = opening ? 'block' : 'none';
   if(arrow) arrow.textContent = opening ? '▾' : '▸';
+  if(opening) loadSectionData_(id);
   saveOpenSections();
 }
 
@@ -516,6 +529,7 @@ function restoreOpenSections(){
       const header = body.previousElementSibling;
       const arrow = header ? header.querySelector('.secArrow') : null;
       if(arrow) arrow.textContent = '▾';
+      loadSectionData_(id);
     });
   }catch(err){}
 }
@@ -1764,11 +1778,8 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // ভারী অংশগুলো আরও ধীরে লোড — মূল Admin আগে পুরোপুরি usable।
-        setTimeout(() => { loadAdminReviews(); loadAdminComments(); }, 250);
-        setTimeout(() => { loadAdminPosts(); fetchPersistentStats(); }, 700);
-        setTimeout(() => { loadSubscribers(); }, 1000);
-        setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 1200);
+        // Performance v2: heavy sections are lazy-loaded when opened.
+        setTimeout(() => { fetchPersistentStats(); }, 300);
       } else {
         sessionStorage.removeItem('adminPw');
         document.getElementById('panel').style.display = 'none';
