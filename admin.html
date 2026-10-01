@@ -1190,8 +1190,7 @@ function copyPostLink(id){
   // একটি পোস্ট = একটি শেয়ার লিংক। Apps Script SEO পেজ থেকে WhatsApp/Facebook preview metadata দেওয়া হয়।
   const cleanId = String(id || '').trim();
   const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(cleanId);
-  const done = () => alert('শেয়ার লিংক কপি হয়েছে:
-' + link);
+  const done = () => alert('শেয়ার লিংক কপি হয়েছে:\n' + link);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(done).catch(() => prompt('লিংকটি কপি করুন:', link));
   } else {
