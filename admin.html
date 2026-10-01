@@ -457,6 +457,7 @@ function __handleAuthIssue(errCode){
   try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
   if(errCode === 'session expired'){
     sessionStorage.removeItem('adminPw');
+    try{ __clearAdminCache(); }catch(e){}
   }
   if(!__sessionIssueShown){
     __sessionIssueShown = true;
@@ -472,43 +473,100 @@ function __handleAuthIssue(errCode){
 
 // Admin API calls use normal GET so Google Apps Script Web App can return JSON reliably.
 
-// ============ অ্যাডমিন লোডিং আটকে যাওয়া ঠেকাতে: টাইমআউট + স্বয়ংক্রিয় রিট্রাই ============
-// Apps Script মাঝে মাঝে ধীর হয় বা JSON-এর বদলে HTML এরর পেজ ফেরত দেয়। আগে তখন
-// "লোড হচ্ছে..." লেখা চিরতরে থেকে যেত। এখন শুধু পড়ার (read-only) রিকোয়েস্ট ২ বার পর্যন্ত
-// নিজে থেকে আবার চেষ্টা করে; তারপরও না হলে {success:false} ফেরত দেয়, যাতে স্ক্রিনে
-// স্পষ্ট এরর মেসেজ দেখায়। লেখার (edit/delete/update) রিকোয়েস্ট কখনো রিট্রাই হয় না।
+// ============ অ্যাডমিন দ্রুত লোডিং: আগের ডেটা সাথে সাথে + ব্যাকগ্রাউন্ডে নতুন ডেটা ============
+// Apps Script ধীর হলে আগে ৪-৫ মিনিট পর্যন্ত "লোড হচ্ছে..." থাকত। এখন:
+//  ১) আগে একবার যে ডেটা এসেছিল সেটা সাথে সাথে দেখানো হয় (ডিভাইসে সংরক্ষিত কপি থেকে)।
+//  ২) পেছনে নতুন ডেটা আনা হয় (৩০ সেকেন্ড টাইমআউট, ২ বার রিট্রাই); নতুন কিছু থাকলে স্ক্রিন নিজে আপডেট হয়।
+//  ৩) প্রথমবার বা কপি না থাকলে আগের মতোই সরাসরি আনা হয়, ব্যর্থ হলে {success:false} দিয়ে এরর দেখায়।
+// শুধু পড়ার (read-only) রিকোয়েস্টে এটা কাজ করে; এডিট/ডিলিট/আপডেট কখনো ক্যাশ বা রিট্রাই হয় না।
+// লগআউট বা সেশন শেষ হলে সংরক্ষিত কপি মুছে ফেলা হয়।
+const __CACHE_PREFIX = 'admCache:';
+function __clearAdminCache(){
+  try{
+    Object.keys(localStorage).forEach(k => { if(k.indexOf(__CACHE_PREFIX) === 0) localStorage.removeItem(k); });
+  }catch(e){}
+}
 (function(){
   const origFetch = window.fetch.bind(window);
-  const READ_ACTIONS = ['list','listPosts','listReviews','listComments','listTrash','listSubscribers',
-    'listAdminActivity','getVisitStats','getStats','getSiteSettings','getApplicationHistory'];
-  function actionOf(url){
-    const m = /[?&]action=([a-zA-Z_]+)/.exec(url);
-    return m ? m[1] : '';
+  const LOADERS = {
+    list: 'loadEntries', listPosts: 'loadAdminPosts', listReviews: 'loadAdminReviews',
+    listComments: 'loadAdminComments', listSubscribers: 'loadSubscribers', getVisitStats: 'loadVisitStats',
+    listTrash: 'loadTrash', getSiteSettings: 'loadSiteSettings', listAdminActivity: 'loadAdminActivity',
+    getStats: 'fetchPersistentStats', getApplicationHistory: null
+  };
+  function actionOf(url){ const m = /[?&]action=([a-zA-Z_]+)/.exec(url); return m ? m[1] : ''; }
+  function cacheKey(url){
+    // পাসওয়ার্ড/টাইমস্ট্যাম্প/force বাদ দিয়ে কী বানানো হয়
+    return __CACHE_PREFIX + url.slice(SCRIPT_URL.length).replace(/([?&])(password|_|force)=[^&]*/g, '$1').replace(/[?&]+$/,'');
   }
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-  function failResp(){
-    return new Response(JSON.stringify({success:false, error:'network'}), {status:200, headers:{'Content-Type':'application/json'}});
-  }
-  window.fetch = function(input, init){
-    if(typeof input !== 'string' || input.indexOf(SCRIPT_URL) !== 0 || READ_ACTIONS.indexOf(actionOf(input)) === -1 ||
-       (init && init.method && String(init.method).toUpperCase() !== 'GET')){
-      return origFetch(input, init);
+  function jsonResp(text){ return new Response(text, {status:200, headers:{'Content-Type':'application/json'}}); }
+  function failResp(){ return jsonResp(JSON.stringify({success:false, error:'network'})); }
+
+  async function networkText(input, init){
+    for(let attempt = 0; attempt < 3; attempt++){
+      try{
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 30000);
+        const resp = await origFetch(input, Object.assign({}, init || {}, {signal: ctrl.signal}));
+        clearTimeout(timer);
+        const text = await resp.text();
+        JSON.parse(text); // HTML এরর পেজ হলে এখানে ব্যর্থ হয়ে রিট্রাই হবে
+        return text;
+      }catch(err){
+        if(attempt < 2) await sleep(1500 * (attempt + 1));
+      }
     }
-    return (async function(){
-      for(let attempt = 0; attempt < 3; attempt++){
-        try{
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), 30000);
-          const resp = await origFetch(input, Object.assign({}, init || {}, {signal: ctrl.signal}));
-          clearTimeout(timer);
-          const text = await resp.text();
-          JSON.parse(text); // JSON না হলে (HTML এরর পেজ) catch-এ গিয়ে রিট্রাই হবে
-          return new Response(text, {status:200, headers:{'Content-Type':'application/json'}});
-        }catch(err){
-          if(attempt < 2) await sleep(1500 * (attempt + 1));
+    return null;
+  }
+  function isGood(text){
+    try{ const d = JSON.parse(text); return d && d.success !== false; }catch(e){ return false; }
+  }
+  const inflight = {};
+  function userIsTyping(){
+    const a = document.activeElement;
+    return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+  }
+  function revalidate(key, input, init, action, cachedText){
+    if(inflight[key]) return;
+    inflight[key] = true;
+    networkText(input, init).then(text => {
+      inflight[key] = false;
+      if(text === null || !isGood(text)){
+        try{ const d = text && JSON.parse(text); if(d && (d.error === 'session expired' || d.error === 'locked')) __handleAuthIssue(d.error); }catch(e){}
+        return;
+      }
+      try{ localStorage.setItem(key, text); }catch(e){}
+      if(text !== cachedText){
+        const fnName = LOADERS[action];
+        // ডেটা বদলালে স্ক্রিন আপডেট; কেউ লিখতে থাকলে তার লেখা নষ্ট না করতে এড়িয়ে যাওয়া হয়
+        if(fnName && typeof window[fnName] === 'function' && !userIsTyping()){
+          try{ window[fnName](); }catch(e){}
         }
       }
-      return failResp();
+    });
+  }
+
+  window.fetch = function(input, init){
+    if(typeof input !== 'string' || input.indexOf(SCRIPT_URL) !== 0) return origFetch(input, init);
+    const action = actionOf(input);
+    if(!(action in LOADERS) || (init && init.method && String(init.method).toUpperCase() !== 'GET')){
+      return origFetch(input, init);
+    }
+    const key = cacheKey(input);
+    const force = /[?&]force=1/.test(input);
+    const needsPw = /[?&]password=/.test(input);
+    let cached = null;
+    if(!force && needsPw){ try{ cached = localStorage.getItem(key); }catch(e){} }
+    if(cached && isGood(cached)){
+      revalidate(key, input, init, action, cached);
+      return Promise.resolve(jsonResp(cached));
+    }
+    return (async function(){
+      const text = await networkText(input, init);
+      if(text === null) return failResp();
+      if(needsPw && isGood(text)){ try{ localStorage.setItem(key, text); }catch(e){} }
+      return jsonResp(text);
     })();
   };
 })();
@@ -803,7 +861,7 @@ function deleteEntry(rowIndex, fullName, cardEl){
 
 function startAutoRefresh(){
   if(autoRefreshTimer) return;
-  autoRefreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadEntries(); }, 60000);
+  autoRefreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadEntries(); }, 25000);
 }
 
 function stopAutoRefresh(){
@@ -1613,7 +1671,7 @@ function loadVisitStats(){
 
 function startVisitStatsAutoRefresh(){
   if(visitStatsTimer) return;
-  visitStatsTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadVisitStats(); }, 60000);
+  visitStatsTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadVisitStats(); }, 25000);
 }
 function stopVisitStatsAutoRefresh(){
   if(visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; }
@@ -1824,6 +1882,7 @@ function logout(){
   document.documentElement.classList.remove('has-session');
   const oldTok = sessionStorage.getItem('adminPw');
   sessionStorage.removeItem('adminPw');
+  try{ __clearAdminCache(); }catch(e){}
   if(oldTok){ try{ fetch(SCRIPT_URL + '?action=logout&password=' + encodeURIComponent(oldTok)).catch(()=>{}); }catch(err){} }
   stopAutoRefresh();
   stopVisitStatsAutoRefresh();
@@ -1861,7 +1920,7 @@ function manualRefresh(){
   document.getElementById('loadingMsg').style.display = 'block';
   document.getElementById('emptyMsg').style.display = 'none';
   const pw = sessionStorage.getItem('adminPw');
-  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+  fetch(SCRIPT_URL + '?action=list&force=1&password=' + encodeURIComponent(pw))
     .then(r => r.json())
     .then(data => {
       document.getElementById('loadingMsg').style.display = 'none';

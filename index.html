@@ -4227,8 +4227,24 @@ function loadReviews(){
     });
 }
 
+// ============ স্ন্যাপশট: সাইটের সাথেই রাখা পোস্ট/রিভিউ/স্ট্যাটসের কপি (snapshot.json) ============
+// নতুন ভিজিটরের ফোনে আগের কোনো সংরক্ষিত ডেটা থাকে না, আর Apps Script ধীর হতে পারে। তাই সাইট
+// আগে এই ফাইলটা পড়ে (GitHub থেকে দ্রুত আসে) এবং সাথে সাথে পোস্ট/রিভিউ দেখায়; এরপর পেছনে
+// Apps Script থেকে নতুন ডেটা এনে মিলিয়ে নেয়। ফাইল না থাকলে বা ব্যর্থ হলে কিছুই বদলায় না।
+let __snapshotPromise = null;
+function loadSnapshot(){
+  if(!__snapshotPromise){
+    __snapshotPromise = fetch(window.location.origin + '/snapshot.json?v=' + Math.floor(Date.now() / 300000))
+      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(d => (d && d.success) ? d : null)
+      .catch(() => null);
+  }
+  return __snapshotPromise;
+}
+
 // ============ হোমপেজে stats+reviews একসাথে একটা মাত্র রিকোয়েস্টে আনা (আগে ২টা আলাদা কল লাগতো, এখন ১টা — দ্রুত লোড হবে) ============
 let __homeDataRequest = null;
+let __homeShown = false;
 function loadHomeData(force){
   const key = 'publicHomeDataCacheV2';
   const ttl = 60 * 1000;
@@ -4240,9 +4256,19 @@ function loadHomeData(force){
         if(obj && obj.time && (Date.now()-obj.time) < ttl && obj.data && obj.data.success){
           renderStats(obj.data.stats);
           renderReviews(obj.data.reviews);
+          __homeShown = true;
         }
       }
     }catch(e){}
+    if(!__homeShown){
+      loadSnapshot().then(snap => {
+        if(snap && snap.home && !__homeShown){
+          renderStats(snap.home.stats);
+          renderReviews(snap.home.reviews);
+          __homeShown = true;
+        }
+      });
+    }
   }
   if(__homeDataRequest && !force) return __homeDataRequest;
   __homeDataRequest = fetch(SCRIPT_URL + '?action=getHomeData&_=' + Date.now(), {cache:'no-store'})
@@ -4251,6 +4277,7 @@ function loadHomeData(force){
       if(data && data.success){
         renderStats(data.stats);
         renderReviews(data.reviews);
+        __homeShown = true;
         try{ sessionStorage.setItem(key, JSON.stringify({time:Date.now(),data:data})); }catch(e){}
       }
       return data;
@@ -4504,6 +4531,16 @@ function loadPosts(){
 
   if(container && !__allPosts.length){
     container.innerHTML = '<p class="posts-empty">সর্বশেষ পোস্টগুলো আসছে…</p>';
+  }
+
+  // সংরক্ষিত ডেটা না থাকলে (নতুন ভিজিটর) সাইটের snapshot.json থেকে সাথে সাথে পোস্ট দেখাই;
+  // পরে Apps Script-এর নতুন ডেটা এলে সেটা এর ওপর বসে যাবে।
+  if(!__allPosts.length){
+    loadSnapshot().then(snap => {
+      if(snap && Array.isArray(snap.posts) && snap.posts.length && !__allPosts.length){
+        render(snap.posts);
+      }
+    });
   }
 
   const controller = new AbortController();
