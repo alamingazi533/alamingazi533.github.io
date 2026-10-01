@@ -4049,6 +4049,13 @@ form.addEventListener('submit', async (e)=>{
       return;
     }
 
+    if(submitData.status === 'error'){
+      showStatus('err', submitData.error || 'আবেদন জমা হয়নি, আবার চেষ্টা করুন।');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'রেজিস্ট্রেশন সম্পন্ন করুন';
+      return;
+    }
+
     showStatus('ok', '✓ রেজিস্ট্রেশন সফল হয়েছে। ধন্যবাদ!');
     if(typeof gtag === 'function'){
       gtag('event', 'registration_submit', { 'event_category': 'engagement', 'event_label': 'application_form' });
