@@ -1220,10 +1220,11 @@ function __postShortKey(id){
   return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function copyPostLink(id){
-  // প্রতিটি পোস্টের জন্য একটিই শেয়ার লিংক।
-  // Apps Script postSEO server-side OG metadata দেয়, তাই Facebook/WhatsApp preview পাওয়ার জন্য এটিই ব্যবহার হবে।
-  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(String(id || '').trim());
-  const done = () => alert('একটি শেয়ার লিংক কপি হয়েছে:\n' + link);
+  // একটি পোস্ট = একটি শেয়ার লিংক। Apps Script SEO পেজ থেকে WhatsApp/Facebook preview metadata দেওয়া হয়।
+  const cleanId = String(id || '').trim();
+  const link = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(cleanId);
+  const done = () => alert('শেয়ার লিংক কপি হয়েছে:
+' + link);
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(link).then(done).catch(() => prompt('লিংকটি কপি করুন:', link));
   } else {
