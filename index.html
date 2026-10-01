@@ -1521,6 +1521,33 @@
     color:var(--forest);
     margin:0 0 12px;
   }
+  .apps-section{
+    max-width:560px;
+    margin:16px auto 0;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 18px;
+  }
+  .apps-section h2{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:17px;
+    font-weight:700;
+    color:var(--forest);
+    margin:0 0 5px;
+  }
+  .apps-note{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.65;}
+  .apps-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+  .app-card{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:13px;display:flex;gap:12px;align-items:center;}
+  .app-icon{width:48px;height:48px;border-radius:12px;object-fit:cover;flex:0 0 48px;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;}
+  .app-icon img{width:100%;height:100%;object-fit:cover;display:block;}
+  .app-info{min-width:0;flex:1;}
+  .app-title{font-weight:700;color:var(--ink);font-size:14px;margin:0 0 2px;}
+  .app-desc{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0;}
+  .app-meta{font-size:10.5px;color:var(--muted);margin-top:4px;}
+  .app-download{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 11px;border-radius:9px;background:var(--forest);color:#fff;text-decoration:none;font-size:11.5px;font-weight:700;white-space:nowrap;}
+  .app-download:hover{opacity:.9;}
+  .apps-empty{font-size:12px;color:var(--muted);background:var(--card-bg);border:1px dashed var(--line);border-radius:10px;padding:13px;text-align:center;}
   .services-list{
     list-style:none;
     margin:0;
@@ -2487,6 +2514,14 @@
   </ul>
 </section>
 
+<section class="apps-section" id="appsSection" aria-label="অ্যাপস ডাউনলোড">
+  <h2>📱 অ্যাপস ডাউনলোড</h2>
+  <p class="apps-note">এখানে অনুমোদিত বা অফিসিয়াল ডাউনলোড লিংক দেওয়া হবে। Download বাটনে ক্লিক করলে সরাসরি নির্ধারিত অফিসিয়াল উৎসে যাবে।</p>
+  <div class="apps-grid" id="appsGrid">
+    <div class="apps-empty" id="appsEmpty">বর্তমানে কোনো অ্যাপ যোগ করা হয়নি।</div>
+  </div>
+</section>
+
 <div class="cta-block">
   <p class="cta-text" data-i18n="cta.text">নিচের বাটনে ক্লিক করে মাত্র ৩ ধাপে আবেদন করুন</p>
   <button type="button" class="cta-fill-btn" id="showFormBtn" onclick="revealRegForm()">
@@ -2869,6 +2904,7 @@
       <a href="#top" data-i18n="nav.home">হোম</a>
       <a href="?blog=all" data-i18n="nav.blog">ব্লগ</a>
       <a href="#servicesSection" data-i18n="nav.services">সেবা</a>
+      <a href="#appsSection">📱 অ্যাপস</a>
       <a href="#reviewsSection" data-i18n="nav.reviews">রিভিউ</a>
       <a href="#contactSection" data-i18n="nav.contact">যোগাযোগ</a>
       <a href="about.html">আমাদের সম্পর্কে</a>
@@ -3606,7 +3642,7 @@ function printStatusResult(){
     '<div class="row"><div class="label">আবেদনের তারিখ</div>' + d.date + '</div>' +
     '<div class="row"><div class="label">বর্তমান অবস্থা</div><span class="badge">' + d.status + '</span></div>' +
     '<hr><div class="foot">প্রিন্ট করার তারিখ: ' + new Date().toLocaleString('bn-BD') + '</div>' +
-    '</body></html>'
+    '<script>try{renderSiteApps();}catch(e){}</script>\n</body></html>'
   );
   w.document.close();
   w.focus();
@@ -3855,6 +3891,30 @@ window.addEventListener('popstate', function(){
   const params = new URLSearchParams(window.location.search);
   applyRegFormView(params.get('form') === '1', false);
 });
+
+// ============ Apps Download ============
+// শুধু অনুমোদিত/অফিসিয়াল download URL এখানে যোগ করুন।
+// উদাহরণ: {title:'App Name',description:'সংক্ষিপ্ত বর্ণনা',version:'v1.0',url:'https://official.example.com/download',icon:''}
+let SITE_APPS = [];
+
+function renderSiteApps(appList){
+  const grid=document.getElementById('appsGrid');
+  const empty=document.getElementById('appsEmpty');
+  if(!grid) return;
+  const apps=Array.isArray(appList)?appList.filter(a=>a&&a.title&&a.url):SITE_APPS.filter(a=>a&&a.title&&a.url);
+  SITE_APPS=apps;
+  if(!apps.length){ if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+  grid.innerHTML=apps.map(function(app){
+    const esc=function(v){const d=document.createElement('div');d.textContent=String(v==null?'':v);return d.innerHTML;};
+    const icon=app.icon?'<img src="'+esc(app.icon)+'" alt="" loading="lazy">':'📱';
+    return '<article class="app-card"><div class="app-icon">'+icon+'</div><div class="app-info"><p class="app-title">'+esc(app.title)+'</p><p class="app-desc">'+esc(app.description||'অফিসিয়াল ডাউনলোড লিংক')+'</p>'+(app.version?'<div class="app-meta">Version: '+esc(app.version)+'</div>':'')+'</div><a class="app-download" href="'+esc(app.url)+'" target="_blank" rel="noopener noreferrer">⬇️ Download</a></article>';
+  }).join('');
+}
+function loadSiteApps(){
+  try{fetch(SCRIPT_URL+'?action=getApps&_='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d&&d.success)renderSiteApps(d.apps||[]);}).catch(()=>{});}catch(e){}
+}
+try{loadSiteApps();}catch(e){}
 
 // ============ URL প্যারামিটার (?form=1) দিয়ে সরাসরি রেজিস্ট্রেশন ফর্ম ওপেন করার রাউটার ============
 // এটা থাকলে https://alamingazi533.github.io/?form=1 লিংকে ঢুকলেই
