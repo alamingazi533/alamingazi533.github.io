@@ -486,25 +486,12 @@ let selectedRowIndexes = new Set();
 
 const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody', 'subscribersBody', 'settingsBody'];
 
-const __sectionLoaded = {};
-function loadSectionData_(id){
-  if(__sectionLoaded[id]) return;
-  __sectionLoaded[id] = true;
-  try{
-    if(id === 'visitAnalyticsBody'){ loadVisitStats(); startVisitStatsAutoRefresh(); }
-    else if(id === 'reviewsBody'){ loadAdminReviews(); }
-    else if(id === 'commentsBody'){ loadAdminComments(); }
-    else if(id === 'postFormBody'){ loadAdminPosts(); }
-    else if(id === 'subscribersBody'){ loadSubscribers(); }
-  }catch(e){ __sectionLoaded[id] = false; }
-}
 function toggleSection(id, headerEl){
   const body = document.getElementById(id);
   const arrow = headerEl.querySelector('.secArrow');
   const opening = body.style.display === 'none';
   body.style.display = opening ? 'block' : 'none';
   if(arrow) arrow.textContent = opening ? '▾' : '▸';
-  if(opening) loadSectionData_(id);
   saveOpenSections();
 }
 
@@ -529,7 +516,6 @@ function restoreOpenSections(){
       const header = body.previousElementSibling;
       const arrow = header ? header.querySelector('.secArrow') : null;
       if(arrow) arrow.textContent = '▾';
-      loadSectionData_(id);
     });
   }catch(err){}
 }
@@ -1778,8 +1764,8 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // Performance v2: heavy sections are lazy-loaded when opened.
-        setTimeout(() => { fetchPersistentStats(); }, 300);
+        // লগইনের সময় ভারী section/analytics কোনোভাবেই auto-load হবে না।
+        // ব্যবহারকারী section খুললে toggleSection() থেকে প্রয়োজনীয় data load হবে।
       } else {
         sessionStorage.removeItem('adminPw');
         document.getElementById('panel').style.display = 'none';
@@ -2190,7 +2176,7 @@ if(sessionStorage.getItem('adminPw')){
     if(typeof window.renderFilterChips==='function') window.renderFilterChips();
   };
   const originalFetch=window.fetchPersistentStats;
-  window.addEventListener('load',()=>setTimeout(()=>{addFilters();try{window.applyCurrentFilter();}catch(e){}},300));
+  window.addEventListener('load',()=>setTimeout(()=>{addFilters();},300));
 })();
 
 </script>
@@ -2282,7 +2268,7 @@ if(sessionStorage.getItem('adminPw')){
   }
   window.addEventListener('load',function(){
     ensureModal();
-    setTimeout(function(){decorate();try{if(typeof window.applyCurrentFilter==='function')window.applyCurrentFilter();}catch(e){}},450);
+    setTimeout(function(){decorate();},450);
   });
 })();
 </script>
