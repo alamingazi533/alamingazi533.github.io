@@ -414,79 +414,8 @@ const UPAZILAS = {
 const countrySelect = document.getElementById('country');
 const divisionSelect = document.getElementById('division');
 const districtSelect = document.getElementById('district');
-const countrySearch = document.getElementById('countrySearch');
-const divisionSearch = document.getElementById('divisionSearch');
-const districtSearch = document.getElementById('districtSearch');
-const countrySearchList = document.getElementById('countrySearchList');
-const divisionSearchList = document.getElementById('divisionSearchList');
-const districtSearchList = document.getElementById('districtSearchList');
-const phoneCountry = document.getElementById('phoneCountry');
-const phoneInput = document.getElementById('phone');
 const upazilaInput = document.getElementById('upazila');
 const upazilaList = document.getElementById('upazilaList');
-
-const LOCATION_SEARCH_CONFIG = [
-  {select: countrySelect, input: countrySearch, list: countrySearchList},
-  {select: divisionSelect, input: divisionSearch, list: divisionSearchList},
-  {select: districtSelect, input: districtSearch, list: districtSearchList}
-];
-
-function cleanSearchLabel(text){
-  return String(text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
-}
-
-function syncSearchList(select, input, list){
-  if(!select || !input || !list) return;
-  list.innerHTML = '';
-  Array.from(select.options || []).forEach(opt=>{
-    if(!opt.value) return;
-    const item = document.createElement('option');
-    item.value = cleanSearchLabel(opt.textContent);
-    list.appendChild(item);
-  });
-  const selected = select.options[select.selectedIndex];
-  if(selected && selected.value) input.value = cleanSearchLabel(selected.textContent);
-  else if(!select.value) input.value = '';
-  input.disabled = !!select.disabled;
-}
-
-function syncAllSearchLists(){
-  LOCATION_SEARCH_CONFIG.forEach(x=>syncSearchList(x.select,x.input,x.list));
-}
-
-function bindSearchSelect(select, input){
-  if(!select || !input) return;
-  const findOption = value=>{
-    const q = String(value || '').trim().toLocaleLowerCase();
-    if(!q) return null;
-    return Array.from(select.options).find(opt=>{
-      const label = cleanSearchLabel(opt.textContent).toLocaleLowerCase();
-      const val = String(opt.value || '').trim().toLocaleLowerCase();
-      return label === q || val === q;
-    }) || null;
-  };
-  input.addEventListener('input', ()=>{
-    const opt = findOption(input.value);
-    if(opt){
-      select.value = opt.value;
-      select.dispatchEvent(new Event('change', {bubbles:true}));
-    } else {
-      select.value = '';
-    }
-  });
-  input.addEventListener('change', ()=>{
-    const opt = findOption(input.value);
-    if(opt){
-      select.value = opt.value;
-      input.value = cleanSearchLabel(opt.textContent);
-      select.dispatchEvent(new Event('change', {bubbles:true}));
-    } else {
-      input.value = '';
-      select.value = '';
-    }
-  });
-}
-LOCATION_SEARCH_CONFIG.forEach(x=>bindSearchSelect(x.select,x.input));
 
 let __CSC = null;
 let __globalStates = [];
@@ -505,9 +434,62 @@ function setSelectOptions(select, items, placeholder){
     opt.textContent = String(item.text ?? item.name ?? '');
     select.appendChild(opt);
   });
-  const cfg = LOCATION_SEARCH_CONFIG.find(x=>x.select === select);
-  if(cfg) syncSearchList(cfg.select,cfg.input,cfg.list);
+  populateSearchList(select.id);
 }
+
+// ============ সার্চ ইনপুট + দেশভিত্তিক ফোন কোড ============
+const __locationSearchMap = {
+  country: {input:'countrySearch', list:'countrySearchList'},
+  division: {input:'divisionSearch', list:'divisionSearchList'},
+  district: {input:'districtSearch', list:'districtSearchList'}
+};
+function populateSearchList(selectId){
+  const cfg=__locationSearchMap[selectId]; if(!cfg) return;
+  const dl=document.getElementById(cfg.list); if(!dl) return;
+  dl.innerHTML='';
+  Array.from(document.getElementById(selectId).options).slice(1).forEach(o=>{
+    const x=document.createElement('option'); x.value=o.textContent; dl.appendChild(x);
+  });
+}
+function syncSearchFromSelect(selectId){
+  const cfg=__locationSearchMap[selectId]; const sel=document.getElementById(selectId);
+  const inp=cfg&&document.getElementById(cfg.input); if(!sel||!inp) return;
+  inp.value=sel.value ? (sel.options[sel.selectedIndex]?.textContent||'') : '';
+}
+function bindLocationSearch(selectId){
+  const cfg=__locationSearchMap[selectId]; const sel=document.getElementById(selectId); const inp=cfg&&document.getElementById(cfg.input);
+  if(!sel||!inp||inp.dataset.bound) return; inp.dataset.bound='1';
+  inp.addEventListener('input',()=>{
+    const q=inp.value.trim().toLocaleLowerCase();
+    const opts=Array.from(sel.options).slice(1);
+    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q) || opts.find(o=>o.textContent.trim().toLocaleLowerCase().includes(q));
+    if(!q){ sel.value=''; return; }
+    if(match){ sel.value=match.value; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+  });
+  sel.addEventListener('change',()=>syncSearchFromSelect(selectId));
+}
+function refreshLocationSearchUI(){
+  Object.keys(__locationSearchMap).forEach(id=>{ bindLocationSearch(id); populateSearchList(id); syncSearchFromSelect(id); });
+}
+function setupPhoneCountrySelector(countries){
+  const sel=document.getElementById('phoneCountry'); if(!sel) return;
+  const current=countrySelect?.value || 'BD';
+  const items=(countries||[]).map(c=>({iso:c.iso2||c.isoCode||'',name:c.name||'',emoji:c.emoji||'',code:c.phonecode||c.phone_code||c.phoneCode||c.callingCode||''})).filter(x=>x.iso&&x.name);
+  sel.innerHTML='';
+  items.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+    const o=document.createElement('option'); o.value=c.iso; o.dataset.phonecode=String(c.code||'').replace(/^\+/,''); o.textContent=(c.emoji?(c.emoji+' '):'')+c.name+(c.code?' (+'+String(c.code).replace(/^\+/,'')+')':''); sel.appendChild(o);
+  });
+  if(!sel.options.length){ const o=document.createElement('option');o.value='BD';o.dataset.phonecode='880';o.textContent='🇧🇩 Bangladesh (+880)';sel.appendChild(o); }
+  sel.value=items.some(x=>x.iso===current)?current:(items.some(x=>x.iso==='BD')?'BD':sel.options[0].value);
+}
+function syncPhoneCountry(countryCode){
+  const sel=document.getElementById('phoneCountry'); if(!sel) return;
+  const opt=Array.from(sel.options).find(o=>o.value===countryCode); if(opt) sel.value=countryCode;
+}
+
+['country','division','district'].forEach(bindLocationSearch);
+const __phoneCountryEl=document.getElementById('phoneCountry');
+if(__phoneCountryEl){ __phoneCountryEl.addEventListener('change',()=>{}); }
 
 function clearUpazilaSuggestions(message){
   upazilaList.innerHTML = '';
@@ -530,7 +512,6 @@ function fillUpazilaSuggestions(list){
 function addBangladeshDivisions(){
   setSelectOptions(divisionSelect, DIVISIONS.map(d=>({value:d.id,text:d.name})), 'বিভাগ নির্বাচন করুন');
   divisionSelect.disabled = false;
-  syncSearchList(divisionSelect,divisionSearch,divisionSearchList);
   districtSelect.disabled = true;
   setSelectOptions(districtSelect, [], 'প্রথমে বিভাগ নির্বাচন করুন');
   clearUpazilaSuggestions('প্রথমে জেলা নির্বাচন করুন');
@@ -542,11 +523,9 @@ function addGlobalStates(states){
   if(items.length){
     setSelectOptions(divisionSelect, items, 'State / Province / Region নির্বাচন করুন');
     divisionSelect.disabled = false;
-    syncSearchList(divisionSelect,divisionSearch,divisionSearchList);
   } else {
     setSelectOptions(divisionSelect, [{value:'__none__',text:'State / Province নেই'}], 'State / Province / Region নির্বাচন করুন');
     divisionSelect.disabled = false;
-    syncSearchList(divisionSelect,divisionSearch,divisionSearchList);
   }
   districtSelect.disabled = true;
   setSelectOptions(districtSelect, [], 'প্রথমে State / Province নির্বাচন করুন');
@@ -562,57 +541,6 @@ async function loadCountryStateCityLibrary(){
   return __locationLoadPromise;
 }
 
-function populatePhoneCountries(countries){
-  if(!phoneCountry) return;
-  const items = (countries || []).map(c=>({
-    value: c.iso2 || c.isoCode || c.id,
-    text: `${c.emoji ? c.emoji + ' ' : ''}${c.name}${c.phonecode ? ' (+' + String(c.phonecode).replace(/^\+/, '') + ')' : ''}`,
-    phonecode: c.phonecode ? String(c.phonecode).replace(/^\+/, '') : ''
-  })).filter(x=>x.value);
-  phoneCountry.innerHTML = '<option value="">দেশের কোড</option>';
-  items.sort((a,b)=>a.text.localeCompare(b.text)).forEach(item=>{
-    const opt=document.createElement('option');
-    opt.value=item.value;
-    opt.textContent=item.text;
-    opt.dataset.phonecode=item.phonecode || '';
-    phoneCountry.appendChild(opt);
-  });
-  phoneCountry.value = countrySelect?.value || 'BD';
-  updatePhoneCountryUI();
-}
-
-function updatePhoneCountryUI(){
-  if(!phoneCountry || !phoneInput) return;
-  const opt=phoneCountry.options[phoneCountry.selectedIndex];
-  const code=opt?.dataset?.phonecode || '';
-  const label=opt?.textContent || '';
-  phoneInput.placeholder = code ? `মোবাইল নম্বর (+${code})` : 'মোবাইল নম্বর লিখুন';
-  phoneInput.dataset.countryCode = code;
-  phoneInput.dataset.countryLabel = label;
-}
-
-function syncPhoneCountryFromAddress(){
-  if(!phoneCountry || !countrySelect?.value) return;
-  const exists=Array.from(phoneCountry.options).some(o=>o.value===countrySelect.value);
-  if(exists){ phoneCountry.value=countrySelect.value; updatePhoneCountryUI(); }
-}
-
-function getSubmittedPhone(){
-  const raw=String(phoneInput?.value || '').trim();
-  if(!raw) return '';
-  if(raw.startsWith('+')) return raw;
-  const digits=raw.replace(/\D/g,'');
-  const code=String(phoneCountry?.options[phoneCountry.selectedIndex]?.dataset?.phonecode || '').replace(/\D/g,'');
-  if(!code) return raw;
-  const withoutLeadingZero=digits.replace(/^0+/, '');
-  return '+' + code + withoutLeadingZero;
-}
-
-if(phoneCountry){
-  phoneCountry.addEventListener('change', updatePhoneCountryUI);
-  updatePhoneCountryUI();
-}
-
 async function loadGlobalCountries(){
   if(countrySelect.options.length > 1 && !countrySelect.disabled) return;
   try{
@@ -623,20 +551,18 @@ async function loadGlobalCountries(){
       text: (c.emoji ? c.emoji + ' ' : '') + c.name
     })).sort((a,b)=>a.text.localeCompare(b.text));
     setSelectOptions(countrySelect, items, 'দেশ নির্বাচন করুন');
-    populatePhoneCountries(countries || []);
+    setupPhoneCountrySelector(countries || []);
     countrySelect.disabled = false;
-    countrySearch.disabled = false;
     // বাংলাদেশের ব্যবহারকারীর আগের অভিজ্ঞতা বজায় রাখতে বাংলাদেশকে ডিফল্ট রাখা হচ্ছে।
     if((countries || []).some(c => (c.iso2 || c.isoCode) === 'BD')){
       countrySelect.value = 'BD';
-      syncSearchList(countrySelect,countrySearch,countrySearchList);
-      syncPhoneCountryFromAddress();
+      syncSearchFromSelect('country');
+      syncPhoneCountry('BD');
       await handleCountryChange();
     }
   }catch(err){
     countrySelect.innerHTML = '<option value="">দেশের তালিকা লোড হয়নি — আবার চেষ্টা করুন</option>';
     countrySelect.disabled = true;
-    countrySearch.disabled = true;
     divisionSelect.disabled = true;
     districtSelect.disabled = true;
     clearUpazilaSuggestions('দেশ নির্বাচন করার পর লিখুন');
@@ -646,6 +572,8 @@ async function loadGlobalCountries(){
 
 async function handleCountryChange(){
   const countryCode = countrySelect.value;
+  syncSearchFromSelect('country');
+  syncPhoneCountry(countryCode);
   __globalStates = [];
   __globalCities = [];
   divisionSelect.disabled = true;
@@ -680,7 +608,7 @@ async function handleCountryChange(){
   }
 }
 
-countrySelect.addEventListener('change', ()=>{ syncSearchList(countrySelect,countrySearch,countrySearchList); syncPhoneCountryFromAddress(); handleCountryChange(); });
+countrySelect.addEventListener('change', ()=>{ handleCountryChange(); });
 
 function loadDivisions(){
   // Country-State-City data is loaded only for the address step, keeping the first screen fast.
@@ -700,7 +628,6 @@ divisionSelect.addEventListener('change', async ()=>{
     const list = DISTRICTS[divCode] || [];
     setSelectOptions(districtSelect, list.map(name=>({value:name,text:name})), 'জেলা নির্বাচন করুন');
     districtSelect.disabled = false;
-    syncSearchList(districtSelect,districtSearch,districtSearchList);
     return;
   }
 
@@ -710,7 +637,6 @@ divisionSelect.addEventListener('change', async ()=>{
       __globalCities = await csc.getCitiesOfCountry(countryCode);
       setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
-      syncSearchList(districtSelect,districtSearch,districtSearchList);
     }catch(err){ console.warn('Country cities load failed:', err); }
     return;
   }
@@ -720,7 +646,6 @@ divisionSelect.addEventListener('change', async ()=>{
     __globalCities = await csc.getCitiesOfState(countryCode, divCode);
     setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
     districtSelect.disabled = false;
-    syncSearchList(districtSelect,districtSearch,districtSearchList);
   }catch(err){ console.warn('State cities load failed:', err); }
 });
 
@@ -1019,7 +944,7 @@ newCaptcha();
 // ============ ধাপে ধাপে ফর্ম নেভিগেশন ============
 const stepFields = {
   1: ['fullName', 'phone', 'applicantPhoto', 'platform', 'idLink', 'dob', 'gender', 'email'],
-  2: ['countrySearch', 'divisionSearch', 'districtSearch', 'upazila', 'areaDetail', 'comment', 'screenshot'],
+  2: ['country', 'division', 'district', 'upazila', 'areaDetail', 'comment', 'screenshot'],
   3: ['paymentMethod', 'txnId', 'senderNumber', 'captchaAns']
 };
 
@@ -1116,8 +1041,8 @@ function attachLiveValidation(id, testFn, errorMsg){
   el.addEventListener('blur', check);
 }
 
-const internationalPhonePattern = /^\+?[0-9\s().-]{5,25}$/;
-attachLiveValidation('phone', v => internationalPhonePattern.test(v), 'সঠিক আন্তর্জাতিক মোবাইল নম্বর দিন।');
+const internationalPhonePattern = /^\+?[0-9\s().-]{7,25}$/;
+attachLiveValidation('phone', v => internationalPhonePattern.test(v), 'সঠিক আন্তর্জাতিক মোবাইল নম্বর দিন (যেমনঃ +8801712345678)।');
 attachLiveValidation('senderNumber', v => internationalPhonePattern.test(v), 'সঠিক আন্তর্জাতিক নম্বর দিন (যেমনঃ +8801712345678)।');
 attachLiveValidation('email', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'সঠিক ইমেইল ঠিকানা দিন (যেমনঃ example@gmail.com)।');
 attachLiveValidation('txnId', v => v.replace(/\s/g,'').length >= 6, 'ট্রানজেকশন আইডি কমপক্ষে ৬ ক্যারেক্টারের হতে হবে।');
@@ -1241,8 +1166,6 @@ async function restoreDraft(){
     else if(!draft.country && Array.from(countrySelect.options).some(o=>o.value==='BD')) countrySelect.value = 'BD';
 
     if(countrySelect.value){
-      syncSearchList(countrySelect,countrySearch,countrySearchList);
-      syncPhoneCountryFromAddress();
       await handleCountryChange();
       if(draft.division){
         const divOption = Array.from(divisionSelect.options).find(o=>String(o.value) === String(draft.division))
@@ -1333,7 +1256,7 @@ form.addEventListener('submit', async (e)=>{
   const payload = {
     appId: appId,
     fullName: document.getElementById('fullName').value.trim(),
-    phone: getSubmittedPhone(),
+    phone: document.getElementById('phone').value.trim(),
     dob: document.getElementById('dob').value.trim(),
     gender: document.getElementById('gender').value.trim(),
     email: document.getElementById('email').value.trim(),
