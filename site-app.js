@@ -1713,17 +1713,30 @@ function resolveShortPostKey(key){
   if(!key || !Array.isArray(__allPosts) || !__allPosts.length) return null;
   const k = String(key);
   const found = __allPosts.find(p => shortPostKey(p.id) === k);
-  return found ? String(found.id) : null;
+  if(found) return String(found.id);
+  // Legacy 12-character ?p= links created by an older router.
+  const legacy = k.replace(/[^a-zA-Z0-9]/g,'').slice(0,12).toLowerCase();
+  if(legacy.length === 12){
+    const oldFound = __allPosts.find(p => String(p.id || '').replace(/[^a-zA-Z0-9]/g,'').slice(0,12).toLowerCase() === legacy);
+    if(oldFound) return String(oldFound.id);
+  }
+  return null;
 }
 
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
   const hash = String(window.location.hash || '').replace(/^#/, '');
-  // নতুন ultra-short link: https://alamingazi533.github.io/?p=<22-char-key>
-  const postId = params.get('post') || resolveShortPostKey(params.get('p')) || resolveShortPostKey(hash);
+  const directPostId = params.get('post');
+  const legacyShortKey = params.get('p');
   const blogParam = params.get('blog');
 
-  if(!postId && !blogParam) return; // স্বাভাবিক হোমপেজ, কিছু করার দরকার নেই
+  // Canonical ?post=ID links do not depend on the post list being loaded yet.
+  // Open the blog view immediately, then showBlogDetail() will be refreshed by
+  // loadPosts() / snapshot when the data arrives.
+  const postId = directPostId || resolveShortPostKey(legacyShortKey) || resolveShortPostKey(hash);
+  const hasPostRoute = !!(directPostId || legacyShortKey || hash);
+
+  if(!postId && !blogParam && !hasPostRoute) return; // স্বাভাবিক হোমপেজ
 
   const landingTop = document.getElementById('landingTop');
   const landingBottom = document.getElementById('landingBottom');
@@ -1738,6 +1751,17 @@ function initBlogRouter(){
   if(postId){
     renderCategoryNav(null);
     showBlogDetail(postId);
+  } else if(directPostId || legacyShortKey || hash){
+    // URL is a post route but the post list has not arrived yet.
+    // Never fall back to the home page; keep the detail view open.
+    const archiveWrap = document.getElementById('blogArchiveWrap');
+    const detailWrap = document.getElementById('blogDetailWrap');
+    const contentEl = document.getElementById('blogDetailContent');
+    if(archiveWrap) archiveWrap.style.display = 'none';
+    if(detailWrap) detailWrap.style.display = '';
+    if(contentEl && !__allPosts.length){
+      contentEl.innerHTML = '<p class="posts-empty">পোস্টটি লোড হচ্ছে…</p>';
+    }
   } else {
     showBlogArchive(blogParam);
   }
@@ -1904,7 +1928,11 @@ function showBlogDetail(postId){
 
   const post = __allPosts.find(p => String(p.id) === String(postId));
   if(!post){
-    contentEl.innerHTML = '<p class="blog-not-found">এই পোস্টটি খুঁজে পাওয়া যায়নি। এটি হয়তো মুছে ফেলা হয়েছে।</p>';
+    if(!__allPosts.length){
+      contentEl.innerHTML = '<p class="posts-empty">পোস্টটি লোড হচ্ছে…</p>';
+    } else {
+      contentEl.innerHTML = '<p class="blog-not-found">এই পোস্টটি খুঁজে পাওয়া যায়নি। এটি হয়তো মুছে ফেলা হয়েছে।</p>';
+    }
     return;
   }
   trackPostView(String(post.id));
