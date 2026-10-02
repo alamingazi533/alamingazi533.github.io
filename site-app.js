@@ -421,6 +421,7 @@ let __CSC = null;
 let __globalStates = [];
 let __globalCities = [];
 let __locationLoadPromise = null;
+let __locationChangeToken = 0;
 
 function setSelectOptions(select, items, placeholder){
   select.innerHTML = '';
@@ -445,9 +446,10 @@ const __locationSearchMap = {
 };
 function populateSearchList(selectId){
   const cfg=__locationSearchMap[selectId]; if(!cfg) return;
-  const dl=document.getElementById(cfg.list); if(!dl) return;
+  const dl=document.getElementById(cfg.list); const sel=document.getElementById(selectId);
+  if(!dl||!sel) return;
   dl.innerHTML='';
-  Array.from(document.getElementById(selectId).options).slice(1).forEach(o=>{
+  Array.from(sel.options).slice(1).forEach(o=>{
     const x=document.createElement('option'); x.value=o.textContent; dl.appendChild(x);
   });
 }
@@ -462,9 +464,22 @@ function bindLocationSearch(selectId){
   inp.addEventListener('input',()=>{
     const q=inp.value.trim().toLocaleLowerCase();
     const opts=Array.from(sel.options).slice(1);
-    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q) || opts.find(o=>o.textContent.trim().toLocaleLowerCase().includes(q));
-    if(!q){ sel.value=''; return; }
-    if(match){ sel.value=match.value; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+    if(!q){ sel.value=''; sel.dispatchEvent(new Event('change',{bubbles:true})); return; }
+    const exact=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
+    const match=exact || opts.find(o=>o.textContent.trim().toLocaleLowerCase().startsWith(q));
+    if(match){
+      sel.value=match.value;
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+    } else {
+      sel.value='';
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  });
+  inp.addEventListener('change',()=>{
+    const q=inp.value.trim().toLocaleLowerCase();
+    const opts=Array.from(sel.options).slice(1);
+    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q) || opts.find(o=>o.textContent.trim().toLocaleLowerCase().startsWith(q));
+    if(match){ sel.value=match.value; sel.dispatchEvent(new Event('change',{bubbles:true})); syncSearchFromSelect(selectId); }
   });
   sel.addEventListener('change',()=>syncSearchFromSelect(selectId));
 }
@@ -481,15 +496,29 @@ function setupPhoneCountrySelector(countries){
   });
   if(!sel.options.length){ const o=document.createElement('option');o.value='BD';o.dataset.phonecode='880';o.textContent='🇧🇩 Bangladesh (+880)';sel.appendChild(o); }
   sel.value=items.some(x=>x.iso===current)?current:(items.some(x=>x.iso==='BD')?'BD':sel.options[0].value);
+  updatePhoneHint();
 }
 function syncPhoneCountry(countryCode){
   const sel=document.getElementById('phoneCountry'); if(!sel) return;
-  const opt=Array.from(sel.options).find(o=>o.value===countryCode); if(opt) sel.value=countryCode;
+  const opt=Array.from(sel.options).find(o=>o.value===countryCode); if(opt){ sel.value=countryCode; updatePhoneHint(); }
 }
-
-['country','division','district'].forEach(bindLocationSearch);
+function updatePhoneHint(){
+  const sel=document.getElementById('phoneCountry'); const hint=document.getElementById('phoneHint');
+  if(!sel||!hint) return;
+  const opt=sel.options[sel.selectedIndex]; const code=opt?.dataset.phonecode||'';
+  hint.textContent=code ? 'দেশ অনুযায়ী country code: +'+code+' — নম্বরটি international format-এ লিখুন।' : 'দেশ অনুযায়ী আন্তর্জাতিক মোবাইল নম্বর লিখুন।';
+}
 const __phoneCountryEl=document.getElementById('phoneCountry');
-if(__phoneCountryEl){ __phoneCountryEl.addEventListener('change',()=>{}); }
+if(__phoneCountryEl){
+  __phoneCountryEl.addEventListener('change',()=>{
+    updatePhoneHint();
+    if(countrySelect && countrySelect.value!==__phoneCountryEl.value){
+      countrySelect.value=__phoneCountryEl.value;
+      countrySelect.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  });
+}
+['country','division','district'].forEach(bindLocationSearch);
 
 function clearUpazilaSuggestions(message){
   upazilaList.innerHTML = '';
@@ -553,6 +582,8 @@ async function loadGlobalCountries(){
     setSelectOptions(countrySelect, items, 'দেশ নির্বাচন করুন');
     setupPhoneCountrySelector(countries || []);
     countrySelect.disabled = false;
+    const countrySearchEl = document.getElementById('countrySearch');
+    if(countrySearchEl) countrySearchEl.disabled = false;
     // বাংলাদেশের ব্যবহারকারীর আগের অভিজ্ঞতা বজায় রাখতে বাংলাদেশকে ডিফল্ট রাখা হচ্ছে।
     if((countries || []).some(c => (c.iso2 || c.isoCode) === 'BD')){
       countrySelect.value = 'BD';
@@ -563,6 +594,8 @@ async function loadGlobalCountries(){
   }catch(err){
     countrySelect.innerHTML = '<option value="">দেশের তালিকা লোড হয়নি — আবার চেষ্টা করুন</option>';
     countrySelect.disabled = true;
+    const countrySearchEl = document.getElementById('countrySearch');
+    if(countrySearchEl) countrySearchEl.disabled = true;
     divisionSelect.disabled = true;
     districtSelect.disabled = true;
     clearUpazilaSuggestions('দেশ নির্বাচন করার পর লিখুন');
@@ -571,6 +604,7 @@ async function loadGlobalCountries(){
 }
 
 async function handleCountryChange(){
+  const requestToken = ++__locationChangeToken;
   const countryCode = countrySelect.value;
   syncSearchFromSelect('country');
   syncPhoneCountry(countryCode);
@@ -592,9 +626,11 @@ async function handleCountryChange(){
   try{
     const csc = await loadCountryStateCityLibrary();
     const states = await csc.getStatesOfCountry(countryCode);
+    if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
     addGlobalStates(states || []);
     if(!(states || []).length){
       __globalCities = await csc.getCitiesOfCountry(countryCode);
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
       const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name), text:c.name}));
       setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
@@ -635,6 +671,7 @@ divisionSelect.addEventListener('change', async ()=>{
     try{
       const csc = await loadCountryStateCityLibrary();
       __globalCities = await csc.getCitiesOfCountry(countryCode);
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
       setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
     }catch(err){ console.warn('Country cities load failed:', err); }
