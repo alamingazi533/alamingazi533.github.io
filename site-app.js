@@ -643,7 +643,7 @@ async function handleCountryChange(){
     addGlobalStates(states || []);
     if(!(states || []).length){
       __globalCities = await csc.getCitiesOfCountry(countryCode);
-      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode || divisionSelect.value !== divCode) return;
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
       const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name), text:c.name}));
       setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
