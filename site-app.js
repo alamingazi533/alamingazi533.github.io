@@ -178,8 +178,8 @@ const I18N_EN = {
   'faq.a6': 'The time varies depending on the type of problem and the platform\'s process. Minor issues are usually resolved within a few days, while complex cases (such as bank or payout-level verification) may take a bit longer. You will be updated on every step via WhatsApp.',
   'faq.q7': 'Can I apply for multiple IDs/pages/channels at once?',
   'faq.a7': 'Yes, but a separate form must be filled out for each ID/page/channel so that every issue can be verified and tracked individually. If you need direct help applying for multiple accounts, feel free to message the WhatsApp number above.',
-  'faq.q8': 'Can I apply from outside Keshabpur?',
-  'faq.a8': 'Yes, you can apply from anywhere in Bangladesh. Just fill in your division, district, and upazila in the form — verification, contact, and consultation are all done online and via WhatsApp, so there is no need to visit in person.',
+  'faq.q8': 'Can I apply from another country?',
+  'faq.a8': 'Yes, people can apply from any country. The form accepts country, state/province, district/city, locality, and village/area details, and verification and communication are handled online and via WhatsApp.',
   'faq.q9': 'What happens if the problem cannot be solved?',
   'faq.a9': 'Every application is first verified so you get a clear picture of the chances of a solution before work begins. If any obstacle comes up during the process, you are informed right away on WhatsApp. If, despite everything, the problem ultimately cannot be resolved, the service charge you paid will be refunded (excluding the initial application verification fee) — nothing is kept hidden.',
   'faq.q5': 'Privacy Policy',
@@ -411,65 +411,192 @@ const UPAZILAS = {
   "শেরপুর": ["শেরপুর সদর","ঝিনাইগাতী","নকলা","নালিতাবাড়ী","শ্রীবরদী"]
 };
 
+const countrySelect = document.getElementById('country');
 const divisionSelect = document.getElementById('division');
 const districtSelect = document.getElementById('district');
-const upazilaSelect = document.getElementById('upazila');
+const upazilaInput = document.getElementById('upazila');
+const upazilaList = document.getElementById('upazilaList');
 
-function loadDivisions(){
-  DIVISIONS.forEach(d=>{
+let __CSC = null;
+let __globalStates = [];
+let __globalCities = [];
+let __locationLoadPromise = null;
+
+function setSelectOptions(select, items, placeholder){
+  select.innerHTML = '';
+  const first = document.createElement('option');
+  first.value = '';
+  first.textContent = placeholder;
+  select.appendChild(first);
+  (items || []).forEach(item=>{
     const opt = document.createElement('option');
-    opt.value = d.id;
-    opt.textContent = d.name;
-    divisionSelect.appendChild(opt);
+    opt.value = String(item.value ?? item.code ?? item.id ?? item.name ?? '');
+    opt.textContent = String(item.text ?? item.name ?? '');
+    select.appendChild(opt);
   });
 }
-loadDivisions();
 
-divisionSelect.addEventListener('change', ()=>{
-  const divId = divisionSelect.value;
-  districtSelect.innerHTML = '<option value="">জেলা নির্বাচন করুন</option>';
-  upazilaSelect.innerHTML = '<option value="">এলাকার নাম লিখুন প্রয়োজনে</option>';
-  upazilaSelect.disabled = true;
+function clearUpazilaSuggestions(message){
+  upazilaList.innerHTML = '';
+  upazilaInput.value = '';
+  upazilaInput.placeholder = message || 'থানা / উপজেলা / Locality লিখুন';
+}
 
-  if(!divId){
+function fillUpazilaSuggestions(list){
+  upazilaList.innerHTML = '';
+  (list || []).forEach(name=>{
+    const opt = document.createElement('option');
+    opt.value = name;
+    upazilaList.appendChild(opt);
+  });
+  upazilaInput.placeholder = list && list.length
+    ? 'উপজেলা নির্বাচন করুন বা লিখুন'
+    : 'থানা / উপজেলা / Locality লিখুন';
+}
+
+function addBangladeshDivisions(){
+  setSelectOptions(divisionSelect, DIVISIONS.map(d=>({value:d.id,text:d.name})), 'বিভাগ নির্বাচন করুন');
+  divisionSelect.disabled = false;
+  districtSelect.disabled = true;
+  setSelectOptions(districtSelect, [], 'প্রথমে বিভাগ নির্বাচন করুন');
+  clearUpazilaSuggestions('প্রথমে জেলা নির্বাচন করুন');
+}
+
+function addGlobalStates(states){
+  __globalStates = states || [];
+  const items = __globalStates.map(s=>({value:s.iso2 || s.isoCode || s.id, text:s.name}));
+  if(items.length){
+    setSelectOptions(divisionSelect, items, 'State / Province / Region নির্বাচন করুন');
+    divisionSelect.disabled = false;
+  } else {
+    setSelectOptions(divisionSelect, [{value:'__none__',text:'State / Province নেই'}], 'State / Province / Region নির্বাচন করুন');
+    divisionSelect.disabled = false;
+  }
+  districtSelect.disabled = true;
+  setSelectOptions(districtSelect, [], 'প্রথমে State / Province নির্বাচন করুন');
+  clearUpazilaSuggestions('থানা / Locality / County লিখুন');
+}
+
+async function loadCountryStateCityLibrary(){
+  if(__CSC) return __CSC;
+  if(__locationLoadPromise) return __locationLoadPromise;
+  __locationLoadPromise = import('https://cdn.jsdelivr.net/npm/@countrystatecity/countries-browser@1.0.4/+esm')
+    .then(mod=>{ __CSC = mod; return mod; })
+    .catch(err=>{ __locationLoadPromise = null; throw err; });
+  return __locationLoadPromise;
+}
+
+async function loadGlobalCountries(){
+  if(countrySelect.options.length > 1 && !countrySelect.disabled) return;
+  try{
+    const csc = await loadCountryStateCityLibrary();
+    const countries = await csc.getCountries();
+    const items = (countries || []).map(c=>({
+      value: c.iso2 || c.isoCode,
+      text: (c.emoji ? c.emoji + ' ' : '') + c.name
+    })).sort((a,b)=>a.text.localeCompare(b.text));
+    setSelectOptions(countrySelect, items, 'দেশ নির্বাচন করুন');
+    countrySelect.disabled = false;
+    // বাংলাদেশের ব্যবহারকারীর আগের অভিজ্ঞতা বজায় রাখতে বাংলাদেশকে ডিফল্ট রাখা হচ্ছে।
+    if((countries || []).some(c => (c.iso2 || c.isoCode) === 'BD')){
+      countrySelect.value = 'BD';
+      await handleCountryChange();
+    }
+  }catch(err){
+    countrySelect.innerHTML = '<option value="">দেশের তালিকা লোড হয়নি — আবার চেষ্টা করুন</option>';
+    countrySelect.disabled = true;
+    divisionSelect.disabled = true;
     districtSelect.disabled = true;
-    districtSelect.innerHTML = '<option value="">প্রথমে বিভাগ নির্বাচন করুন</option>';
+    clearUpazilaSuggestions('দেশ নির্বাচন করার পর লিখুন');
+    console.warn('Country/State/City data load failed:', err);
+  }
+}
+
+async function handleCountryChange(){
+  const countryCode = countrySelect.value;
+  __globalStates = [];
+  __globalCities = [];
+  divisionSelect.disabled = true;
+  districtSelect.disabled = true;
+  setSelectOptions(divisionSelect, [], 'লোকেশন লোড হচ্ছে…');
+  setSelectOptions(districtSelect, [], 'প্রথমে বিভাগ / State নির্বাচন করুন');
+  clearUpazilaSuggestions('থানা / Locality লিখুন');
+
+  if(!countryCode) return;
+
+  if(countryCode === 'BD'){
+    addBangladeshDivisions();
     return;
   }
 
-  (DISTRICTS[divId] || []).forEach(name=>{
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    districtSelect.appendChild(opt);
-  });
-  districtSelect.disabled = false;
+  try{
+    const csc = await loadCountryStateCityLibrary();
+    const states = await csc.getStatesOfCountry(countryCode);
+    addGlobalStates(states || []);
+    if(!(states || []).length){
+      __globalCities = await csc.getCitiesOfCountry(countryCode);
+      const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name), text:c.name}));
+      setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
+      districtSelect.disabled = false;
+    }
+  }catch(err){
+    divisionSelect.disabled = true;
+    districtSelect.disabled = true;
+    setSelectOptions(divisionSelect, [], 'লোকেশন ডেটা লোড হয়নি');
+    setSelectOptions(districtSelect, [], 'লোকেশন ডেটা লোড হয়নি');
+    console.warn('State data load failed:', err);
+  }
+}
+
+countrySelect.addEventListener('change', ()=>{ handleCountryChange(); });
+
+function loadDivisions(){
+  // Country-State-City data is loaded only for the address step, keeping the first screen fast.
+  loadGlobalCountries();
+}
+afterFirstPaint(loadGlobalCountries, 1800);
+
+divisionSelect.addEventListener('change', async ()=>{
+  const countryCode = countrySelect.value;
+  const divCode = divisionSelect.value;
+  districtSelect.disabled = true;
+  setSelectOptions(districtSelect, [], 'জেলা / City লোড হচ্ছে…');
+  clearUpazilaSuggestions('থানা / Locality লিখুন');
+  if(!countryCode || !divCode) return;
+
+  if(countryCode === 'BD'){
+    const list = DISTRICTS[divCode] || [];
+    setSelectOptions(districtSelect, list.map(name=>({value:name,text:name})), 'জেলা নির্বাচন করুন');
+    districtSelect.disabled = false;
+    return;
+  }
+
+  if(divCode === '__none__'){
+    try{
+      const csc = await loadCountryStateCityLibrary();
+      __globalCities = await csc.getCitiesOfCountry(countryCode);
+      setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
+      districtSelect.disabled = false;
+    }catch(err){ console.warn('Country cities load failed:', err); }
+    return;
+  }
+
+  try{
+    const csc = await loadCountryStateCityLibrary();
+    __globalCities = await csc.getCitiesOfState(countryCode, divCode);
+    setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
+    districtSelect.disabled = false;
+  }catch(err){ console.warn('State cities load failed:', err); }
 });
 
 districtSelect.addEventListener('change', ()=>{
-  const distName = districtSelect.value;
-  upazilaSelect.innerHTML = '<option value="">উপজেলা নির্বাচন করুন</option>';
-
-  if(!distName){
-    upazilaSelect.disabled = true;
-    upazilaSelect.innerHTML = '<option value="">প্রথমে জেলা নির্বাচন করুন</option>';
-    return;
+  const countryCode = countrySelect.value;
+  const distName = districtSelect.options[districtSelect.selectedIndex]?.text || '';
+  if(countryCode === 'BD'){
+    fillUpazilaSuggestions(UPAZILAS[distName] || []);
+  } else {
+    clearUpazilaSuggestions('থানা / Locality / County লিখুন');
   }
-
-  const list = UPAZILAS[distName] || [];
-  if(list.length === 0){
-    upazilaSelect.innerHTML = '<option value="">তালিকায় নেই, নিচে লিখুন</option>';
-    upazilaSelect.disabled = true;
-    return;
-  }
-
-  list.forEach(name=>{
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    upazilaSelect.appendChild(opt);
-  });
-  upazilaSelect.disabled = false;
 });
 
 // ============ FORM SUBMIT ============
@@ -541,9 +668,12 @@ document.getElementById('applicantPhoto').addEventListener('change', (e)=>{
 function resetFormAfterDownload(){
   form.reset();
   districtSelect.disabled = true;
-  upazilaSelect.disabled = true;
-  districtSelect.innerHTML = '<option value="">প্রথমে বিভাগ নির্বাচন করুন</option>';
-  upazilaSelect.innerHTML = '<option value="">প্রথমে জেলা নির্বাচন করুন</option>';
+  setSelectOptions(districtSelect, [], 'প্রথমে বিভাগ / State নির্বাচন করুন');
+  clearUpazilaSuggestions('থানা / উপজেলা / Locality লিখুন');
+  if(countrySelect && countrySelect.options.length){
+    countrySelect.value = 'BD';
+    handleCountryChange();
+  }
   downloadBtn.classList.remove('show');
   document.getElementById('whatsappNote').classList.remove('show');
   const appIdDisplayResetEl = document.getElementById('appIdDisplay');
@@ -754,7 +884,7 @@ newCaptcha();
 // ============ ধাপে ধাপে ফর্ম নেভিগেশন ============
 const stepFields = {
   1: ['fullName', 'phone', 'applicantPhoto', 'platform', 'idLink', 'dob', 'gender', 'email'],
-  2: ['division', 'district', 'upazila', 'areaDetail', 'comment', 'screenshot'],
+  2: ['country', 'division', 'district', 'upazila', 'areaDetail', 'comment', 'screenshot'],
   3: ['paymentMethod', 'txnId', 'senderNumber', 'captchaAns']
 };
 
@@ -803,6 +933,7 @@ function goToStep(stepNum){
 
   document.querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
   document.getElementById('step' + stepNum).style.display = 'block';
+  if(stepNum === 2 && countrySelect.options.length <= 1) loadGlobalCountries();
 
   for(let i = 1; i <= 3; i++){
     const dot = document.getElementById('stepDot' + i);
@@ -850,8 +981,9 @@ function attachLiveValidation(id, testFn, errorMsg){
   el.addEventListener('blur', check);
 }
 
-attachLiveValidation('phone', v => /^01[0-9]{9}$/.test(v), 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমনঃ 01712345678)।');
-attachLiveValidation('senderNumber', v => /^01[0-9]{9}$/.test(v), 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমনঃ 01712345678)।');
+const internationalPhonePattern = /^\+?[0-9\s().-]{7,25}$/;
+attachLiveValidation('phone', v => internationalPhonePattern.test(v), 'সঠিক আন্তর্জাতিক মোবাইল নম্বর দিন (যেমনঃ +8801712345678)।');
+attachLiveValidation('senderNumber', v => internationalPhonePattern.test(v), 'সঠিক আন্তর্জাতিক নম্বর দিন (যেমনঃ +8801712345678)।');
 attachLiveValidation('email', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'সঠিক ইমেইল ঠিকানা দিন (যেমনঃ example@gmail.com)।');
 attachLiveValidation('txnId', v => v.replace(/\s/g,'').length >= 6, 'ট্রানজেকশন আইডি কমপক্ষে ৬ ক্যারেক্টারের হতে হবে।');
 
@@ -870,7 +1002,7 @@ if(backToTopBtn){
 
 // ============ ড্রাফট অটো-সেভ ============
 const DRAFT_KEY = 'fbFormDraftV1';
-const draftFieldIds = ['fullName','phone','platform','idLink','dob','gender','email','division','district','upazila','areaDetail','comment','paymentMethod','txnId','senderNumber'];
+const draftFieldIds = ['fullName','phone','platform','idLink','dob','gender','email','country','division','district','upazila','areaDetail','comment','paymentMethod','txnId','senderNumber'];
 
 function saveDraft(){
   const draft = {};
@@ -949,7 +1081,7 @@ window.addEventListener('popstate', function(){
   }catch(err){}
 })();
 
-function restoreDraft(){
+async function restoreDraft(){
   let draft = null;
   try{ draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); }catch(err){ draft = null; }
   if(!draft) return;
@@ -966,17 +1098,32 @@ function restoreDraft(){
     markFeeMethodSelected(draft.paymentMethod);
   }
 
-  if(draft.division){
-    divisionSelect.value = draft.division;
-    divisionSelect.dispatchEvent(new Event('change'));
-    if(draft.district){
-      districtSelect.value = draft.district;
-      districtSelect.dispatchEvent(new Event('change'));
-      if(draft.upazila){
-        upazilaSelect.value = draft.upazila;
+  try{
+    if(countrySelect.options.length <= 1) loadGlobalCountries();
+    if(__locationLoadPromise) await __locationLoadPromise;
+    const countryOption = Array.from(countrySelect.options).find(o => String(o.value) === String(draft.country));
+    if(countryOption) countrySelect.value = countryOption.value;
+    else if(!draft.country && Array.from(countrySelect.options).some(o=>o.value==='BD')) countrySelect.value = 'BD';
+
+    if(countrySelect.value){
+      await handleCountryChange();
+      if(draft.division){
+        const divOption = Array.from(divisionSelect.options).find(o=>String(o.value) === String(draft.division))
+          || Array.from(divisionSelect.options).find(o=>String(o.textContent) === String(draft.division));
+        if(divOption) divisionSelect.value = divOption.value;
+        divisionSelect.dispatchEvent(new Event('change'));
+        // Wait briefly for country/state city data to populate.
+        await new Promise(r=>setTimeout(r,120));
+        if(draft.district){
+          const distOption = Array.from(districtSelect.options).find(o=>String(o.value) === String(draft.district))
+            || Array.from(districtSelect.options).find(o=>String(o.textContent) === String(draft.district));
+          if(distOption) districtSelect.value = distOption.value;
+          districtSelect.dispatchEvent(new Event('change'));
+        }
+        if(draft.upazila) upazilaInput.value = draft.upazila;
       }
     }
-  }
+  }catch(err){ console.warn('Draft location restore failed:', err); }
 
   const banner = document.getElementById('draftBanner');
   if(banner) banner.style.display = 'flex';
@@ -1055,8 +1202,10 @@ form.addEventListener('submit', async (e)=>{
     email: document.getElementById('email').value.trim(),
     platform: document.getElementById('platform').value.trim(),
     idLink: document.getElementById('idLink').value.trim(),
+    country: countrySelect.options[countrySelect.selectedIndex]?.text || '',
     division: divisionSelect.options[divisionSelect.selectedIndex]?.text || '',
     district: districtSelect.options[districtSelect.selectedIndex]?.text || '',
+    upazila: upazilaInput.value.trim(),
     areaDetail: document.getElementById('areaDetail').value.trim(),
     comment: document.getElementById('comment').value.trim(),
     paymentMethod: document.getElementById('paymentMethod').value.trim(),
@@ -1157,8 +1306,10 @@ form.addEventListener('submit', async (e)=>{
     document.getElementById('r-dob').textContent = payload.dob || '-';
     document.getElementById('r-gender').textContent = payload.gender || '-';
     document.getElementById('r-email').textContent = payload.email || '-';
+    document.getElementById('r-country').textContent = payload.country || '-';
     document.getElementById('r-division').textContent = payload.division || '-';
     document.getElementById('r-district').textContent = payload.district || '-';
+    document.getElementById('r-upazila').textContent = payload.upazila || '-';
     document.getElementById('r-area').textContent = payload.areaDetail || '-';
     document.getElementById('r-comment').textContent = payload.comment || '-';
     document.getElementById('r-payment').textContent = payload.paymentMethod || '-';

@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Google Analytics: queue events now, load network script after first paint -->
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1LPWBCYD"></script>
 <script>
-window.dataLayer=window.dataLayer||[]; window.gtag=window.gtag||function(){dataLayer.push(arguments);};
-gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
-(function(){function load(){if(document.getElementById('ga4-script'))return;var s=document.createElement('script');s.id='ga4-script';s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-9W1LPWBCYD';document.head.appendChild(s);}function run(){try{if('requestIdleCallback'in window)requestIdleCallback(load,{timeout:2500});else setTimeout(load,1200);}catch(e){setTimeout(load,1200)}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1LPWBCYD');
 </script>
 
 <title>ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ হ্যাক, ডিজেবল, মনিটাইজেশন সমস্যা সমাধান | কেশবপুর, যশোর</title>
@@ -62,7 +64,7 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     }
 
     // Android/Chrome manifest.json থেকে নাম ও আইকন নেয়, তাই সেটাও বদলে দেওয়া হচ্ছে
-    var loadManifest=function(){fetch('manifest.json').then(r => r.json()).then(m => {
+    fetch('manifest.json').then(r => r.json()).then(m => {
       m.start_url = window.location.href;
       m.name = route.label;
       m.short_name = route.label.length > 12 ? route.label.slice(0, 12) : route.label;
@@ -76,8 +78,7 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
       const blobUrl = URL.createObjectURL(blob);
       const link = document.getElementById('siteManifestLink');
       if(link) link.setAttribute('href', blobUrl);
-    }).catch(()=>{});};
-    try{if('requestIdleCallback'in window)requestIdleCallback(loadManifest,{timeout:2500});else setTimeout(loadManifest,900);}catch(e){setTimeout(loadManifest,900);}
+    }).catch(()=>{});
   }catch(err){}
 })();
 </script>
@@ -211,10 +212,10 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     },
     {
       "@type": "Question",
-      "name": "কেশবপুরের বাইরে থেকেও কি আবেদন করা যাবে?",
+      "name": "বিদেশ থেকেও কি আবেদন করা যাবে?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "হ্যাঁ, সম্পূর্ণ বাংলাদেশের যেকোনো জেলা থেকেই আবেদন করা যায়। ফর্মে আপনার বিভাগ, জেলা ও উপজেলা উল্লেখ করলেই যথেষ্ট — যাচাই, যোগাযোগ ও পরামর্শ সবকিছু অনলাইনে ও হোয়াটসঅ্যাপের মাধ্যমেই সম্পন্ন করা হয়, সশরীরে আসার প্রয়োজন নেই।"
+        "text": "হ্যাঁ, পৃথিবীর যেকোনো দেশ থেকে আবেদন করা যায়। ফর্মে দেশ, বিভাগ/State, জেলা/City, থানা/উপজেলা/Locality এবং গ্রাম/এলাকার ঠিকানা দেওয়া যাবে — যাচাই, যোগাযোগ ও পরামর্শ অনলাইনে ও হোয়াটসঅ্যাপের মাধ্যমে সম্পন্ন করা হয়।"
       }
     },
     {
@@ -229,14 +230,12 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
 }
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap">
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet">
 
 <!-- ============ OneSignal Web Push (নতুন পোস্টের নোটিফিকেশন) ============ -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
-  (function(){function load(){if(document.getElementById('onesignal-sdk'))return;var x=document.createElement('script');x.id='onesignal-sdk';x.defer=true;x.src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';document.head.appendChild(x);}try{if('requestIdleCallback'in window)requestIdleCallback(load,{timeout:3500});else setTimeout(load,1800);}catch(e){setTimeout(load,1800);}})();
   OneSignalDeferred.push(async function(OneSignal) {
     var swScope = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1) || '/';
     await OneSignal.init({
@@ -292,6 +291,8 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     }
   });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <style>
   :root{
     --paper:#FBF6EA;
@@ -2311,12 +2312,27 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     color:#16301F; font-weight:600; font-size:12.5px;
   }
 </style>
-<script>
-(function(){function load(){if(document.getElementById('adsense-sdk'))return;var s=document.createElement('script');s.id='adsense-sdk';s.async=true;s.crossOrigin='anonymous';s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446828545506016';document.head.appendChild(s);}function run(){try{if('requestIdleCallback'in window)requestIdleCallback(load,{timeout:3000});else setTimeout(load,1500);}catch(e){setTimeout(load,1500)}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
-</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446828545506016"
+     crossorigin="anonymous"></script>
 <style id="site-enhancements">
 .site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
 </style>
+<script>
+/* ALAMIN_COMPAT_ROUTE_V2 */
+(function(){
+  try{
+    var u = new URL(window.location.href);
+    var oldPost = u.searchParams.get('post');
+    var p = u.searchParams.get('p');
+    if(oldPost && !p){
+      u.searchParams.delete('post');
+      u.searchParams.set('p', String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));
+      window.history.replaceState({}, '', u.toString());
+    }
+  }catch(e){}
+})();
+</script>
+
 <!-- ALAMIN_FINAL_PERF_V2 -->
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="//embed.tawk.to">
@@ -2393,7 +2409,7 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
       <span id="themeToggleLabel">ডার্ক মোড</span>
     </button>
   </div>
-  <img class="profile-pic" src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="eager" fetchpriority="high" decoding="async">
+  <img class="profile-pic" src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
   <div class="eyebrow" data-i18n="hero.eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
   <p class="tagline" data-i18n="hero.tagline">আপনার স্বপ্নই হোক আপনার ভবিষ্যৎ</p>
   <h1 data-i18n="hero.h1">ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ/চ্যানেল হ্যাক, ডিজেবল, মনিটাইজেশন সমস্যা সমাধান</h1>
@@ -2597,8 +2613,9 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     <label for="fullName">পূর্ণ নাম <span class="req">*</span></label>
     <input type="text" id="fullName" required placeholder="যেমনঃ মোঃ আলামিন ইসলাম">
 
-    <label for="phone">মোবাইল নম্বর <span class="req">*</span></label>
-    <input type="tel" id="phone" required placeholder="01XXXXXXXXX" pattern="01[0-9]{9}">
+    <label for="phone">আন্তর্জাতিক মোবাইল নম্বর <span class="req">*</span></label>
+    <input type="tel" id="phone" required placeholder="যেমনঃ +8801712345678 / +14155552671" inputmode="tel" autocomplete="tel" aria-describedby="phoneHint">
+    <div class="field-hint" id="phoneHint">যেকোনো দেশের নম্বর দিন। সম্ভব হলে দেশের কোডসহ + দিয়ে লিখুন।</div>
 
     <label for="applicantPhoto">আপনার ছবি আপলোড করুন <span class="req">*</span></label>
     <input type="file" id="applicantPhoto" accept="image/*" required>
@@ -2643,23 +2660,27 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     <div class="form-step" id="step2" style="display:none;">
     <div class="section-label" style="margin-top:0;">📍 ঠিকানা</div>
 
-    <label for="division">বিভাগ <span class="req">*</span></label>
-    <select id="division" required>
-      <option value="">বিভাগ নির্বাচন করুন</option>
+    <label for="country">দেশ <span class="req">*</span></label>
+    <select id="country" required>
+      <option value="">দেশের তালিকা লোড হচ্ছে…</option>
     </select>
 
-    <label for="district">জেলা <span class="req">*</span></label>
+    <label for="division">বিভাগ / State / Province <span class="req">*</span></label>
+    <select id="division" required disabled>
+      <option value="">প্রথমে দেশ নির্বাচন করুন</option>
+    </select>
+
+    <label for="district">জেলা / City / District <span class="req">*</span></label>
     <select id="district" required disabled>
       <option value="">প্রথমে বিভাগ নির্বাচন করুন</option>
     </select>
 
-    <label for="upazila">উপজেলা <span class="req">*</span></label>
-    <select id="upazila" required disabled>
-      <option value="">প্রথমে জেলা নির্বাচন করুন</option>
-    </select>
+    <label for="upazila">থানা / উপজেলা / Locality <span class="req">*</span></label>
+    <input type="text" id="upazila" required list="upazilaList" placeholder="বাংলাদেশে উপজেলা নির্বাচন/লিখুন; বিদেশে Locality/থানা লিখুন" autocomplete="address-level3">
+    <datalist id="upazilaList"></datalist>
 
-    <label for="areaDetail">গ্রাম / এলাকা <span class="req">*</span></label>
-    <input type="text" id="areaDetail" required placeholder="বিস্তারিত ঠিকানা লিখুন">
+    <label for="areaDetail">গ্রাম / এলাকা / Street Address <span class="req">*</span></label>
+    <input type="text" id="areaDetail" required placeholder="গ্রাম, পাড়া, মহল্লা, রাস্তা বা বাড়ির বিস্তারিত ঠিকানা লিখুন" autocomplete="street-address">
 
     <div class="section-label">⚠️ সমস্যার বিবরণ</div>
 
@@ -2798,10 +2819,10 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
 
     <div class="faq-item">
       <div class="faq-q" onclick="toggleFaq(this)">
-        <span data-i18n="faq.q8">কেশবপুরের বাইরে থেকেও কি আবেদন করা যাবে?</span>
+        <span data-i18n="faq.q8">বিদেশ থেকেও কি আবেদন করা যাবে?</span>
         <span class="arrow">▾</span>
       </div>
-      <div class="faq-a" data-i18n="faq.a8">হ্যাঁ, সম্পূর্ণ বাংলাদেশের যেকোনো জেলা থেকেই আবেদন করা যায়। ফর্মে আপনার বিভাগ, জেলা ও উপজেলা উল্লেখ করলেই যথেষ্ট — যাচাই, যোগাযোগ ও পরামর্শ সবকিছু অনলাইনে ও হোয়াটসঅ্যাপের মাধ্যমেই সম্পন্ন করা হয়, সশরীরে আসার প্রয়োজন নেই।</div>
+      <div class="faq-a" data-i18n="faq.a8">হ্যাঁ, পৃথিবীর যেকোনো দেশ থেকে আবেদন করা যায়। ফর্মে দেশ, বিভাগ/State, জেলা/City, থানা/উপজেলা/Locality এবং গ্রাম/এলাকার ঠিকানা দেওয়া যাবে — যাচাই, যোগাযোগ ও পরামর্শ অনলাইনে ও হোয়াটসঅ্যাপের মাধ্যমে সম্পন্ন করা হয়।</div>
     </div>
 
     <div class="faq-item">
@@ -2904,8 +2925,10 @@ gtag('js',new Date()); gtag('config','G-9W1LPWBCYD');
     <div class="r-row"><span class="label">ইমেইল</span><span class="value" id="r-email"></span></div>
 
     <div class="r-section">ঠিকানা</div>
-    <div class="r-row"><span class="label">বিভাগ</span><span class="value" id="r-division"></span></div>
-    <div class="r-row"><span class="label">জেলা</span><span class="value" id="r-district"></span></div>
+    <div class="r-row"><span class="label">দেশ</span><span class="value" id="r-country"></span></div>
+    <div class="r-row"><span class="label">বিভাগ / State</span><span class="value" id="r-division"></span></div>
+    <div class="r-row"><span class="label">জেলা / City</span><span class="value" id="r-district"></span></div>
+    <div class="r-row"><span class="label">থানা / উপজেলা / Locality</span><span class="value" id="r-upazila"></span></div>
     <div class="r-row"><span class="label">গ্রাম / এলাকা</span><span class="value" id="r-area"></span></div>
 
     <div class="r-section">সমস্যার বিবরণ</div>
