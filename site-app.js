@@ -464,22 +464,35 @@ function bindLocationSearch(selectId){
   inp.addEventListener('input',()=>{
     const q=inp.value.trim().toLocaleLowerCase();
     const opts=Array.from(sel.options).slice(1);
-    if(!q){ sel.value=''; sel.dispatchEvent(new Event('change',{bubbles:true})); return; }
     const exact=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
-    const match=exact || opts.find(o=>o.textContent.trim().toLocaleLowerCase().startsWith(q));
-    if(match){
-      sel.value=match.value;
-      sel.dispatchEvent(new Event('change',{bubbles:true}));
-    } else {
-      sel.value='';
-      sel.dispatchEvent(new Event('change',{bubbles:true}));
+    // টাইপ করার মাঝপথে কোনো দেশ/স্টেট অটো-সিলেক্ট করা হবে না।
+    // এতে 'Ind' লিখলে ভুল করে India নির্বাচন হয়ে যাওয়ার সমস্যা বন্ধ হয়।
+    if(!q || !exact){
+      if(sel.value) sel.value='';
+      return;
     }
+    sel.value=exact.value;
+    sel.dispatchEvent(new Event('change',{bubbles:true}));
   });
   inp.addEventListener('change',()=>{
     const q=inp.value.trim().toLocaleLowerCase();
     const opts=Array.from(sel.options).slice(1);
-    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q) || opts.find(o=>o.textContent.trim().toLocaleLowerCase().startsWith(q));
-    if(match){ sel.value=match.value; sel.dispatchEvent(new Event('change',{bubbles:true})); syncSearchFromSelect(selectId); }
+    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
+    if(match){
+      sel.value=match.value;
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+      syncSearchFromSelect(selectId);
+    } else {
+      sel.value='';
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+      inp.setCustomValidity(q ? 'তালিকা থেকে একটি বৈধ নাম নির্বাচন করুন।' : '');
+    }
+  });
+  inp.addEventListener('blur',()=>{
+    const q=inp.value.trim().toLocaleLowerCase();
+    const opts=Array.from(sel.options).slice(1);
+    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
+    inp.setCustomValidity(q && !match ? 'তালিকা থেকে একটি বৈধ নাম নির্বাচন করুন।' : '');
   });
   sel.addEventListener('change',()=>syncSearchFromSelect(selectId));
 }
@@ -630,7 +643,7 @@ async function handleCountryChange(){
     addGlobalStates(states || []);
     if(!(states || []).length){
       __globalCities = await csc.getCitiesOfCountry(countryCode);
-      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode || divisionSelect.value !== divCode) return;
       const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name), text:c.name}));
       setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
@@ -653,6 +666,7 @@ function loadDivisions(){
 afterFirstPaint(loadGlobalCountries, 1800);
 
 divisionSelect.addEventListener('change', async ()=>{
+  const requestToken = ++__locationChangeToken;
   const countryCode = countrySelect.value;
   const divCode = divisionSelect.value;
   districtSelect.disabled = true;
@@ -671,7 +685,7 @@ divisionSelect.addEventListener('change', async ()=>{
     try{
       const csc = await loadCountryStateCityLibrary();
       __globalCities = await csc.getCitiesOfCountry(countryCode);
-      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode || divisionSelect.value !== divCode) return;
       setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
     }catch(err){ console.warn('Country cities load failed:', err); }
@@ -681,6 +695,7 @@ divisionSelect.addEventListener('change', async ()=>{
   try{
     const csc = await loadCountryStateCityLibrary();
     __globalCities = await csc.getCitiesOfState(countryCode, divCode);
+    if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode || divisionSelect.value !== divCode) return;
     setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
     districtSelect.disabled = false;
   }catch(err){ console.warn('State cities load failed:', err); }
@@ -1253,6 +1268,31 @@ form.addEventListener('submit', async (e)=>{
   // নীরবে বাতিল করা হয়, কোনো এরর দেখানো হয় না যাতে বট বুঝতে না পারে।
   const hpField = document.getElementById('hpField');
   if(hpField && hpField.value.trim()){
+    return;
+  }
+
+  // দৃশ্যমান search field ও আসল location selection অবশ্যই বৈধ হতে হবে।
+  const countrySearch = document.getElementById('countrySearch');
+  const divisionSearch = document.getElementById('divisionSearch');
+  const districtSearch = document.getElementById('districtSearch');
+  const validSelected = (sel, input) => {
+    if(!sel || !input || !sel.value) return false;
+    const selectedText = sel.options[sel.selectedIndex]?.textContent?.trim() || '';
+    return !!selectedText && input.value.trim().toLocaleLowerCase() === selectedText.toLocaleLowerCase();
+  };
+  if(!validSelected(countrySelect, countrySearch)){
+    showStatus('err','অনুগ্রহ করে তালিকা থেকে একটি বৈধ দেশ নির্বাচন করুন।');
+    countrySearch?.focus();
+    return;
+  }
+  if(!validSelected(divisionSelect, divisionSearch)){
+    showStatus('err','অনুগ্রহ করে তালিকা থেকে একটি বৈধ বিভাগ / State / Province নির্বাচন করুন।');
+    divisionSearch?.focus();
+    return;
+  }
+  if(!validSelected(districtSelect, districtSearch)){
+    showStatus('err','অনুগ্রহ করে তালিকা থেকে একটি বৈধ জেলা / City / District নির্বাচন করুন।');
+    districtSearch?.focus();
     return;
   }
 
