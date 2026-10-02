@@ -1543,7 +1543,7 @@ function renderCategorySections(){
 function renderBlogCard(p, featured, small){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, featured ? 150 : (small ? 60 : 110)));
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
@@ -1854,7 +1854,7 @@ function renderBlogArchiveGrid(query, cat){
 function renderFeatureHero(p){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, 80));
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -1870,7 +1870,7 @@ function renderFeatureHero(p){
 
 function renderThumbItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
     ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy">'
@@ -1886,7 +1886,7 @@ function renderThumbItem(p){
 
 function renderBlogListItem(p){
   const safeTitle = blogEscape(p.title);
-  const href = '?p=' + encodeURIComponent(shortPostKey(p.id));
+  const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   return '<a class="blog-list-item" href="' + href + '"' + clickAttr + '>' +
     '<span class="blog-list-title">' + safeTitle + '</span>' +
@@ -2080,7 +2080,7 @@ async function sharePost(postId, title){
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: window.location.origin + window.location.pathname + '?p=' + encodeURIComponent(shortPostKey(postId))
+    url: window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId)
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
