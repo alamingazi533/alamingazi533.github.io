@@ -597,6 +597,10 @@
     background-position:right 12px center;
     padding-right:34px;
   }
+  .search-source{display:none !important;}
+  .phone-row{display:grid;grid-template-columns:minmax(150px,38%) 1fr;gap:8px;align-items:stretch;}
+  #phoneCountry{display:block !important;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="9"><path d="M1 1l6 6 6-6" stroke="%231877F2" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+  @media(max-width:520px){.phone-row{grid-template-columns:minmax(132px,42%) 1fr;gap:6px;}#phoneCountry{font-size:13px;padding-left:8px;padding-right:24px;}}
   select:disabled{
     background-color:var(--paper-dark);
     color:var(--muted);
@@ -2614,8 +2618,11 @@
     <input type="text" id="fullName" required placeholder="যেমনঃ মোঃ আলামিন ইসলাম">
 
     <label for="phone">আন্তর্জাতিক মোবাইল নম্বর <span class="req">*</span></label>
-    <input type="tel" id="phone" required placeholder="যেমনঃ +8801712345678 / +14155552671" inputmode="tel" autocomplete="tel" aria-describedby="phoneHint">
-    <div class="field-hint" id="phoneHint">যেকোনো দেশের নম্বর দিন। সম্ভব হলে দেশের কোডসহ + দিয়ে লিখুন।</div>
+    <div class="phone-row">
+      <select id="phoneCountry" aria-label="মোবাইল নম্বরের দেশ"><option value="BD" data-phonecode="880">🇧🇩 Bangladesh (+880)</option></select>
+      <input type="tel" id="phone" required placeholder="মোবাইল নম্বর লিখুন" inputmode="tel" autocomplete="tel-national" aria-describedby="phoneHint">
+    </div>
+    <div class="field-hint" id="phoneHint">দেশ নির্বাচন করলে পতাকা ও country code (+880, +91, +1 ইত্যাদি) অটো দেখাবে। প্রয়োজন হলে দেশ পরিবর্তন করতে পারবেন।</div>
 
     <label for="applicantPhoto">আপনার ছবি আপলোড করুন <span class="req">*</span></label>
     <input type="file" id="applicantPhoto" accept="image/*" required>
@@ -2660,18 +2667,24 @@
     <div class="form-step" id="step2" style="display:none;">
     <div class="section-label" style="margin-top:0;">📍 ঠিকানা</div>
 
-    <label for="country">দেশ <span class="req">*</span></label>
-    <select id="country" required>
+    <label for="countrySearch">দেশ <span class="req">*</span></label>
+    <input type="text" id="countrySearch" list="countrySearchList" required placeholder="দেশের নাম লিখে খুঁজুন ও নির্বাচন করুন" autocomplete="country-name">
+    <datalist id="countrySearchList"></datalist>
+    <select id="country" class="search-source" aria-hidden="true" tabindex="-1">
       <option value="">দেশের তালিকা লোড হচ্ছে…</option>
     </select>
 
-    <label for="division">বিভাগ / State / Province <span class="req">*</span></label>
-    <select id="division" required disabled>
+    <label for="divisionSearch">বিভাগ / State / Province <span class="req">*</span></label>
+    <input type="text" id="divisionSearch" list="divisionSearchList" required placeholder="নাম লিখে খুঁজুন ও নির্বাচন করুন" autocomplete="address-level1" disabled>
+    <datalist id="divisionSearchList"></datalist>
+    <select id="division" class="search-source" aria-hidden="true" tabindex="-1" disabled>
       <option value="">প্রথমে দেশ নির্বাচন করুন</option>
     </select>
 
-    <label for="district">জেলা / City / District <span class="req">*</span></label>
-    <select id="district" required disabled>
+    <label for="districtSearch">জেলা / City / District <span class="req">*</span></label>
+    <input type="text" id="districtSearch" list="districtSearchList" required placeholder="নাম লিখে খুঁজুন ও নির্বাচন করুন" autocomplete="address-level2" disabled>
+    <datalist id="districtSearchList"></datalist>
+    <select id="district" class="search-source" aria-hidden="true" tabindex="-1" disabled>
       <option value="">প্রথমে বিভাগ নির্বাচন করুন</option>
     </select>
 
