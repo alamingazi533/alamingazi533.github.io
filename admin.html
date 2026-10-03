@@ -2521,26 +2521,35 @@ if(sessionStorage.getItem('adminPw')){
   };
 
   // ---------------- Separate Posts / New Post / Scheduled sections ----------------
-  function makeSection(title,id,html){
+  function makeSection(title,id,html,collapsed){
     const wrap=document.createElement('div');
     wrap.id=id;
     wrap.style.cssText='background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0;';
-    wrap.innerHTML='<div style="font-weight:800;color:var(--forest);margin-bottom:10px;">'+title+'</div>'+html;
+    if(collapsed){
+      wrap.innerHTML='<div class="collapseHead" style="font-weight:800;color:var(--forest);cursor:pointer;" onclick="toggleSection(\''+id+'Wrap\', this)"><span class="secArrow">▸</span> '+title+'</div><div id="'+id+'Wrap" style="display:none;margin-top:10px;">'+html+'</div>';
+    } else {
+      wrap.innerHTML='<div style="font-weight:800;color:var(--forest);margin-bottom:10px;">'+title+'</div>'+html;
+    }
     return wrap;
   }
-  function scrollToId(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+  function openSectionById(id){
+    const body=document.getElementById(id+'Wrap'); if(!body||body.style.display!=='none') return;
+    const head=body.previousElementSibling; body.style.display='block';
+    const a=head&&head.querySelector('.secArrow'); if(a) a.textContent='▾';
+  }
+  function scrollToId(id){openSectionById(id);const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
   function ensurePostSections(){
     const formBody=document.getElementById('postFormBody'); if(!formBody||document.getElementById('postsListStandalone')) return;
     const formCard=formBody.parentElement;
     const oldAnalytics=document.getElementById('postsAnalyticsSummary');
     const oldList=document.getElementById('postsList');
-    const postListCard=makeSection('📝 পোস্টের লিস্ট আলাদা','postsListStandalone','<div id="postsAnalyticsSummaryStandalone"></div><div id="postsListStandaloneBody">লোড হচ্ছে...</div>');
+    const postListCard=makeSection('📝 পোস্টের লিস্ট আলাদা','postsListStandalone','<div id="postsAnalyticsSummaryStandalone"></div><div id="postsListStandaloneBody">লোড হচ্ছে...</div>',true);
     const listBody=postListCard.querySelector('#postsListStandaloneBody');
     if(oldAnalytics) listBody.appendChild(oldAnalytics);
     if(oldList){ listBody.appendChild(oldList); }
     formCard.after(postListCard);
 
-    const scheduledCard=makeSection('⏰ Scheduled Posts','scheduledPostsStandalone','<div id="scheduledPostsList">লোড হচ্ছে...</div>');
+    const scheduledCard=makeSection('⏰ Scheduled Posts','scheduledPostsStandalone','<div id="scheduledPostsList">লোড হচ্ছে...</div>',true);
     postListCard.after(scheduledCard);
 
     // The existing loader still writes to #postsList, which was moved above.
