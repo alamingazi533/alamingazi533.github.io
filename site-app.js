@@ -2345,13 +2345,14 @@ function showBlogDetail(postId){
 
   contentEl.innerHTML =
     '<article>' +
-      '<span class="post-eyebrow">আপডেট</span>' +
+      '<a class="post-eyebrow" href="?blog=' + encodeURIComponent(post.category || 'সাধারণ আপডেট') + '">' + blogEscape(post.category || 'সাধারণ আপডেট') + '</a>' +
       '<h1>' + safeTitle + '</h1>' +
       '<div class="byline">' +
         '<img src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">' +
         '<div>' +
           '<div class="byline-name">মোঃ আলামিন ইসলাম</div>' +
           '<div class="byline-date">' + cleanPostDate(post.date) + '</div>' +
+          '<div class="byline-date">' + blogReadMinutes(post.content) + ' মিনিটে পড়ুন</div>' +
         '</div>' +
       '</div>' +
       blogShareRowHtml(post) +
@@ -2385,6 +2386,8 @@ function showBlogDetail(postId){
       '<a class="blog-viewall-link" href="?blog=all">← আরও পোস্ট দেখুন</a>' +
     '</div>';
   renderRelatedPosts(post);
+  renderPrevNext(post);
+  applyBlogFontSize();
   renderInstallButton();
   renderRecentWidget();
   newCommentCaptcha();
@@ -2422,6 +2425,54 @@ function renderInstallButton(){
   wrap.appendChild(b);
 }
 
+
+// ============ পড়ার সময়, আগের/পরের পোস্ট, লেখার সাইজ ============
+function toBnDigits(n){ return String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]); }
+function blogReadMinutes(text){
+  const words = String(text || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').split(/\s+/).filter(Boolean).length;
+  return toBnDigits(Math.max(1, Math.ceil(words / 200)));
+}
+function blogPostsNewestFirst(){
+  const arr = __allPosts.slice();
+  const t = p => new Date(p.date).getTime();
+  if(arr.every(p => !isNaN(t(p)))) arr.sort((a, b) => t(b) - t(a));
+  return arr;
+}
+function renderPrevNext(post){
+  try{
+    const contentEl = document.getElementById('blogDetailContent');
+    const anchor = contentEl ? contentEl.querySelector('.blog-comments') : null;
+    if(!anchor) return;
+    const list = blogPostsNewestFirst();
+    const i = list.findIndex(p => String(p.id) === String(post.id));
+    if(i < 0) return;
+    const newer = list[i - 1], older = list[i + 1];
+    if(!newer && !older) return;
+    const box = (p, label, cls) => p
+      ? '<a class="pn-item ' + cls + '" href="?post=' + encodeURIComponent(p.id) + '"><span class="pn-label">' + label + '</span><span class="pn-title">' + blogEscape(p.title) + '</span></a>'
+      : '<span></span>';
+    anchor.insertAdjacentHTML('beforebegin', '<nav class="post-prevnext" aria-label="আগের ও পরের পোস্ট">' + box(older, '← আগের পোস্ট', 'pn-prev') + box(newer, 'পরের পোস্ট →', 'pn-next') + '</nav>');
+  }catch(e){}
+}
+const BLOG_FONT_SIZES = [14, 15.5, 16.5, 18, 20, 22];
+function applyBlogFontSize(){
+  try{
+    let idx = 2;
+    try{ const v = parseInt(localStorage.getItem('blogFontIdx'), 10); if(v >= 0 && v < BLOG_FONT_SIZES.length) idx = v; }catch(_){}
+    const el = document.querySelector('#blogDetailContent .post-content');
+    if(el) el.style.fontSize = BLOG_FONT_SIZES[idx] + 'px';
+  }catch(e){}
+}
+document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('.fs-btn') : null;
+  if(!b) return;
+  let idx = 2;
+  try{ const v = parseInt(localStorage.getItem('blogFontIdx'), 10); if(v >= 0 && v < BLOG_FONT_SIZES.length) idx = v; }catch(_){}
+  idx = Math.min(BLOG_FONT_SIZES.length - 1, Math.max(0, idx + parseInt(b.getAttribute('data-fs'), 10)));
+  try{ localStorage.setItem('blogFontIdx', String(idx)); }catch(_){}
+  applyBlogFontSize();
+});
+
 // ============ নিউজ-স্টাইল রঙিন শেয়ার আইকন সারি ============
 function blogShareRowHtml(post){
   const url = encodeURIComponent('https://alamingazi533.github.io/?post=' + post.id);
@@ -2433,6 +2484,7 @@ function blogShareRowHtml(post){
     b('wa', 'https://wa.me/?text=' + t + '%20' + url, 'WhatsApp-এ শেয়ার', svg('M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.6 12.4c-.2.5-1.1 1-1.5 1-.4.1-.9.1-2.9-.7-2.4-1-3.9-3.5-4-3.6-.1-.2-1-1.3-1-2.5s.6-1.7.8-2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.8 1.9c.1.1.1.3 0 .4l-.3.5-.4.4c-.1.1-.3.3-.1.5.2.3.7 1.2 1.5 1.9 1 .9 1.900 1.200 2.200 1.300.3.1.4.1.5-.1l.7-.9c.2-.2.3-.2.5-.1l1.800.9c.2.1.4.2.4.3.1.2.1.700-.1 1.200z')) +
     b('tg', 'https://t.me/share/url?url=' + url + '&text=' + t, 'Telegram-এ শেয়ার', svg('M20.7 4.3 3.4 11c-.8.3-.8.8-.1 1l4.400 1.400 1.700 5.200c.2.600.4.700.9.400l2.500-2 4.600 3.400c.8.5 1.400.2 1.600-.8l3-14.300c.3-1.200-.4-1.700-1.300-1.300zM9 13.200l8.600-5.400c.4-.3.800-.1.500.2l-7 6.300-.3 3-1.800-4.100z')) +
     b('x', 'https://twitter.com/intent/tweet?url=' + url + '&text=' + t, 'X-এ শেয়ার', svg('M17.800 3h3l-6.600 7.500L22 21h-6.100l-4.800-6.200L5.600 21h-3l7.100-8.100L2.200 3h6.200l4.300 5.700L17.800 3zm-1 16.200h1.700L7.400 4.700H5.600l11.200 14.500z')) +
+    '<span class="fs-wrap"><button type="button" class="fs-btn" data-fs="-1" aria-label="লেখা ছোট করুন" style="font-size:14px">অ</button><button type="button" class="fs-btn" data-fs="1" aria-label="লেখা বড় করুন" style="font-size:21px">অ</button></span>' +
   '</div>';
 }
 

@@ -363,6 +363,7 @@
         <option value="সতর্কতা">সতর্কতা</option>
       </select>
       <textarea id="newPostContent" placeholder="বিস্তারিত লিখুন..." style="width:100%; min-height:80px; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; resize:vertical; margin-bottom:8px;"></textarea>
+      <button type="button" onclick="insertPostImage('newPostContent')" style="margin:0 0 10px; padding:7px 12px; border:1.5px solid var(--line); border-radius:8px; background:transparent; font-family:inherit; font-size:13px; cursor:pointer;">🖼️ ছবি যোগ করুন</button>
 
       <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px;">পোস্ট সিডিউল (ঐচ্ছিক — খালি রাখলে সাথে সাথেই প্রকাশিত হবে)</label>
       <input type="datetime-local" id="newPostSchedule" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
@@ -1243,6 +1244,7 @@ function startEditPost(rowIndex){
     '<input type="text" id="editTitle' + rowIndex + '" value="' + safeTitleVal.replace(/"/g,'&quot;') + '" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:6px;">' +
     '<select id="editCategory' + rowIndex + '" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:13.5px; margin-bottom:6px;">' + catOptions + '</select>' +
     '<textarea id="editContent' + rowIndex + '" style="width:100%; min-height:80px; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:13.5px; resize:vertical; margin-bottom:6px;">' + safeContentVal + '</textarea>' +
+      '<button type="button" onclick="insertPostImage(\'editContent' + rowIndex + '\')" style="margin:0 0 8px; padding:6px 10px; border:1.5px solid var(--line); border-radius:6px; background:transparent; font-family:inherit; font-size:12.5px; cursor:pointer;">🖼️ ছবি যোগ করুন</button>' +
     '<label style="display:block; font-size:12px; color:var(--muted); margin-bottom:4px;">সিডিউল সময় (খালি রাখলে সাথে সাথেই প্রকাশিত থাকবে)</label>' +
     '<input type="datetime-local" id="editSchedule' + rowIndex + '" value="' + scheduleVal + '" style="width:100%; padding:8px; border-radius:6px; border:1.5px solid var(--line); font-family:inherit; font-size:13.5px; margin-bottom:6px;">' +
     '<div style="display:flex; gap:8px;">' +
@@ -2724,6 +2726,24 @@ if(sessionStorage.getItem('adminPw')){
   });
   window.addEventListener('load',()=>{ensureTokenLoginBox();ensureRevenueCard();ensurePostSections();ensureAppsSection();enhanceImageUpload();loadRevenue();});
 })();
+</script>
+<script>
+// পোস্টের লেখায় ছবি বসানোর সহায়ক: ![ক্যাপশন](লিংক) নিজে লিখে দেয়
+function insertPostImage(id){
+  var ta = document.getElementById(id);
+  if(!ta) return;
+  var url = (prompt('ছবির লিংক (https:// দিয়ে শুরু) দিন:') || '').trim();
+  if(!url) return;
+  if(!/^https?:\/\/\S+$/.test(url) || url.indexOf(')') !== -1){ alert('সঠিক https লিংক দিন (লিংকে ")" থাকা চলবে না)।'); return; }
+  var cap = (prompt('ছবির ক্যাপশন (না চাইলে খালি রাখুন):') || '').replace(/[\[\]\n]/g, ' ').trim();
+  var md = '![' + cap + '](' + url + ')';
+  var pos = typeof ta.selectionStart === 'number' ? ta.selectionStart : ta.value.length;
+  var before = ta.value.slice(0, pos), after = ta.value.slice(pos);
+  var pre = before && !/\n$/.test(before) ? '\n' : '';
+  var post = after && !/^\n/.test(after) ? '\n' : '';
+  ta.value = before + pre + md + post + after;
+  ta.focus();
+}
 </script>
 </body>
 </html>
