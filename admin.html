@@ -449,6 +449,28 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
 // ============ পাসওয়ার্ড URL-এ না পাঠিয়ে POST-এর বডিতে পাঠানো ============
 // ব্রাউজার হিস্ট্রি ও লগে যেন পাসওয়ার্ড না থাকে, তাই ?password=... বা newPassword=... থাকা GET কল
 // স্বয়ংক্রিয়ভাবে POST-এ বদলে যায় (সার্ভার একই কাজ করে)।
+// POST ব্যর্থ হলে বা উত্তর JSON না হলে নিজে থেকেই আগের GET পদ্ধতিতে ফিরে যায়, তাই লগইন আটকাবে না।
+(function(){
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    try{
+      if(typeof input === 'string' && input.indexOf(SCRIPT_URL + '?') === 0 &&
+         /[?&]action=(login|resetPassword)(&|$)/.test(input) &&
+         !(init && init.method && String(init.method).toUpperCase() !== 'GET')){
+        const params = {};
+        new URLSearchParams(input.slice(SCRIPT_URL.length + 1)).forEach(function(v, k){ params[k] = v; });
+        const postInit = Object.assign({}, init || {}, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ __get: true, params: params }) });
+        return nativeFetch(SCRIPT_URL, postInit).then(function(resp){
+          return resp.text().then(function(text){
+            JSON.parse(text);
+            return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+          });
+        }).catch(function(){ return nativeFetch(input, init); });
+      }
+    }catch(e){}
+    return nativeFetch(input, init);
+  };
+})();
 // ============ সেশন-এক্সপায়ারি/লক গ্লোবালি ধরা ============
 // আগে টোকেন মেয়াদ শেষ হয়ে গেলে ব্যাকগ্রাউন্ড অটো-রিফ্রেশ (প্রতি ৩০ সেকেন্ডে) বারবার
 // "ভুল পাসওয়ার্ড" হিসেবে গণনা হতো, যা কিছুক্ষণ পরই পুরো অ্যাডমিন প্যানেল ১৫ মিনিটের
@@ -1541,7 +1563,7 @@ let visitStatsTimer = null;
 function renderVisitInsights(data){
   const box = document.getElementById('insightsBlock');
   if(!box) return;
-  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const bn = n => Number(n).toLocaleString('bn-BD');
   const head = t => '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin:14px 0 8px;">' + t + '</div>';
   const bar = (label, count, max) => {
@@ -1675,7 +1697,7 @@ function loadVisitStats(){
       const deviceIcon = { 'মোবাইল': '📱', 'ট্যাবলেট': '📟', 'ডেস্কটপ': '💻' };
       listEl.innerHTML = data.recent.map(v =>
         '<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; gap:8px;">' +
-          '<span>' + (deviceIcon[v.device] || '❔') + ' ' + v.device + (v.location ? ' • 📍 ' + String(v.location).replace(/</g,'&lt;') : '') + (v.source ? ' • 🔗 ' + String(v.source).replace(/</g,'&lt;') : '') + '</span>' +
+          '<span>' + (deviceIcon[v.device] || '❔') + ' ' + esc(v.device) + (v.location ? ' • 📍 ' + esc(v.location) : '') + (v.source ? ' • 🔗 ' + esc(v.source) : '') + '</span>' +
           '<span style="color:var(--muted); white-space:nowrap;">' + v.time + (v.duration ? ' • ⏱ ' + fmtDur(v.duration) : '') + '</span>' +
         '</div>'
       ).join('');
@@ -1995,7 +2017,9 @@ function renderList(rows){
         '</div>' +
         (row.idLink ?
           '<div class="link-row">' +
-            '<a class="link-chip" href="' + row.idLink + '" target="_blank">🔗 আইডি/প্রোফাইল</a>' +
+            (safeHttpUrl(row.idLink)
+              ? '<a class="link-chip" href="' + esc(safeHttpUrl(row.idLink)) + '" target="_blank" rel="noopener noreferrer">🔗 আইডি/প্রোফাইল</a>'
+              : '<span class="link-chip" style="cursor:default;">🔗 ' + esc(String(row.idLink).slice(0, 150)) + '</span>') +
           '</div>' : '') +
         (row.comment ? '<div class="card-comment">' + esc(row.comment) + '</div>' : '') +
         (row.screenshotUrl ?
@@ -2181,7 +2205,14 @@ function esc(str){
   if(str === undefined || str === null) return '';
   const div = document.createElement('div');
   div.textContent = String(str);
-  return div.innerHTML;
+  return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+// শুধু বৈধ http/https লিংক ফেরত দেয় (javascript:, data: ইত্যাদি বা কোট/স্পেস থাকলে খালি); "facebook.com/xyz" লিখলে https:// বসে
+function safeHttpUrl(u){
+  const t = String(u == null ? '' : u).trim();
+  if(/^https?:\/\/[^\s"'<>`]+$/i.test(t)) return t;
+  if(/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/[^\s"'<>`]*)?$/i.test(t)) return 'https://' + t;
+  return '';
 }
 
 // ============ ডার্ক/লাইট মোড ============
@@ -2238,7 +2269,7 @@ if(sessionStorage.getItem('adminPw')){
   const PAYMENTS=['সব','অযাচাইকৃত','যাচাই হচ্ছে','ভেরিফাইড','বাতিল'];
   let paymentFilter='সব', overdueOnly=false;
   try{ paymentFilter=localStorage.getItem('adminPaymentFilter')||'সব'; overdueOnly=localStorage.getItem('adminOverdueOnly')==='1'; }catch(e){}
-  const esc = s => { const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; };
+  const esc = s => { const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
   function parseDate(s){
     if(!s) return null; const p=String(s).split(/[\/\s:]/); if(p.length<3) return null;
     const d=new Date(Number(p[2]),Number(p[1])-1,Number(p[0]),Number(p[3]||0),Number(p[4]||0));
@@ -2315,7 +2346,7 @@ if(sessionStorage.getItem('adminPw')){
 /* FBH_TIMELINE_V1 — Applicant Timeline / History */
 (function(){
   'use strict';
-  function esc(v){var d=document.createElement('div');d.textContent=String(v==null?'':v);return d.innerHTML;}
+  function esc(v){var d=document.createElement('div');d.textContent=String(v==null?'':v);return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function ensureModal(){
     if(document.getElementById('applicationTimelineModal')) return;
     var style=document.createElement('style');
@@ -2406,7 +2437,7 @@ if(sessionStorage.getItem('adminPw')){
 <script id="FBH_PHASE4_UPGRADES">
 (function(){
   'use strict';
-  const esc=v=>{const d=document.createElement('div');d.textContent=String(v==null?'':v);return d.innerHTML;};
+  const esc=v=>{const d=document.createElement('div');d.textContent=String(v==null?'':v);return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
   const money=n=>Number(n||0).toLocaleString('bn-BD')+' টাকা';
   const pw=()=>sessionStorage.getItem('adminPw')||'';
   const apiGet=(action, extra={})=>{

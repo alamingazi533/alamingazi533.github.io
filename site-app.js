@@ -860,7 +860,7 @@ function resetFormAfterDownload(){
   if(appIdDisplayResetEl) appIdDisplayResetEl.classList.remove('show');
   statusBox.className = 'status';
   photoPreviewEl.classList.remove('show');
-  newCaptcha();
+  newCaptcha(true);
   resetToStep1();
 }
 
@@ -1049,17 +1049,53 @@ function compressImage(file, maxDim, quality){
 // captchaA/captchaB সার্ভারে পাঠানো হয় যাতে Code.gs নিজে যোগফল মিলিয়ে যাচাই
 // করতে পারে — শুধু ব্রাউজারের JS-এর উপর নির্ভর করলে সরাসরি API কল করে এটা
 // এড়িয়ে যাওয়া সম্ভব হতো।
-let captchaAnswer = 0;
+let captchaAnswer = -1;
 let captchaA = 0;
 let captchaB = 0;
-function newCaptcha(){
-  captchaA = Math.floor(Math.random() * 8) + 1;
-  captchaB = Math.floor(Math.random() * 8) + 1;
-  captchaAnswer = captchaA + captchaB;
-  document.getElementById('captchaQ').textContent = captchaA + ' + ' + captchaB + ' =';
-  document.getElementById('captchaAns').value = '';
+let captchaToken = '';
+let captchaLoading = false;
+let captchaSeq = 0;
+// সার্ভার থেকে সই-করা (signed) ক্যাপচা আনা হয়, যাতে সার্ভার নিজে উত্তর যাচাই করতে পারে।
+// সার্ভার সাড়া না দিলে (যেমন পুরনো ব্যাকএন্ড) আগের মতো ব্রাউজারেই প্রশ্ন বানানো হয়।
+function requestServerCaptcha(apply){
+  const fallback = function(){
+    apply(Math.floor(Math.random() * 8) + 1, Math.floor(Math.random() * 8) + 1, '');
+  };
+  try{
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 15000);
+    fetch(SCRIPT_URL + '?action=getCaptcha&_=' + Date.now(), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        clearTimeout(timer);
+        if(d && d.success && d.token && Number(d.a) > 0 && Number(d.b) > 0){ apply(Number(d.a), Number(d.b), String(d.token)); }
+        else { fallback(); }
+      })
+      .catch(function(){ clearTimeout(timer); fallback(); });
+  }catch(e){ fallback(); }
 }
-newCaptcha();
+// lazy = true হলে এখনই সার্ভারকে ডাকা হয় না (ফর্মের ৩য় ধাপে গেলে তখন আনা হয়)
+function newCaptcha(lazy){
+  const seq = ++captchaSeq;
+  const qEl = document.getElementById('captchaQ');
+  const aEl = document.getElementById('captchaAns');
+  captchaAnswer = -1; captchaToken = ''; captchaA = 0; captchaB = 0;
+  if(aEl) aEl.value = '';
+  if(lazy){ captchaLoading = false; if(qEl) qEl.textContent = '… ='; return; }
+  captchaLoading = true;
+  if(qEl) qEl.textContent = '… =';
+  requestServerCaptcha(function(a, b, token){
+    if(seq !== captchaSeq) return;
+    captchaLoading = false;
+    captchaA = a; captchaB = b; captchaAnswer = a + b; captchaToken = token;
+    if(qEl) qEl.textContent = a + ' + ' + b + ' =';
+  });
+}
+function ensureCaptcha(){
+  if(captchaToken || captchaLoading || captchaAnswer !== -1) return;
+  newCaptcha();
+}
+newCaptcha(true);
 
 // ============ ধাপে ধাপে ফর্ম নেভিগেশন ============
 const stepFields = {
@@ -1114,6 +1150,7 @@ function goToStep(stepNum){
   document.querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
   document.getElementById('step' + stepNum).style.display = 'block';
   if(stepNum === 2 && countrySelect.options.length <= 1) loadGlobalCountries();
+  if(stepNum === 3) ensureCaptcha();
 
   for(let i = 1; i <= 3; i++){
     const dot = document.getElementById('stepDot' + i);
@@ -1350,7 +1387,7 @@ form.addEventListener('submit', async (e)=>{
     return;
   }
 
-  if(parseInt(document.getElementById('captchaAns').value.trim(), 10) !== captchaAnswer){
+  if(captchaAnswer < 0 || parseInt(document.getElementById('captchaAns').value.trim(), 10) !== captchaAnswer){
     showStatus('err', 'যাচাই ঘরের উত্তরটি সঠিক নয়, আবার চেষ্টা করুন।');
     newCaptcha();
     return;
@@ -1394,6 +1431,7 @@ form.addEventListener('submit', async (e)=>{
     submittedAt: new Date().toISOString(),
     captchaA: captchaA,
     captchaB: captchaB,
+    captchaToken: captchaToken,
     captchaAns: document.getElementById('captchaAns').value.trim(),
     hp: hpField ? hpField.value.trim() : '',
     screenshotBase64: '',
@@ -1454,6 +1492,7 @@ form.addEventListener('submit', async (e)=>{
     if(!submitData || (submitData.status !== 'success' && submitData.status !== 'duplicate' && submitData.status !== 'error')){
       // সার্ভারের উত্তর বোঝা যায়নি — আবেদন সেভ হয়েছে কিনা নিশ্চিত নয়, তাই "সফল" দেখানো হচ্ছে না
       showStatus('err', 'সার্ভার থেকে নিশ্চিত উত্তর পাওয়া যায়নি, তাই আবেদন জমা হয়েছে কিনা জানা যাচ্ছে না। অনুগ্রহ করে আবার চেষ্টা করুন — আগে জমা হয়ে থাকলে "ইতিমধ্যে জমা হয়েছে" বার্তা দেখাবে।');
+      newCaptcha();
       submitBtn.disabled = false;
       submitBtn.textContent = 'রেজিস্ট্রেশন সম্পন্ন করুন';
       return;
@@ -1470,6 +1509,7 @@ form.addEventListener('submit', async (e)=>{
 
     if(submitData.status === 'error'){
       showStatus('err', submitData.error || 'আবেদন জমা হয়নি, আবার চেষ্টা করুন।');
+      newCaptcha();
       submitBtn.disabled = false;
       submitBtn.textContent = 'রেজিস্ট্রেশন সম্পন্ন করুন';
       return;
@@ -1525,6 +1565,7 @@ form.addEventListener('submit', async (e)=>{
   }catch(err){
     console.error(err);
     showStatus('err', 'দুঃখিত, পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    newCaptcha();
   }finally{
     submitBtn.disabled = false;
     submitBtn.textContent = 'রেজিস্ট্রেশন সম্পন্ন করুন';
@@ -1632,9 +1673,10 @@ function renderReviews(data){
     return;
   }
   container.innerHTML = data.reviews.map(rev => {
-    const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
-    const safeName = String(rev.name).replace(/</g,'&lt;');
-    const safeText = String(rev.text).replace(/</g,'&lt;');
+    const ratingNum = Math.max(0, Math.min(5, parseInt(rev.rating, 10) || 0));
+    const stars = '★'.repeat(ratingNum) + '☆'.repeat(5 - ratingNum);
+    const safeName = blogEscape(rev.name);
+    const safeText = blogEscape(rev.text);
     return '<div class="testi-item">' +
       '<div class="testi-stars">' + stars + '</div>' +
       '<p class="testi-text">' + safeText + '</p>' +
@@ -2464,17 +2506,24 @@ async function sharePost(postId, title){
 }
 
 // ============ কমেন্ট ফর্মের ছোট ম্যাথ ক্যাপচা (বট ঠেকাতে) ============
-let commentCaptchaAnswer = 0;
+let commentCaptchaAnswer = -1;
 let commentCaptchaA = 0;
 let commentCaptchaB = 0;
+let commentCaptchaToken = '';
+let commentCaptchaSeq = 0;
 function newCommentCaptcha(){
-  commentCaptchaA = Math.floor(Math.random() * 8) + 1;
-  commentCaptchaB = Math.floor(Math.random() * 8) + 1;
-  commentCaptchaAnswer = commentCaptchaA + commentCaptchaB;
+  const seq = ++commentCaptchaSeq;
   const qEl = document.getElementById('commentCaptchaQ');
   const ansEl = document.getElementById('commentCaptchaAns');
-  if(qEl) qEl.textContent = commentCaptchaA + ' + ' + commentCaptchaB + ' =';
+  commentCaptchaAnswer = -1; commentCaptchaToken = ''; commentCaptchaA = 0; commentCaptchaB = 0;
+  if(qEl) qEl.textContent = '… =';
   if(ansEl) ansEl.value = '';
+  requestServerCaptcha(function(a, b, token){
+    if(seq !== commentCaptchaSeq) return;
+    commentCaptchaA = a; commentCaptchaB = b; commentCaptchaAnswer = a + b; commentCaptchaToken = token;
+    const q2 = document.getElementById('commentCaptchaQ');
+    if(q2) q2.textContent = a + ' + ' + b + ' =';
+  });
 }
 
 // ============ পোস্টের কমেন্ট দেখানো ও জমা দেওয়া (এখন সাবমিট করলেই সাথে সাথে পাবলিক হয়) ============
@@ -2574,7 +2623,7 @@ function submitPostComment(postId){
     return;
   }
 
-  if(parseInt(captchaInput ? captchaInput.value.trim() : '', 10) !== commentCaptchaAnswer){
+  if(commentCaptchaAnswer < 0 || parseInt(captchaInput ? captchaInput.value.trim() : '', 10) !== commentCaptchaAnswer){
     if(msgBox){
       msgBox.style.display = 'block';
       msgBox.style.color = 'var(--maroon)';
@@ -2586,6 +2635,7 @@ function submitPostComment(postId){
 
   const submittedCaptchaA = commentCaptchaA;
   const submittedCaptchaB = commentCaptchaB;
+  const submittedCaptchaToken = commentCaptchaToken;
 
   if(btn){ btn.disabled = true; btn.textContent = 'জমা হচ্ছে...'; }
   fetch(SCRIPT_URL, {
@@ -2593,7 +2643,7 @@ function submitPostComment(postId){
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({
       action: 'addComment', postId: postId, name: name, comment: text, hp: hp,
-      captchaA: submittedCaptchaA, captchaB: submittedCaptchaB,
+      captchaA: submittedCaptchaA, captchaB: submittedCaptchaB, captchaToken: submittedCaptchaToken,
       captchaAns: submittedCaptchaA + submittedCaptchaB
     })
   }).then(r => r.json().catch(() => null)).then(res => {
