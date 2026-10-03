@@ -2131,11 +2131,33 @@ function updateStatus(rowIndex, newStatus, btn, card){
 }
 
 function normalizePhone(phone){
-  let digits = String(phone || '').replace(/\D/g, '');
-  if(digits.startsWith('0')) digits = '88' + digits;
-  else if(digits.startsWith('880')) digits = digits;
-  else if(!digits.startsWith('88')) digits = '880' + digits;
-  return digits;
+  const raw = String(phone || '').trim();
+  let digits = raw.replace(/\D/g, '');
+  if(!digits) return '';
+
+  // Keep an explicitly international number unchanged.
+  // +44..., +91..., +1... etc.
+  if(raw.startsWith('+')) return digits;
+
+  // Convert international 00 prefix: 0044... -> 44...
+  if(digits.startsWith('00')) return digits.slice(2);
+
+  // Bangladesh local number: 01... -> 8801...
+  if(digits.startsWith('0')) return '88' + digits;
+
+  // Already Bangladesh international format.
+  if(digits.startsWith('880')) return digits;
+
+  // Numbers imported without the '+' sign: keep known country codes.
+  const intlPrefixes = [
+    '44','1','91','61','971','966','974','90','49','33','39','34',
+    '81','82','86','7','92','94','977','98','65','60','62','63',
+    '64','55','52','27','20'
+  ];
+  if(intlPrefixes.some(code => digits.startsWith(code))) return digits;
+
+  // Legacy fallback for a bare Bangladesh number.
+  return '880' + digits;
 }
 
 function statusMessage(fullName, appId, status){
