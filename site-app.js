@@ -950,9 +950,9 @@ checkBtn.addEventListener('click', async ()=>{
       lastCheckedData = { id: id, name: data.name, date: data.date, status: data.status };
       checkResult.innerHTML =
         '<div class="cr-box cr-found">' +
-        'নাম: <strong>' + data.name + '</strong><br>' +
-        'আবেদনের তারিখ: ' + data.date + '<br>' +
-        'বর্তমান অবস্থা: <span class="cr-status-badge">' + data.status + '</span>' +
+        'নাম: <strong>' + blogEscape(data.name) + '</strong><br>' +
+        'আবেদনের তারিখ: ' + blogEscape(data.date) + '<br>' +
+        'বর্তমান অবস্থা: <span class="cr-status-badge">' + blogEscape(data.status) + '</span>' +
         renderStatusSteps(data.status) +
         '<button onclick="printStatusResult()" style="margin-top:12px; padding:8px 14px; border:1px solid var(--forest); border-radius:6px; background:transparent; color:var(--forest); font-size:13px; cursor:pointer;">🖨️ প্রিন্ট / সংরক্ষণ করুন</button>' +
         '</div>';
@@ -977,9 +977,9 @@ function printStatusResult(){
   const d = lastCheckedData;
   const w = window.open('', '_blank', 'width=420,height=600');
   if(!w) { alert('পপ-আপ ব্লক করা আছে, অনুগ্রহ করে অ্যালাউ করুন।'); return; }
-  const safeName = String(d.name).replace(/</g,'&lt;');
+  const safeName = blogEscape(d.name);
   w.document.write(
-    '<html><head><meta charset="utf-8"><title>আবেদনের অবস্থা - ' + d.id + '</title>' +
+    '<html><head><meta charset="utf-8"><title>আবেদনের অবস্থা - ' + blogEscape(d.id) + '</title>' +
     '<style>' +
     'body{font-family:"Hind Siliguri",Arial,sans-serif; padding:24px; color:#1f2d24;}' +
     'h2{color:#1f5f3f; margin-bottom:4px;}' +
@@ -992,10 +992,10 @@ function printStatusResult(){
     '</head><body>' +
     '<h2>আবেদনের অবস্থা রিসিট</h2>' +
     '<div class="foot">' + window.location.origin + window.location.pathname + '</div><hr>' +
-    '<div class="row"><div class="label">আবেদন নম্বর</div>' + d.id + '</div>' +
+    '<div class="row"><div class="label">আবেদন নম্বর</div>' + blogEscape(d.id) + '</div>' +
     '<div class="row"><div class="label">নাম</div>' + safeName + '</div>' +
-    '<div class="row"><div class="label">আবেদনের তারিখ</div>' + d.date + '</div>' +
-    '<div class="row"><div class="label">বর্তমান অবস্থা</div><span class="badge">' + d.status + '</span></div>' +
+    '<div class="row"><div class="label">আবেদনের তারিখ</div>' + blogEscape(d.date) + '</div>' +
+    '<div class="row"><div class="label">বর্তমান অবস্থা</div><span class="badge">' + blogEscape(d.status) + '</span></div>' +
     '<hr><div class="foot">প্রিন্ট করার তারিখ: ' + new Date().toLocaleString('bn-BD') + '</div>' +
     '</body></html>'
   );
@@ -1371,7 +1371,7 @@ form.addEventListener('submit', async (e)=>{
     return;
   }
 
-  const appId = 'APP-' + Date.now().toString().slice(-8);
+  let appId = (function(){ try{ const a = new Uint32Array(1); crypto.getRandomValues(a); return 'APP-' + String(a[0] % 100000000).padStart(8,'0'); }catch(e){ return 'APP-' + Date.now().toString().slice(-8); } })();
 
   const payload = {
     appId: appId,
@@ -1449,8 +1449,17 @@ form.addEventListener('submit', async (e)=>{
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
-    let submitData = {};
-    try { submitData = await submitRes.json(); } catch(parseErr) { submitData = { status: 'success' }; }
+    let submitData = null;
+    try { submitData = await submitRes.json(); } catch(parseErr) { submitData = null; }
+    if(!submitData || (submitData.status !== 'success' && submitData.status !== 'duplicate' && submitData.status !== 'error')){
+      // সার্ভারের উত্তর বোঝা যায়নি — আবেদন সেভ হয়েছে কিনা নিশ্চিত নয়, তাই "সফল" দেখানো হচ্ছে না
+      showStatus('err', 'সার্ভার থেকে নিশ্চিত উত্তর পাওয়া যায়নি, তাই আবেদন জমা হয়েছে কিনা জানা যাচ্ছে না। অনুগ্রহ করে আবার চেষ্টা করুন — আগে জমা হয়ে থাকলে "ইতিমধ্যে জমা হয়েছে" বার্তা দেখাবে।');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'রেজিস্ট্রেশন সম্পন্ন করুন';
+      return;
+    }
+    // সার্ভার নতুন আবেদন নম্বর দিলে (নম্বর মিলে গেলে) সেটাই ব্যবহার হবে
+    if(submitData.appId && /^APP-\d{8}$/.test(String(submitData.appId))){ appId = String(submitData.appId); payload.appId = appId; }
 
     if(submitData.status === 'duplicate'){
       showStatus('err', submitData.error || 'এই ট্রানজেকশন আইডি দিয়ে ইতিমধ্যে একটি আবেদন জমা হয়েছে।');
@@ -2581,14 +2590,23 @@ function submitPostComment(postId){
   if(btn){ btn.disabled = true; btn.textContent = 'জমা হচ্ছে...'; }
   fetch(SCRIPT_URL, {
     method: 'POST',
-    mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({
       action: 'addComment', postId: postId, name: name, comment: text, hp: hp,
       captchaA: submittedCaptchaA, captchaB: submittedCaptchaB,
       captchaAns: submittedCaptchaA + submittedCaptchaB
     })
-  }).then(()=>{
+  }).then(r => r.json().catch(() => null)).then(res => {
+    if(res && res.success === false){
+      // সার্ভার স্পষ্টভাবে বলেছে কমেন্ট নেওয়া হয়নি — ইনপুট না মুছে কারণ জানানো হচ্ছে
+      newCommentCaptcha();
+      if(msgBox){
+        msgBox.style.display = 'block';
+        msgBox.style.color = 'var(--maroon)';
+        msgBox.textContent = res.error === 'captcha' ? 'যাচাই উত্তর সঠিক নয়, আবার চেষ্টা করুন।' : 'দুঃখিত, কমেন্ট জমা দেওয়া যায়নি। আবার চেষ্টা করুন।';
+      }
+      return;
+    }
     if(textInput) textInput.value = '';
     if(nameInput) nameInput.value = '';
     newCommentCaptcha();
