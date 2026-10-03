@@ -2320,7 +2320,9 @@ function showBlogDetail(postId){
   trackPostView(String(post.id));
 
   const safeTitle = blogEscape(post.title);
-  const safeContent = blogEscape(post.content);
+  const safeContent = blogEscape(post.content)
+    .replace(/^## (.+)$/gm, '<h2 class="post-sub">$1</h2>')
+    .replace(/!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)/g, (m, cap, src) => '<figure class="post-fig"><img src="' + src + '" alt="' + cap + '" loading="lazy">' + (cap ? '<figcaption>' + cap + '</figcaption>' : '') + '</figure>');
   const imageHtml = blogSafeUrl(post.imageUrl)
     ? '<img src="' + blogSafeUrl(post.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="width:100%; border-radius:10px; margin-bottom:14px; display:block;">'
     : '';
@@ -2351,6 +2353,7 @@ function showBlogDetail(postId){
           '<div class="byline-date">' + cleanPostDate(post.date) + '</div>' +
         '</div>' +
       '</div>' +
+      blogShareRowHtml(post) +
       imageHtml +
       videoHtml +
       '<div class="post-content">' + safeContent + '</div>' +
@@ -2381,6 +2384,7 @@ function showBlogDetail(postId){
       '<a class="blog-viewall-link" href="?blog=all">← আরও পোস্ট দেখুন</a>' +
     '</div>';
   renderRelatedPosts(post);
+  renderInstallButton();
   renderRecentWidget();
   newCommentCaptcha();
 
@@ -2403,6 +2407,34 @@ function showBlogDetail(postId){
   if(ogDescEl) ogDescEl.setAttribute('content', postExcerpt);
 }
 
+
+
+// ============ হোম স্ক্রিনে যোগ করুন (ব্রাউজার অফার করলে তবেই দেখায়) ============
+let __installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); __installEvt = e; renderInstallButton(); });
+function renderInstallButton(){
+  const wrap = document.querySelector('#blogDetailContent .blog-cta');
+  if(!wrap || !__installEvt || wrap.querySelector('.install-btn')) return;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'install-btn'; b.textContent = '📲 হোম স্ক্রিনে যোগ করুন';
+  b.addEventListener('click', async () => { const e = __installEvt; __installEvt = null; b.remove(); try{ e.prompt(); await e.userChoice; }catch(_){} });
+  wrap.appendChild(b);
+}
+
+// ============ নিউজ-স্টাইল রঙিন শেয়ার আইকন সারি ============
+function blogShareRowHtml(post){
+  const url = encodeURIComponent('https://alamingazi533.github.io/?post=' + post.id);
+  const t = encodeURIComponent(post.title || '');
+  const b = (cls, href, label, svg) => '<a class="share-ic ' + cls + '" href="' + href + '" target="_blank" rel="noopener" aria-label="' + label + '">' + svg + '</a>';
+  const svg = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
+  return '<div class="post-share-row">' +
+    b('fb', 'https://www.facebook.com/sharer/sharer.php?u=' + url, 'Facebook-এ শেয়ার', svg('M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H7.9v3h2.6V21h3z')) +
+    b('wa', 'https://wa.me/?text=' + t + '%20' + url, 'WhatsApp-এ শেয়ার', svg('M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.6 12.4c-.2.5-1.1 1-1.5 1-.4.1-.9.1-2.9-.7-2.4-1-3.9-3.5-4-3.6-.1-.2-1-1.3-1-2.5s.6-1.7.8-2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.8 1.9c.1.1.1.3 0 .4l-.3.5-.4.4c-.1.1-.3.3-.1.5.2.3.7 1.2 1.5 1.9 1 .9 1.900 1.200 2.200 1.300.3.1.4.1.5-.1l.7-.9c.2-.2.3-.2.5-.1l1.800.9c.2.1.4.2.4.3.1.2.1.700-.1 1.200z')) +
+    b('tg', 'https://t.me/share/url?url=' + url + '&text=' + t, 'Telegram-এ শেয়ার', svg('M20.7 4.3 3.4 11c-.8.3-.8.8-.1 1l4.400 1.400 1.700 5.200c.2.600.4.700.9.400l2.500-2 4.600 3.400c.8.5 1.400.2 1.600-.8l3-14.300c.3-1.200-.4-1.700-1.300-1.300zM9 13.200l8.600-5.400c.4-.3.800-.1.500.2l-7 6.300-.3 3-1.800-4.100z')) +
+    b('x', 'https://twitter.com/intent/tweet?url=' + url + '&text=' + t, 'X-এ শেয়ার', svg('M17.800 3h3l-6.600 7.500L22 21h-6.100l-4.800-6.200L5.600 21h-3l7.100-8.100L2.200 3h6.200l4.300 5.700L17.800 3zm-1 16.200h1.700L7.400 4.700H5.600l11.200 14.500z')) +
+  '</div>';
+}
+
 // ============ একই ক্যাটাগরির রিলেটেড পোস্ট দেখানো ============
 function renderRelatedPosts(post){
   const contentEl = document.getElementById('blogDetailContent');
@@ -2412,12 +2444,14 @@ function renderRelatedPosts(post){
     .filter(p => String(p.id) !== String(post.id) && (p.category || 'সাধারণ আপডেট') === (post.category || 'সাধারণ আপডেট'))
     .slice(0, 4);
   if(related.length === 0) return;
-  const itemsHtml = related.map(p =>
-    '<a class="blog-related-item" href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a>'
+  const itemsHtml = related.map((p, i) =>
+    '<a class="blog-related-item' + (i < 2 && blogSafeUrl(p.imageUrl) ? ' is-big' : '') + '" href="?post=' + encodeURIComponent(p.id) + '">' +
+      (blogSafeUrl(p.imageUrl) ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="" loading="lazy" decoding="async">' : '') +
+      '<span>' + blogEscape(p.title) + '</span></a>'
   ).join('');
   const html =
     '<div class="blog-related-wrap">' +
-      '<h3>একই বিষয়ে আরও পোস্ট</h3>' +
+      '<h3>আরও পড়ুন</h3>' +
       '<div class="blog-related-grid">' + itemsHtml + '</div>' +
     '</div>';
   moreLinkWrap.insertAdjacentHTML('beforebegin', html);

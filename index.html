@@ -1336,6 +1336,30 @@
     margin-top:22px;
     text-align:center;
   }
+  /* ===== ব্লগ নিবন্ধ: নিউজ-পোর্টাল স্টাইল ===== */
+  .blog-detail article{ background:transparent; border:none; border-radius:0; box-shadow:none; padding:4px 0 10px; }
+  [data-theme="dark"] .blog-detail article{ background:transparent; }
+  .blog-detail h1{ font-size:26px; line-height:1.35; margin:0 0 4px; }
+  .blog-detail .byline{ margin:10px 0 12px; padding-bottom:0; border-bottom:none; }
+  .post-share-row{ display:flex; gap:8px; padding:10px 0 14px; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .share-ic{ width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }
+  .share-ic svg{ width:18px; height:18px; fill:#fff; }
+  .share-ic.fb{ background:#1877f2; } .share-ic.wa{ background:#25d366; } .share-ic.tg{ background:#229ed9; } .share-ic.x{ background:#111; }
+  .blog-detail article > img{ border-radius:4px !important; margin-bottom:16px !important; }
+  .blog-detail .post-content{ font-size:16.5px; line-height:1.9; }
+  .blog-detail .post-content .post-sub{ font-family:'Noto Serif Bengali', serif; font-size:19px; line-height:1.5; margin:22px 0 6px; padding-left:10px; border-left:4px solid var(--forest); white-space:normal; }
+  .blog-related-grid{ gap:0; }
+  .blog-related-item{ display:flex; gap:12px; align-items:center; padding:12px 0; border:none; border-bottom:1px solid var(--line); border-radius:0; background:transparent; font-size:15px; line-height:1.5; font-weight:600; }
+  .blog-related-item img{ width:96px; height:64px; object-fit:cover; border-radius:4px; flex:none; }
+  .post-fig{ margin:16px 0; white-space:normal; }
+  .post-fig img{ width:100%; border-radius:4px; display:block; margin:0; }
+  .post-fig figcaption{ font-size:13px; color:var(--muted); line-height:1.6; padding-top:6px; }
+  .blog-related-item.is-big{ flex-direction:column; align-items:stretch; gap:8px; }
+  .blog-related-item.is-big img{ width:100%; height:auto; aspect-ratio:16/9; }
+  .install-btn{ display:block; margin:12px auto 0; padding:10px 18px; border:1.5px solid var(--forest); background:transparent; color:var(--forest); border-radius:8px; font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+  .site-footer-social{ display:flex; gap:10px; justify-content:center; margin:14px 0 4px; }
+  .site-footer-social a{ width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }
+  .site-footer-social svg{ width:19px; height:19px; fill:#fff; }
   .blog-engage-row{
     display:flex;
     gap:10px;
@@ -2887,6 +2911,7 @@
       <a href="about.html">আমাদের সম্পর্কে</a>
       <a href="privacy.html">গোপনীয়তা নীতি</a>
     </div>
+    <div class="site-footer-social"><a href="https://www.facebook.com/AlaminIslamAi13" target="_blank" rel="noopener" aria-label="Facebook পেজ" style="background:#1877f2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H7.9v3h2.6V21h3z"/></svg></a><a href="https://wa.me/8801764324313" target="_blank" rel="noopener" aria-label="WhatsApp" style="background:#25d366"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.6 12.4c-.2.5-1.1 1-1.5 1-.4.1-.9.1-2.9-.7-2.4-1-3.9-3.5-4-3.6-.1-.2-1-1.3-1-2.5s.6-1.7.8-2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.8 1.9c.1.1.1.3 0 .4l-.3.5-.4.4c-.1.1-.3.3-.1.5.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.5-.1l.7-.9c.2-.2.3-.2.5-.1l1.8.9c.2.1.4.2.4.3.1.2.1.7-.1 1.2z"/></svg></a></div>
     <p class="site-footer-copy">© <span id="footerYear"></span> <span data-i18n="footer.copy">মোঃ আলামিন ইসলাম। সর্বস্বত্ব সংরক্ষিত।</span></p>
   </div>
 <div id="siteExtraLinks" class="site-extra-links"><a href="#contactSection">যোগাযোগ</a><button type="button" onclick="openSitePolicy('privacy')">গোপনীয়তা</button><button type="button" onclick="openSitePolicy('disclaimer')">ডিসক্লেইমার</button><a href="#faqSection">সাধারণ প্রশ্ন</a><a data-site-youtube href="#" target="_blank" rel="noopener">YouTube</a><a data-site-telegram href="#" target="_blank" rel="noopener">Telegram</a><a data-site-email href="#">ইমেইল</a></div>
