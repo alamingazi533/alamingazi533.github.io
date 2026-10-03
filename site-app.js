@@ -1836,9 +1836,10 @@ function renderPhotoGrid(){
   if(!wrap) return;
   const withImages = __allPosts.filter(p => blogSafeUrl(p.imageUrl)).slice(0, 5);
   if(withImages.length === 0){ wrap.innerHTML = ''; return; }
-  wrap.innerHTML = withImages.map(p =>
-    '<a class="blog-photo-card" href="?post=' + encodeURIComponent(p.id) + '">' +
-      '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + blogEscape(p.title) + '" loading="lazy">' +
+  wrap.innerHTML = withImages.map((p, i) =>
+    '<a class="blog-photo-card' + (i === 0 ? ' is-lead' : '') + '" href="?post=' + encodeURIComponent(p.id) + '">' +
+      '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + blogEscape(p.title) + '"' + (i === 0 ? '' : ' loading="lazy"') + '>' +
+      (i === 0 ? '<div class="lead-meta">' + blogEscape(p.category || 'সাধারণ আপডেট') + ' · ' + blogEscape(cleanPostDate(p.date)) + '</div>' : '') +
       '<div class="post-title">' + blogEscape(p.title) + '</div>' +
     '</a>'
   ).join('');

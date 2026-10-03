@@ -1168,6 +1168,12 @@
     .blog-photo-grid{ grid-template-columns:repeat(5, 1fr); }
     .blog-photo-card img{ height:78px; }
   }
+  /* প্রধান খবর: প্রথম পোস্ট বড় কার্ডে, বাকি ৪টা ছোট */
+  .blog-photo-card.is-lead{ grid-column:1 / -1; }
+  .blog-photo-card.is-lead img{ height:auto; aspect-ratio:16/9; max-height:380px; border-radius:6px; margin-bottom:8px; }
+  .blog-photo-card.is-lead .lead-meta{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .blog-photo-card.is-lead .post-title{ font-family:'Noto Serif Bengali', serif; font-size:22px; line-height:1.4; -webkit-line-clamp:3; }
+  @media (min-width:620px){ .blog-photo-grid{ grid-template-columns:repeat(4, 1fr); } }
   .blog-cat-block{ margin:0 0 32px; }
   .blog-cat-block-head{
     display:flex; justify-content:space-between; align-items:baseline; gap:10px;
