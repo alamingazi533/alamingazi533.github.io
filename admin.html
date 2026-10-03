@@ -2486,6 +2486,38 @@ if(sessionStorage.getItem('adminPw')){
   const oldFetchStats=window.fetchPersistentStats;
   window.fetchPersistentStats=function(){ if(typeof oldFetchStats==='function') oldFetchStats(); setTimeout(loadRevenue,80); };
 
+  // ---------------- Monthly summary + repeat applicants (read-only, collapsed by default) ----------------
+  function ensureMonthlyCard(){
+    if(document.getElementById('monthlySummaryCard')) return;
+    const anchor=document.getElementById('verifiedRevenueCard')||document.getElementById('dashboard'); if(!anchor) return;
+    const card=document.createElement('div'); card.id='monthlySummaryCard';
+    card.style.cssText='margin:12px 0;background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;';
+    card.innerHTML='<div class="collapseHead" style="font-weight:800;color:var(--forest);cursor:pointer;" onclick="toggleSection(\'monthlySummaryWrap\', this);if(document.getElementById(\'monthlySummaryWrap\').style.display===\'block\')window.loadMonthlySummary();"><span class="secArrow">▸</span> 📅 মাসভিত্তিক সারাংশ ও বারবার আবেদনকারী</div><div id="monthlySummaryWrap" style="display:none;margin-top:10px;"><div id="monthlySummaryBody" style="font-size:12.5px;color:var(--muted);">লোড হচ্ছে...</div></div>';
+    anchor.after(card);
+  }
+  window.loadMonthlySummary=function(){
+    const box=document.getElementById('monthlySummaryBody'); if(!box) return;
+    box.textContent='লোড হচ্ছে...';
+    apiGet('getMonthlySummary').then(d=>{
+      if(!d.success){ if(d.error==='session expired'||d.error==='locked') __handleAuthIssue(d.error); box.textContent='সারাংশ লোড করা যায়নি।'; return; }
+      const bn=n=>Number(n||0).toLocaleString('bn-BD');
+      let h='';
+      if(!d.months||!d.months.length){ h+='<div>কোনো আবেদন নেই।</div>'; }
+      else{
+        h+='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;color:var(--ink);"><tr style="text-align:left;border-bottom:1px solid var(--line);"><th style="padding:6px 4px;">মাস</th><th>আবেদন</th><th>সম্পন্ন</th><th>ভেরিফাইড</th><th>আয়</th></tr>'+
+          d.months.map(m=>'<tr style="border-bottom:1px solid var(--line);"><td style="padding:6px 4px;font-weight:700;">'+esc(m.month)+'</td><td>'+bn(m.total)+'</td><td>'+bn(m.solved)+'</td><td>'+bn(m.verified)+'</td><td>'+money(m.revenue)+'</td></tr>').join('')+'</table></div>';
+      }
+      h+='<div style="font-weight:800;color:var(--forest);margin:14px 0 6px;">🔁 একাধিকবার আবেদন করা ফোন নম্বর</div>';
+      if(!d.repeatPhones||!d.repeatPhones.length){ h+='<div>কেউ একাধিকবার আবেদন করেনি।</div>'; }
+      else{
+        h+=d.repeatPhones.map(x=>'<div style="border-bottom:1px solid var(--line);padding:7px 0;color:var(--ink);"><b>'+esc(x.phone)+'</b> · '+esc(x.name)+' · '+bn(x.count)+' বার<div style="font-size:11.5px;color:var(--muted);">'+x.appIds.map(esc).join(', ')+'</div></div>').join('');
+      }
+      box.innerHTML=h;
+    }).catch(()=>{box.textContent='সংযোগে সমস্যা হয়েছে।';});
+  };
+  const oldFetchStats2=window.fetchPersistentStats;
+  window.fetchPersistentStats=function(){ if(typeof oldFetchStats2==='function') oldFetchStats2(); setTimeout(ensureMonthlyCard,200); };
+
   // ---------------- Applications Trash / Restore ----------------
   window.loadTrash=function(){
     const box=document.getElementById('trashPanel'); if(!box) return;
