@@ -694,7 +694,12 @@ divisionSelect.addEventListener('change', async ()=>{
     .replace(/^[^\w\u0980-\u09FF]+/u, '')
     .trim();
   const knownFallback = GLOBAL_STATE_CITY_FALLBACK[countryCode]?.[stateName] || [];
-  const immediateFallback = knownFallback.length ? knownFallback : (stateName ? [stateName] : []);
+  // The selected State/Province itself must also be a selectable City/District.
+  // Example: UK -> London should allow selecting London directly before any
+  // London boroughs returned by the API.
+  const immediateFallback = stateName
+    ? [stateName, ...knownFallback.filter(name => String(name).trim().toLowerCase() !== stateName.toLowerCase())]
+    : knownFallback.slice();
   if(immediateFallback.length){
     setSelectOptions(districtSelect, immediateFallback.map(name=>({value:name,text:name})), 'City / District নির্বাচন করুন');
     districtSelect.disabled = false;
@@ -714,7 +719,11 @@ divisionSelect.addEventListener('change', async ()=>{
     // Prefer real API cities when available. Otherwise retain the fallback
     // already placed above, so the select can never be left empty.
     if(apiItems.length){
-      setSelectOptions(districtSelect, apiItems, 'City / District নির্বাচন করুন');
+      const mergedItems = [
+        ...(stateName ? [{value:stateName, text:stateName}] : []),
+        ...apiItems.filter(item => !stateName || item.text.trim().toLowerCase() !== stateName.toLowerCase())
+      ];
+      setSelectOptions(districtSelect, mergedItems, 'City / District নির্বাচন করুন');
     } else if(immediateFallback.length){
       setSelectOptions(districtSelect, immediateFallback.map(name=>({value:name,text:name})), 'City / District নির্বাচন করুন');
     } else {
