@@ -1,0 +1,3010 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1LPWBCYD"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1LPWBCYD');
+</script>
+
+<title>ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ হ্যাক, ডিজেবল, মনিটাইজেশন সমস্যা সমাধান | কেশবপুর, যশোর</title>
+<link rel="canonical" href="https://alamingazi533.github.io/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="//script.google.com">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="manifest" href="manifest.json" id="siteManifestLink">
+<script>
+// ============ ডায়নামিক ম্যানিফেস্ট: হোম স্ক্রিনে অ্যাড করলে যেন বর্তমান লিংকই (?form=1, ?blog=... ইত্যাদি) মনে থাকে ============
+// সাধারণত Android/Chrome-এ "Add to Home Screen" করলে manifest.json-এর স্থির start_url থেকে অ্যাপ খোলে,
+// ফলে ?form=1-এর মতো কোয়েরি প্যারামিটার হারিয়ে যায়। এখানে manifest.json ফেচ করে তার start_url-কে
+// বর্তমান পেজের সম্পূর্ণ URL (কোয়েরি প্যারামিটারসহ) দিয়ে বদলে, একটা Blob URL বানিয়ে <link rel="manifest">-এ বসানো হচ্ছে,
+// যাতে যে লিংক থেকে হোম স্ক্রিনে অ্যাড করা হবে, শর্টকাটটা সেই নির্দিষ্ট লিংকই খুলবে।
+(function initDynamicManifest(){
+  try{
+    const hasQuery = window.location.search !== '';
+    const hasMeaningfulHash = window.location.hash !== '' && window.location.hash !== '#top';
+    if(!hasQuery && !hasMeaningfulHash) return; // একদম সাধারণ হোমপেজে আসল manifest.json/টাইটেল-ই থাকুক
+
+    // ============ লিংক অনুযায়ী শর্টকাটের নাম ও আইকন-কী ঠিক করা ============
+    function getRouteInfo(){
+      const params = new URLSearchParams(window.location.search);
+      const hash = window.location.hash;
+      if(params.get('form') === '1') return { label: 'রেজিস্ট্রেশন ফর্ম', icon: 'form' };
+      if(params.get('post') || params.get('p') || (/^#[A-Za-z0-9_-]{22}$/.test(hash))) return { label: 'ব্লগ পোস্ট', icon: 'post' };
+      if(params.get('blog')){
+        const cat = params.get('blog');
+        return { label: (cat && cat !== 'all') ? ('ব্লগ: ' + cat) : 'সব ব্লগ পোস্ট', icon: 'blog' };
+      }
+      if(hash === '#servicesSection') return { label: 'সেবাসমূহ', icon: 'services' };
+      if(hash === '#reviewsSection') return { label: 'রিভিউ', icon: 'reviews' };
+      if(hash === '#contactSection') return { label: 'যোগাযোগ', icon: 'contact' };
+      if(hash === '#faqSection') return { label: 'FAQ ও গোপনীয়তা নীতি', icon: 'faq' };
+      return { label: 'সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা', icon: null };
+    }
+    const route = getRouteInfo();
+
+    // iOS হোম স্ক্রিন এই মেটা ট্যাগ (বা <title>) থেকে শর্টকাটের নাম নেয়, manifest.json থেকে না
+    const appleTitleEl = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if(appleTitleEl) appleTitleEl.setAttribute('content', route.label);
+
+    // iOS হোম স্ক্রিন আইকনও manifest.json থেকে না নিয়ে এই <link rel="apple-touch-icon"> থেকে নেয়
+    if(route.icon){
+      const appleIconEl = document.querySelector('link[rel="apple-touch-icon"]');
+      if(appleIconEl) appleIconEl.setAttribute('href', 'icon-' + route.icon + '-192.png');
+    }
+
+    // Android/Chrome manifest.json থেকে নাম ও আইকন নেয়, তাই সেটাও বদলে দেওয়া হচ্ছে
+    fetch('manifest.json').then(r => r.json()).then(m => {
+      m.start_url = window.location.href;
+      m.name = route.label;
+      m.short_name = route.label.length > 12 ? route.label.slice(0, 12) : route.label;
+      if(route.icon){
+        m.icons = [
+          { src: 'icon-' + route.icon + '-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-' + route.icon + '-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
+        ];
+      }
+      const blob = new Blob([JSON.stringify(m)], { type: 'application/json' });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.getElementById('siteManifestLink');
+      if(link) link.setAttribute('href', blobUrl);
+    }).catch(()=>{});
+  }catch(err){}
+})();
+</script>
+<link rel="apple-touch-icon" href="favicon-180.png">
+<meta name="theme-color" content="#1F3B2C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা">
+
+<meta name="description" content="ফেসবুক, ইনস্টাগ্রাম, টিকটক বা ইউটিউব আইডি/পেজ/চ্যানেল হ্যাক, সাসপেন্ড, ডিজেবল বা মনিটাইজেশন বন্ধ হয়ে গেছে? আইডি রিভিউ, পে-আউট অ্যাকাউন্ট, টিন সার্টিফিকেট, ব্যাংক অ্যাকাউন্ট সেটআপ ও যেকোনো সোশ্যাল মিডিয়া সমস্যা সমাধান — কেশবপুর, যশোরের মোঃ আলামিন ইসলামের কাছে রেজিস্ট্রেশন করুন।">
+<meta name="keywords" content="ফেসবুক আইডি হ্যাক সমাধান, ফেসবুক পেজ হ্যাক সমাধান, ফেসবুক আইডি ফিরিয়ে আনা, ফেসবুক পেজ ফিরিয়ে আনা, পেজ ডিজেবল সমাধান, আইডি ডিজেবল সমাধান, ফেসবুক সাসপেন্ড সমাধান, ফেসবুক আইডি লক সমাধান, ইনস্টাগ্রাম আইডি হ্যাক সমাধান, ইনস্টাগ্রাম আইডি ডিজেবল সমাধান, ইনস্টাগ্রাম আইডি ফিরিয়ে আনা, টিকটক আইডি হ্যাক সমাধান, টিকটক আইডি ব্যান সমাধান, ইউটিউব চ্যানেল হ্যাক সমাধান, ইউটিউব চ্যানেল সাসপেন্ড সমাধান, ইউটিউব মনিটাইজেশন সমস্যা, সোশ্যাল মিডিয়া আইডি সমাধান, মনিটাইজেশন সমস্যা, মনিটাইজেশন বন্ধ, ইন-স্ট্রিম এড সমস্যা, পে-আউট অ্যাকাউন্ট, পে-আউট ভুল নাম সংশোধন, টিন সার্টিফিকেট, ব্যাংক অ্যাকাউন্ট সেটআপ, ফেসবুক আইডি রিভিউ, ফেসবুক পেজ ফুল সেটআপ, কমিউনিটি স্ট্যান্ডার্ড ভায়োলেশন, কপিরাইট স্ট্রাইক সমাধান, ফেসবুক বিজনেস ম্যানেজার সমস্যা, এড অ্যাকাউন্ট ডিজেবল, ফেসবুক পেজ রেস্ট্রিকশন, ফেসবুক এক্সপার্ট, ফেসবুক সমস্যা সমাধান যশোর, ফেসবুক সমস্যা সমাধান কেশবপুর, ফেসবুক সমস্যা সমাধান বাংলাদেশ, সোশ্যাল মিডিয়া এক্সপার্ট যশোর, Facebook account disabled, Facebook account suspend, Facebook page hacked, Facebook ID recovery, Facebook page recovery, Facebook monetization off, Facebook business manager disabled, Facebook ad account disabled, Facebook copyright strike, Facebook community standard violation, Facebook help, meta help, meta business suite problem, Instagram account hacked, Instagram account disabled, Instagram account recovery, TikTok account hacked, TikTok account banned, YouTube channel hacked, YouTube channel suspended, YouTube monetization problem, social media help Bangladesh">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ হ্যাক, ডিজেবল ও মনিটাইজেশন সমস্যা সমাধান সেবা — যশোর">
+<meta property="og:description" content="যাদের ফেসবুক, ইনস্টাগ্রাম, টিকটক বা ইউটিউব আইডি/পেজ/চ্যানেল হ্যাক হয়েছে, নিষ্ক্রিয় হয়ে গেছে বা মনিটাইজেশন সমস্যা আছে — ফর্মটি পূরণ করুন, দেখে যোগাযোগ করা হবে।">
+<meta property="og:image" content="https://alamingazi533.github.io/profile.jpg">
+<meta property="og:url" content="https://alamingazi533.github.io/">
+<meta property="og:site_name" content="সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা",
+  "alternateName": "Social Media Help",
+  "url": "https://alamingazi533.github.io/"
+}
+</script>
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ হ্যাক, ডিজেবল ও মনিটাইজেশন সমস্যা সমাধান সেবা — যশোর">
+<meta name="twitter:description" content="যাদের ফেসবুক, ইনস্টাগ্রাম, টিকটক বা ইউটিউব আইডি/পেজ/চ্যানেল হ্যাক হয়েছে, নিষ্ক্রিয় হয়ে গেছে বা মনিটাইজেশন সমস্যা আছে — ফর্মটি পূরণ করুন, দেখে যোগাযোগ করা হবে।">
+<meta name="twitter:image" content="https://alamingazi533.github.io/profile.jpg">
+<script type="application/ld+json" id="localBusinessSchema">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা - মোঃ আলামিন ইসলাম",
+  "image": "https://alamingazi533.github.io/profile.jpg",
+  "url": "https://alamingazi533.github.io/",
+  "telephone": "+8801764324313",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "গোপসেনা",
+    "addressLocality": "কেশবপুর",
+    "addressRegion": "যশোর",
+    "addressCountry": "BD"
+  },
+  "description": "ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব আইডি/পেজ/চ্যানেল হ্যাক, ডিজেবল, সাসপেন্ড ও মনিটাইজেশন সমস্যা সমাধান। আইডি ফুল সেটআপ, আইডি রিভিউ, পে-আউট অ্যাকাউন্ট তৈরি ও ভুল নাম সংশোধন, টিন সার্টিফিকেট, ব্যাংক অ্যাকাউন্ট সেটআপ এবং যেকোনো সোশ্যাল মিডিয়া প্ল্যাটফর্ম সংক্রান্ত সমস্যা সমাধান করা হয়।",
+  "areaServed": "BD",
+  "priceRange": "৳৳",
+  "sameAs": ["https://www.facebook.com/AlaminIslam13AI"],
+  "makesOffer": [
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"ফেসবুক আইডি/পেজ ফুল সেটআপ"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"আইডি রিভিউ"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"পে-আউট অ্যাকাউন্ট সেটআপ ও সংশোধন"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"টিন সার্টিফিকেট"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"ব্যাংক অ্যাকাউন্ট সেটআপ"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"সাসপেন্ড হওয়া আইডি সমাধান"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"হ্যাক হওয়া পেজ/অ্যাকাউন্ট রিকভারি"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"নিষ্ক্রিয় (ডিজেবল) আইডি/পেজ ফেরত আনা"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"মনিটাইজেশন সমস্যা সমাধান"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"কমিউনিটি স্ট্যান্ডার্ড ভায়োলেশন ও কপিরাইট স্ট্রাইক সমাধান"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"বিজনেস ম্যানেজার ও এড অ্যাকাউন্ট ডিজেবল সমাধান"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"ইনস্টাগ্রাম আইডি হ্যাক/ডিজেবল সমাধান"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"টিকটক আইডি হ্যাক/ব্যান সমাধান"}},
+    {"@type":"Offer","itemOffered":{"@type":"Service","name":"ইউটিউব চ্যানেল হ্যাক/সাসপেন্ড/মনিটাইজেশন সমাধান"}}
+  ],
+  "knowsAbout": ["Facebook account disabled","Facebook account suspend","Facebook page hacked","Facebook ID recovery","Facebook monetization off","Facebook business manager disabled","Facebook ad account disabled","Facebook copyright strike","Facebook community standard violation","Meta business suite","Instagram account hacked","Instagram account disabled","Instagram account recovery","TikTok account hacked","TikTok account banned","YouTube channel hacked","YouTube channel suspended","YouTube monetization problem"]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "ফেসবুক আইডি বা পেজ হ্যাক হয়ে গেলে কি করব?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "নিচের রেজিস্ট্রেশন ফর্মে আপনার তথ্য দিয়ে আবেদন করুন। আমরা আপনার আইডি বা পেজ রিকভারির জন্য প্রয়োজনীয় ধাপগুলো নিয়ে কাজ করব এবং WhatsApp-এর মাধ্যমে সরাসরি যোগাযোগ করব।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "ফেসবুক পেজ ডিজেবল বা নিষ্ক্রিয় হয়ে গেলে কি ফেরত পাওয়া যায়?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "হ্যাঁ, অনেক ক্ষেত্রেই নিষ্ক্রিয় (ডিজেবল) হয়ে যাওয়া আইডি বা পেজ সঠিক প্রক্রিয়ায় ফেরত আনা সম্ভব। ফর্মে আবেদন করলে আমরা আপনার সমস্যা যাচাই করে জানাব।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "ফেসবুক পেজের মনিটাইজেশন বন্ধ হয়ে গেলে কিভাবে চালু করা যায়?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "মনিটাইজেশন বন্ধ হয়ে যাওয়া বা ইন-স্ট্রিম এড সংক্রান্ত সমস্যা সমাধানের জন্য আমরা পেজ পর্যালোচনা করে করণীয় ধাপ নিয়ে সহায়তা করি। রেজিস্ট্রেশন ফর্মে আবেদন করুন।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "পে-আউট অ্যাকাউন্টে ভুল নাম থাকলে কি সংশোধন করা যায়?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "হ্যাঁ, পে-আউট অ্যাকাউন্টের ভুল নাম সংশোধন এবং নতুন পে-আউট অ্যাকাউন্ট তৈরি — দুটো সেবাই দেওয়া হয়।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "সেবা নিতে কত টাকা ফি লাগে এবং কিভাবে যোগাযোগ করব?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "আবেদন ফি মাত্র ২০ টাকা (বিকাশ/নগদ/রকেট/উপায়ে পাঠানো যায়)। ফর্ম পূরণ করার পর WhatsApp বাটনে ক্লিক করে সরাসরি যোগাযোগ করতে পারবেন। কাজের চার্জ সমস্যার ধরন অনুযায়ী আলোচনা সাপেক্ষে নির্ধারণ হয়।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "সমাধান হতে সাধারণত কত সময় লাগে?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "সমস্যার ধরন ও প্ল্যাটফর্মের প্রক্রিয়ার ওপর নির্ভর করে সময় ভিন্ন হয়। ছোটখাটো সমস্যা সাধারণত কয়েক দিনের মধ্যেই সমাধান হয়, তবে জটিল কেস (যেমন ব্যাংক বা পে-আউট পর্যায়ে যাচাই) একটু বেশি সময় নিতে পারে। প্রতিটি ধাপ সম্পর্কে হোয়াটসঅ্যাপে আপডেট জানিয়ে দেওয়া হয়।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "একাধিক আইডি/পেজ/চ্যানেলের জন্য কি একসাথে আবেদন করা যাবে?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "হ্যাঁ, তবে প্রতিটি আইডি/পেজ/চ্যানেলের জন্য আলাদাভাবে ফর্ম পূরণ করে আবেদন করতে হবে, যাতে প্রতিটি সমস্যা আলাদাভাবে যাচাই ও ট্র্যাক করা যায়। একাধিক আবেদন নিয়ে সরাসরি সহায়তা লাগলে উপরের WhatsApp নম্বরে জানাতে পারেন।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "বিদেশ থেকেও কি আবেদন করা যাবে?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "হ্যাঁ, পৃথিবীর যেকোনো দেশ থেকে আবেদন করা যায়। ফর্মে দেশ, বিভাগ/State, জেলা/City, থানা/উপজেলা/Locality এবং গ্রাম/এলাকার ঠিকানা দেওয়া যাবে — যাচাই, যোগাযোগ ও পরামর্শ অনলাইনে ও হোয়াটসঅ্যাপের মাধ্যমে সম্পন্ন করা হয়।"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "সমস্যা সমাধান না হলে কী হবে?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "প্রতিটি আবেদন প্রথমে যাচাই করে দেখা হয়, যাতে কাজ শুরুর আগেই সমাধানের সম্ভাবনা সম্পর্কে স্বচ্ছভাবে জানানো যায়। কাজ চলাকালীন কোনো বাধা এলে তা সাথে সাথে হোয়াটসঅ্যাপে জানিয়ে দেওয়া হয়। এরপরও যদি শেষ পর্যন্ত সমস্যার সমাধান করা সম্ভব না হয়, তাহলে নেওয়া সার্ভিস চার্জ ফেরত দেওয়া হয় (প্রাথমিক আবেদন যাচাই ফি ব্যতীত) — কোনোকিছু গোপন রাখা হয় না।"
+      }
+    }
+  ]
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet">
+
+<!-- ============ OneSignal Web Push (নতুন পোস্টের নোটিফিকেশন) ============ -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    var swScope = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1) || '/';
+    await OneSignal.init({
+      appId: "414e7c02-46ae-4e1f-9b04-3dcc19eaedf7",
+      serviceWorkerParam: { scope: swScope },
+      serviceWorkerPath: "sw.js",
+      promptOptions: {
+        slidedown: {
+          prompts: [
+            {
+              type: "push",
+              autoPrompt: true,
+              text: {
+                actionMessage: "নতুন পোস্ট প্রকাশিত হলেই সবার আগে জানতে নোটিফিকেশন চালু করুন।",
+                acceptButton: "অনুমতি দিন",
+                cancelButton: "এখন না",
+                confirmMessage: "ধন্যবাদ! নোটিফিকেশন চালু হয়েছে।"
+              },
+              delay: {
+                pageViews: 1,
+                timeDelay: 0
+              }
+            }
+          ]
+        }
+      }
+    });
+
+    // ============ ম্যানুয়াল নোটিফিকেশন বেল বাটন ============
+    // বড় পপআপ একবার বন্ধ করে দিলে OneSignal নিজে থেকে আর বারবার দেখায় না,
+    // তাই এই বাটন দিয়ে ভিজিটর যেকোনো সময় সাবস্ক্রাইব/আনসাবস্ক্রাইব করতে পারবে।
+    var notifyBtn = document.getElementById('notifyToggleBtn');
+    var notifyLabel = document.getElementById('notifyToggleLabel');
+    if (OneSignal.Notifications.permissionNative !== 'denied' && notifyBtn) {
+      notifyBtn.style.display = '';
+      function syncNotifyBtn(){
+        var optedIn = OneSignal.User.PushSubscription.optedIn;
+        notifyLabel.textContent = optedIn ? 'চালু আছে' : 'নোটিফিকেশন';
+      }
+      syncNotifyBtn();
+      OneSignal.User.PushSubscription.addEventListener('change', syncNotifyBtn);
+      notifyBtn.addEventListener('click', async function(){
+        try{
+          if (OneSignal.User.PushSubscription.optedIn) {
+            await OneSignal.User.PushSubscription.optOut();
+          } else if (OneSignal.Notifications.permission) {
+            await OneSignal.User.PushSubscription.optIn();
+          } else {
+            await OneSignal.Slidedown.promptPush({ force: true });
+          }
+        }catch(err){ /* নীরবে বাদ দেওয়া হলো */ }
+      });
+    }
+  });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<style>
+  :root{
+    --paper:#FBF6EA;
+    --paper-dark:#F2EBDA;
+    --card-bg:#FFFFFF;
+    --ink:#22281F;
+    --forest:#1F3B2C;
+    --forest-2:#16301F;
+    --gold:#B8863B;
+    --gold-light:#E8C784;
+    --maroon:#8B2F2F;
+    --line:#DED0AE;
+    --ok:#2C6B4F;
+    --star:#D9A441;
+    --muted:#6B6752;
+    --ok-bg:#E7F0E9;
+    --ok-border:#BFDBC5;
+    --err-bg:#F5E7E4;
+    --err-border:#E0C1BC;
+  }
+  [data-theme="dark"]{
+    --paper:#161A15;
+    --paper-dark:#1F251C;
+    --card-bg:#1F251C;
+    --ink:#E8E4D5;
+    --forest:#4C9370;
+    --forest-2:#3E7A5C;
+    --gold:#D9AE6B;
+    --gold-light:#E8C98A;
+    --maroon:#E37272;
+    --line:#333B2E;
+    --ok:#4CAF7D;
+    --star:#E8C98A;
+    --muted:#A6A08A;
+    --ok-bg:rgba(76,147,112,0.16);
+    --ok-border:rgba(76,147,112,0.4);
+    --err-bg:rgba(227,114,114,0.15);
+    --err-border:rgba(227,114,114,0.4);
+  }
+  [data-theme="dark"] body{ background-image:none; }
+  [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea{
+    background:var(--card-bg);
+    color:var(--ink);
+  }
+  [data-theme="dark"] .profile-pic{ border-color:var(--card-bg); }
+  [data-theme="dark"] #receipt{ background:var(--card-bg) !important; }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(31,59,44,0.07) 1px, transparent 0);
+    background-size:22px 22px;
+    font-family:'Hind Siliguri', sans-serif;
+    color:var(--ink);
+    padding:0 0 60px;
+  }
+  header{
+    background:linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
+    color:var(--paper);
+    padding:38px 20px 46px;
+    position:relative;
+    overflow:hidden;
+    text-align:center;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:6px;
+    background:repeating-linear-gradient(90deg, var(--gold) 0 14px, transparent 14px 22px);
+  }
+  .top-action-bar{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    max-width:420px;
+    margin:0 auto 6px;
+  }
+  .icon-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(255,255,255,0.16);
+    border:1px solid rgba(255,255,255,0.3);
+    color:#fff;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:600;
+    padding:7px 12px;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .icon-btn svg{width:15px; height:15px; flex-shrink:0;}
+  .share-wrap{ position:relative; }
+  .share-btn-new{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+    border:none;
+    color:#2A1F08;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    padding:7px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow:0 6px 14px -6px rgba(184,134,59,0.6);
+  }
+  .share-btn-new svg{ width:15px; height:15px; flex-shrink:0; }
+  .share-panel{
+    display:none;
+    position:absolute;
+    top:calc(100% + 10px);
+    right:0;
+    z-index:80;
+    background:var(--card-bg, #fff);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+    box-shadow:0 18px 40px -16px rgba(0,0,0,0.35);
+    width:250px;
+  }
+  .share-panel.show{ display:block; }
+  .share-panel-title{
+    font-size:12px; font-weight:700; color:var(--muted);
+    margin-bottom:10px; text-align:center;
+  }
+  .share-icon-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+  }
+  .share-icon{
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    text-decoration:none; background:none; border:none; cursor:pointer;
+    font-family:inherit; color:var(--ink); padding:0;
+  }
+  .share-icon .si-circle{
+    width:42px; height:42px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff;
+  }
+  .share-icon .si-circle svg{ width:20px; height:20px; }
+  .share-icon .si-label{ font-size:10.5px; color:var(--muted); }
+  .share-icon[data-platform="whatsapp"] .si-circle{ background:#25D366; }
+  .share-icon[data-platform="facebook"] .si-circle{ background:#1877F2; }
+  .share-icon[data-platform="messenger"] .si-circle{ background:linear-gradient(135deg,#00C6FF,#0078FF); }
+  .share-icon[data-platform="telegram"] .si-circle{ background:#26A5E4; }
+  .share-icon[data-platform="twitter"] .si-circle{ background:#111; }
+  .share-icon[data-platform="email"] .si-circle{ background:#6B6752; }
+  .share-icon[data-platform="copy"] .si-circle{ background:var(--forest); }
+  .share-icon.copied .si-label{ color:var(--ok); font-weight:700; }
+  .site-nav{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:13px 18px;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    max-width:560px;
+    margin:0 auto;
+    box-shadow:0 2px 10px -6px rgba(0,0,0,0.12);
+  }
+  [data-theme="dark"] .site-nav{ background:var(--paper-dark); }
+  .site-nav .site-brand{
+    font-family:'Noto Serif Bengali', serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.01em;
+    color:var(--forest);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:150px;
+    text-decoration:none;
+    flex-shrink:0;
+    padding-right:14px;
+    margin-right:2px;
+    border-right:1px solid var(--line);
+  }
+  .site-nav .site-nav-links{
+    display:flex;
+    gap:18px;
+    overflow-x:auto;
+    -ms-overflow-style:none;
+    scrollbar-width:none;
+  }
+  .site-nav .site-nav-links::-webkit-scrollbar{ display:none; }
+  .site-nav .site-nav-links a{
+    white-space:nowrap;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    color:var(--muted);
+    text-decoration:none;
+    padding:5px 2px;
+    border-bottom:2px solid transparent;
+    transition:color .15s, border-color .15s;
+  }
+  .site-nav .site-nav-links a:hover{
+    color:var(--forest);
+    border-bottom-color:var(--gold);
+  }
+  html{ scroll-behavior:smooth; }
+  .eyebrow{
+    letter-spacing:.14em;
+    font-size:12.5px;
+    color:var(--gold-light);
+    font-weight:600;
+    margin-bottom:8px;
+  }
+  h1{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:28px;
+    margin:0 0 8px;
+    font-weight:700;
+  }
+  .tagline{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:22px;
+    font-weight:700;
+    color:var(--gold-light);
+    margin:0 0 14px;
+    line-height:1.4;
+  }
+  header p{
+    margin:0;
+    font-size:14.5px;
+    color:#E8C784;
+  }
+  .profile-pic{
+    width:150px;
+    height:150px;
+    border-radius:20px;
+    object-fit:contain;
+    background:#ffffff;
+    border:4px solid #ffffff;
+    box-shadow:0 10px 24px -6px rgba(0,0,0,0.5);
+    margin:0 auto 14px;
+    display:block;
+  }
+  main{
+    max-width:560px;
+    margin:12px auto 0;
+    padding:0 16px;
+  }
+  form{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 18px 40px -20px rgba(31,59,44,0.30);
+    padding:26px 20px 28px;
+  }
+  .section-label{
+    font-size:12.5px;
+    letter-spacing:.08em;
+    color:var(--gold);
+    font-weight:700;
+    text-transform:uppercase;
+    margin:26px 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-label:first-child{margin-top:0;}
+  .section-label::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+  label{
+    display:block;
+    font-size:14.5px;
+    font-weight:600;
+    margin:14px 0 6px;
+    color:var(--forest);
+  }
+  label .req{color:var(--maroon); margin-left:2px;}
+  input[type=text], input[type=tel], input[type=email], input[type=date], select, textarea{
+    width:100%;
+    padding:11px 12px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-size:15px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  select{
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="9"><path d="M1 1l6 6 6-6" stroke="%231877F2" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    padding-right:34px;
+  }
+  select:disabled{
+    background-color:var(--paper-dark);
+    color:var(--muted);
+    cursor:not-allowed;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--forest);
+    box-shadow:0 0 0 4px rgba(31,59,44,0.16);
+  }
+  textarea{resize:vertical; min-height:70px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .photo-preview{
+    display:none;
+    width:88px; height:88px; border-radius:10px; object-fit:cover;
+    border:2px solid var(--gold-light); margin-top:10px;
+  }
+  .photo-preview.show{display:block;}
+  .field-hint{
+    font-size:12px; color:var(--muted); margin-top:-8px; margin-bottom:8px;
+  }
+  .field-error{
+    font-size:12.5px; color:var(--maroon); margin-top:-8px; margin-bottom:8px; display:none;
+    font-weight:600;
+  }
+  .field-error.show{display:block;}
+  input.invalid, select.invalid{
+    border-color:var(--maroon) !important;
+    box-shadow:0 0 0 3px rgba(250,56,62,0.14) !important;
+  }
+  input.valid-ok{
+    border-color:var(--ok) !important;
+  }
+  .draft-restore-note{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    font-size:13px;
+    background:var(--ok-bg);
+    border:1px solid var(--ok-border);
+    color:var(--ok);
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;
+  }
+  .draft-restore-note button{
+    background:none;
+    border:1.5px solid currentColor;
+    color:inherit;
+    border-radius:7px;
+    padding:5px 10px;
+    font-size:12px;
+    font-weight:600;
+    font-family:inherit;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  button[type=submit]{
+    width:100%;
+    margin-top:28px;
+    padding:16px;
+    border:none;
+    border-radius:10px;
+    background:var(--forest);
+    color:var(--paper);
+    font-family:inherit;
+    font-size:17px;
+    font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+    box-shadow:0 10px 20px -8px rgba(31,59,44,0.45);
+    transition:background .15s, transform .1s, box-shadow .15s;
+    animation:submitPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes submitPulse{
+    0%, 100%{ box-shadow:0 10px 20px -8px rgba(31,59,44,0.45); }
+    50%{ box-shadow:0 10px 26px -4px rgba(31,59,44,0.65); }
+  }
+  button[type=submit]:hover{ background:var(--forest-2); box-shadow:0 12px 24px -8px rgba(31,59,44,0.5); }
+  button[type=submit]:active{transform:scale(0.98); box-shadow:0 6px 14px -8px rgba(31,59,44,0.4);}
+  button[type=submit]:disabled{background:#9aa79c; cursor:wait; box-shadow:none; animation:none;}
+  .whatsapp-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    max-width:560px;
+    margin:16px auto 0;
+    padding:13px;
+    border-radius:9px;
+    background:#25D366;
+    color:#fff;
+    font-family:inherit;
+    font-size:15.5px;
+    font-weight:700;
+    text-decoration:none;
+    box-shadow:0 10px 24px -12px rgba(37,211,102,0.55);
+  }
+  .whatsapp-btn svg{width:20px; height:20px; flex-shrink:0;}
+  .facebook-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    width:100%;
+    max-width:560px;
+    margin:14px auto 0;
+    padding:13px;
+    border-radius:9px;
+    background:#1877F2;
+    color:#fff;
+    font-family:inherit;
+    font-size:15.5px;
+    font-weight:700;
+    text-decoration:none;
+    box-shadow:0 10px 24px -12px rgba(24,119,242,0.55);
+  }
+  .facebook-btn svg{width:20px; height:20px; flex-shrink:0;}
+  .chat-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+    max-width:560px;
+    margin:16px auto 0;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(135deg, #FF7A00 0%, #FF9A3D 100%);
+    color:#fff;
+    font-family:inherit;
+    font-size:16.5px;
+    font-weight:700;
+    text-decoration:none;
+    cursor:pointer;
+    box-shadow:0 12px 26px -12px rgba(255,122,0,0.6);
+  }
+  .chat-btn svg{width:23px; height:23px; flex-shrink:0;}
+  .posts-section{
+    max-width:560px;
+    margin:26px auto 0;
+    padding:0 4px;
+  }
+  .posts-section h2{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:20px;
+    margin:0 0 12px;
+  }
+  .post-card{
+    background:#fff;
+    border:1px solid #DED0AE;
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .post-card .post-date{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .post-card .post-title{
+    font-size:15.5px;
+    font-weight:700;
+    margin:0 0 6px;
+  }
+  .post-card .post-content{
+    font-size:14px;
+    line-height:1.55;
+    white-space:pre-wrap;
+  }
+  .posts-empty{
+    font-size:13.5px;
+    color:var(--muted);
+    text-align:center;
+    padding:10px 0;
+  }
+  .posts-section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:4px;
+    padding-bottom:12px;
+    border-bottom:2px solid var(--line);
+  }
+  .posts-section-head h2{ margin:0; }
+  .posts-section-sub{
+    font-size:12.5px;
+    color:var(--muted);
+    margin:2px 0 16px;
+  }
+  .blog-viewall-link{
+    font-size:13px;
+    font-weight:700;
+    color:var(--forest);
+    text-decoration:none;
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+  }
+  .blog-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+  }
+  .blog-card{
+    display:block;
+    position:relative;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:17px 18px;
+    text-decoration:none;
+    color:inherit;
+    transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+  }
+  [data-theme="dark"] .blog-card{ background:var(--paper-dark); }
+  .blog-card:hover{
+    box-shadow:0 10px 24px -12px rgba(31,59,44,0.35);
+    transform:translateY(-2px);
+    border-color:var(--gold-light);
+  }
+  .blog-card .post-eyebrow{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.3px;
+    color:var(--forest);
+    background:rgba(31,59,44,0.08);
+    padding:3px 9px;
+    border-radius:999px;
+    margin-bottom:9px;
+  }
+  .blog-card .post-date{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .blog-card .post-title{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:17px;
+    font-weight:700;
+    line-height:1.4;
+    margin:0 0 7px;
+    color:var(--ink);
+  }
+  .blog-card .post-excerpt{
+    font-size:13.5px;
+    line-height:1.65;
+    color:var(--muted);
+    margin:0 0 10px;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .blog-card .blog-readmore{
+    font-size:13px;
+    font-weight:700;
+    color:var(--forest);
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .blog-card.featured{
+    padding:0;
+    overflow:hidden;
+    border-radius:18px;
+    border-width:1.5px;
+  }
+  .blog-card.featured .featured-inner{
+    padding:18px 19px 19px;
+  }
+  .blog-card.featured .post-eyebrow{
+    background:rgba(31,59,44,0.12);
+  }
+  .blog-card.featured .post-title{
+    font-size:19.5px;
+    line-height:1.42;
+  }
+  .blog-card.featured .post-excerpt{
+    font-size:14px;
+    -webkit-line-clamp:4;
+  }
+  .blog-card.featured img{
+    width:100%;
+    height:180px;
+    object-fit:cover;
+    display:block;
+    margin:0 !important;
+    border-radius:0 !important;
+  }
+  .blog-feature-row{
+    display:flex;
+    gap:12px;
+    align-items:stretch;
+    margin-bottom:16px;
+  }
+  .blog-feature-main{
+    flex:1 1 54%;
+    min-width:0;
+    display:block;
+    text-decoration:none;
+    color:inherit;
+  }
+  .blog-feature-main img{
+    width:100%;
+    height:120px;
+    object-fit:cover;
+    border-radius:10px;
+    display:block;
+    margin-bottom:8px;
+  }
+  .blog-feature-main .post-date{
+    font-size:10.5px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .blog-feature-main .post-title{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:14px;
+    font-weight:700;
+    line-height:1.4;
+    margin:0 0 5px;
+    color:var(--ink);
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .blog-feature-main .post-excerpt{
+    font-size:11.5px;
+    line-height:1.55;
+    color:var(--muted);
+    margin:0 0 8px;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .blog-feature-btn{
+    display:inline-block;
+    background:#d33;
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    padding:6px 13px;
+    border-radius:5px;
+  }
+  .blog-feature-side{
+    flex:1 1 46%;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .blog-thumb-item{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    padding:7px 0;
+    border-bottom:1px solid var(--line);
+    text-decoration:none;
+    color:inherit;
+  }
+  .blog-thumb-item:last-child{ border-bottom:none; }
+  .blog-thumb-item img{
+    width:52px;
+    height:42px;
+    object-fit:cover;
+    border-radius:5px;
+    flex:0 0 auto;
+    display:block;
+  }
+  .blog-thumb-text{ min-width:0; }
+  .blog-thumb-date{
+    font-size:9.5px;
+    color:var(--muted);
+    margin-bottom:2px;
+  }
+  .blog-thumb-title{
+    font-size:11.5px;
+    line-height:1.4;
+    color:var(--ink);
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .blog-thumb-item:hover .blog-thumb-title{ color:var(--forest); }
+  .blog-list-compact{
+    margin-top:4px;
+    border-top:1px solid var(--line);
+  }
+  .blog-list-item{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    padding:13px 4px;
+    border-bottom:1px solid var(--line);
+    text-decoration:none;
+    color:inherit;
+  }
+  .blog-list-item:hover .blog-list-title{ color:var(--forest); }
+  .blog-list-title{
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    line-height:1.5;
+    flex:1 1 auto;
+  }
+  .blog-list-date{
+    font-size:11.5px;
+    color:var(--muted);
+    white-space:nowrap;
+    flex:0 0 auto;
+  }
+  .post-meta-row{
+    display:flex;
+    gap:14px;
+    font-size:12.5px;
+    color:var(--muted);
+    margin:0 0 8px;
+  }
+  .blog-masthead{
+    background:linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
+    color:var(--paper);
+    padding:22px 20px 24px;
+    text-align:center;
+  }
+  .blog-masthead-inner{
+    max-width:560px;
+    margin:0 auto;
+  }
+  .blog-masthead-kicker{
+    display:inline-block;
+    font-family:'Noto Serif Bengali', serif;
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:.02em;
+    color:var(--paper);
+    padding-bottom:6px;
+    border-bottom:2px solid var(--gold);
+  }
+  .blog-masthead-desc{
+    font-size:12.5px;
+    color:var(--gold-light);
+    opacity:0.9;
+    margin:9px 0 0;
+  }
+  .blog-cat-nav{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:12px 14px;
+    background:var(--card-bg);
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    z-index:20;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .blog-cat-nav::-webkit-scrollbar{ display:none; }
+  .blog-cat-pill{
+    flex:0 0 auto;
+    padding:7px 14px;
+    border-radius:999px;
+    border:1.5px solid var(--line);
+    background:var(--paper);
+    color:var(--ink);
+    font-size:12.5px;
+    font-weight:700;
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .blog-cat-pill.active{
+    background:var(--forest);
+    border-color:var(--forest);
+    color:var(--paper);
+  }
+  .blog-archive-wrap{
+    max-width:560px;
+    margin:0 auto;
+    padding:22px 4px 40px;
+  }
+  .blog-recent-widget h3{ margin:0 0 12px; }
+  .blog-cat-section{
+    margin:0 0 26px;
+  }
+  .blog-cat-section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    margin:0 0 12px;
+    padding-bottom:8px;
+    border-bottom:2px solid var(--line);
+  }
+  .blog-cat-section-head h2{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:18px;
+    margin:0;
+    color:var(--forest);
+  }
+  .blog-cat-scroll-row{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    padding-bottom:4px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .blog-cat-scroll-row .blog-card{
+    flex:0 0 auto;
+    width:230px;
+  }
+
+  /* ============ শিক্ষাবার্তার মতো ফুল নিউজ-পোর্টাল লেআউট (মেইন + সাইডবার) ============ */
+  .blog-layout{ display:block; }
+  .blog-main{ min-width:0; }
+  .blog-sidebar{ margin-top:8px; }
+  @media (min-width:900px){
+    .blog-layout{
+      display:grid; grid-template-columns:2.05fr 1fr; gap:30px;
+      align-items:start; max-width:1140px; margin:0 auto; padding:0 18px;
+    }
+    .blog-sidebar{ margin-top:0; position:sticky; top:14px; }
+    .blog-archive-wrap, .blog-detail{ max-width:none; margin:0; padding-left:4px; padding-right:4px; }
+    .blog-recent-widget, .blog-subscribe-box{ max-width:none; margin:0 0 18px; }
+  }
+  .blog-widget{
+    border:1.5px solid var(--line); border-radius:12px; background:var(--card-bg);
+    padding:16px; margin-bottom:18px;
+  }
+  .blog-widget h3{
+    font-family:'Noto Serif Bengali', serif; font-size:16px; margin:0 0 12px; color:var(--forest);
+    padding-bottom:9px; border-bottom:2px solid var(--line);
+  }
+  .blog-fb-widget a{
+    display:flex; align-items:center; gap:9px; text-decoration:none; color:var(--ink);
+    font-weight:700; font-size:13.5px; padding:11px; border:1px solid var(--line); border-radius:9px;
+  }
+  .blog-fb-widget a:hover{ border-color:var(--forest); }
+  .blog-fb-widget svg{ flex:0 0 auto; width:26px; height:26px; fill:#1877F2; }
+  .blog-ticker-wrap{ margin:0 0 20px; }
+  .blog-ticker-title{
+    font-family:'Noto Serif Bengali', serif; font-size:16.5px; font-weight:700; color:var(--forest);
+    margin:0 0 10px; padding-bottom:8px; border-bottom:2px solid var(--forest);
+  }
+  .blog-ticker-list{ list-style:none; margin:0; padding:0; }
+  .blog-ticker-list li{ padding:9px 2px; border-bottom:1px dashed var(--line); font-size:13.5px; line-height:1.5; }
+  .blog-ticker-list li:last-child{ border-bottom:none; }
+  .blog-ticker-list a{ color:var(--ink); text-decoration:none; }
+  .blog-ticker-list a:hover{ color:var(--forest); }
+  .blog-ticker-list .num{ color:var(--maroon); font-weight:700; margin-right:6px; }
+  .blog-photo-grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin:0 0 28px;
+  }
+  .blog-photo-card{ display:block; text-decoration:none; color:inherit; }
+  .blog-photo-card img{ width:100%; height:100px; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block; }
+  .blog-photo-card .post-title{
+    font-size:12px; font-weight:700; line-height:1.4; color:var(--ink);
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  @media (min-width:620px){
+    .blog-photo-grid{ grid-template-columns:repeat(5, 1fr); }
+    .blog-photo-card img{ height:78px; }
+  }
+  .blog-cat-block{ margin:0 0 32px; }
+  .blog-cat-block-head{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    border-bottom:2px solid var(--forest); padding-bottom:9px; margin-bottom:14px;
+  }
+  .blog-cat-block-head h2{ font-family:'Noto Serif Bengali', serif; font-size:18px; margin:0; color:var(--forest); }
+  .blog-cat-block-body{ display:flex; gap:18px; flex-wrap:wrap; }
+  .blog-cat-main-post{ flex:1 1 100%; display:block; text-decoration:none; color:inherit; min-width:0; }
+  .blog-cat-main-post img{ width:100%; height:170px; object-fit:cover; border-radius:10px; margin-bottom:10px; display:block; }
+  .blog-cat-main-post .post-date{ font-size:11.5px; color:var(--muted); margin-bottom:5px; }
+  .blog-cat-main-post .post-title{
+    font-family:'Noto Serif Bengali', serif; font-size:17px; font-weight:700; line-height:1.42; margin:0 0 7px; color:var(--ink);
+  }
+  .blog-cat-main-post .post-excerpt{ font-size:13.5px; line-height:1.6; color:var(--muted); margin:0 0 8px; }
+  .blog-cat-main-post .blog-readmore{ font-size:13px; font-weight:700; color:var(--forest); }
+  .blog-cat-side-list{ flex:1 1 100%; list-style:none; margin:0; padding:0; min-width:0; }
+  .blog-cat-side-list li{ padding:10px 0; border-bottom:1px solid var(--line); display:flex; gap:9px; align-items:flex-start; }
+  .blog-cat-side-list li:last-child{ border-bottom:none; }
+  .blog-cat-side-list li img{ width:56px; height:44px; object-fit:cover; border-radius:6px; flex:0 0 auto; }
+  .blog-cat-side-list li a{ color:var(--ink); text-decoration:none; font-size:13.5px; font-weight:600; line-height:1.5; }
+  .blog-cat-side-list li a:hover{ color:var(--forest); }
+  @media (min-width:640px){
+    .blog-cat-main-post{ flex:1 1 44%; }
+    .blog-cat-side-list{ flex:1 1 50%; }
+  }
+  .blog-calendar-cap{ text-align:center; font-size:13.5px; font-weight:700; margin:0 0 10px; color:var(--forest); }
+  .blog-calendar{ width:100%; border-collapse:collapse; font-size:11.5px; text-align:center; }
+  .blog-calendar th{ padding:5px 2px; color:var(--muted); font-weight:700; }
+  .blog-calendar td{ padding:7px 2px; border-radius:6px; color:var(--ink); }
+  .blog-calendar td.has-post{ background:var(--forest); color:var(--paper); font-weight:700; }
+  .blog-footer{
+    max-width:1140px; margin:34px auto 0; padding:22px 16px 30px;
+    border-top:2px solid var(--line); text-align:center; font-size:12px; color:var(--muted); line-height:2;
+  }
+  .blog-footer strong{ color:var(--ink); }
+  .blog-archive-wrap .blog-back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--forest);
+    text-decoration:none;
+    margin-bottom:16px;
+  }
+  .blog-archive-wrap h1{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:23px;
+    margin:0 0 4px;
+    padding-bottom:10px;
+    border-bottom:2px solid var(--line);
+  }
+  .blog-archive-sub{
+    font-size:13px;
+    color:var(--muted);
+    margin:10px 0 20px;
+  }
+  .blog-search-wrap{ margin:0 0 18px; }
+  .blog-search-input{
+    width:100%; box-sizing:border-box; padding:12px 14px;
+    border:1.5px solid var(--line); border-radius:10px;
+    background:var(--card-bg); color:var(--ink);
+    font-size:14px; font-family:inherit;
+  }
+  .blog-search-input:focus{ outline:none; border-color:var(--forest); }
+  .blog-related-wrap{ margin:28px 0 0; padding-top:18px; border-top:1px solid var(--line); }
+  .blog-related-wrap h3{
+    font-family:'Noto Serif Bengali', serif; font-size:17px; margin:0 0 12px; color:var(--forest);
+  }
+  .blog-related-grid{ display:grid; grid-template-columns:1fr; gap:10px; }
+  .blog-related-item{
+    display:block; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    text-decoration:none; color:var(--ink); font-size:13.5px; background:var(--card-bg);
+  }
+  .blog-related-item:hover{ border-color:var(--forest); }
+  .blog-subscribe-box h3{ margin:0 0 6px; padding-bottom:0; border-bottom:none; }
+  .blog-subscribe-box p{ font-size:13px; color:var(--muted); margin:0 0 12px; line-height:1.6; }
+  .blog-subscribe-box label{ display:block; font-size:12px; color:var(--muted); margin-bottom:5px; }
+  .blog-subscribe-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .blog-subscribe-row input{
+    flex:1 1 180px; box-sizing:border-box; padding:11px 12px;
+    border:1.5px solid var(--line); border-radius:8px;
+    background:var(--paper); color:var(--ink); font-size:14px; font-family:inherit;
+  }
+  .blog-subscribe-row input:focus{ outline:none; border-color:var(--forest); }
+  .blog-subscribe-row button{
+    padding:11px 18px; border:none; border-radius:8px; cursor:pointer;
+    background:var(--forest); color:var(--paper); font-size:13.5px; font-weight:700; font-family:inherit;
+  }
+  .blog-subscribe-row button:disabled{ opacity:0.6; cursor:default; }
+  .blog-subscribe-count{ font-size:12.5px; color:var(--muted); margin-top:10px; }
+  .blog-subscribe-msg{ font-size:12.5px; margin-top:8px; min-height:1em; }
+  .blog-detail{
+    max-width:560px;
+    margin:0 auto;
+    padding:22px 4px 40px;
+  }
+  .blog-detail .blog-back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--forest);
+    text-decoration:none;
+    margin-bottom:18px;
+  }
+  .blog-detail article{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:24px 20px 26px;
+    box-shadow:0 14px 34px -22px rgba(0,0,0,0.35);
+  }
+  [data-theme="dark"] .blog-detail article{ background:var(--paper-dark); }
+  .blog-detail .post-eyebrow{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.3px;
+    color:var(--forest);
+    background:rgba(31,59,44,0.08);
+    padding:3px 9px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+  .blog-detail .post-date{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .blog-detail h1{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:24px;
+    line-height:1.4;
+    margin:0 0 6px;
+  }
+  .blog-detail .byline{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin:14px 0 18px;
+    padding-bottom:16px;
+    border-bottom:1px solid var(--line);
+  }
+  .blog-detail .byline img{
+    width:34px; height:34px; border-radius:50%; object-fit:cover;
+  }
+  .blog-detail .byline .byline-name{
+    font-size:13.5px; font-weight:700;
+  }
+  .blog-detail .byline .byline-date{
+    font-size:11.5px; color:var(--muted);
+  }
+  .blog-detail .post-content{
+    font-size:15.5px;
+    line-height:1.85;
+    white-space:pre-wrap;
+  }
+  .blog-detail .post-content img{
+    width:100%;
+    border-radius:12px;
+    margin:14px 0;
+  }
+  .blog-detail .blog-cta{
+    margin-top:22px;
+    text-align:center;
+  }
+  .blog-engage-row{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+  }
+  .blog-engage-row button{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:10px;
+    border-radius:9px;
+    border:1.5px solid var(--line);
+    background:var(--card-bg, #fff);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  [data-theme="dark"] .blog-engage-row button{ background:var(--paper-dark); }
+  .blog-engage-row button.liked{
+    border-color:var(--maroon);
+    color:var(--maroon);
+    background:var(--err-bg);
+  }
+  .blog-comments{
+    margin-top:24px;
+  }
+  .blog-comments h2{
+    font-size:16.5px;
+    margin:0 0 12px;
+  }
+  .comment-item{
+    background:var(--card-bg, #fff);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  [data-theme="dark"] .comment-item{ background:var(--paper-dark); }
+  .comment-item .comment-name{
+    font-size:13px;
+    font-weight:700;
+    margin-bottom:3px;
+  }
+  .comment-item .comment-text{
+    font-size:13.5px;
+    line-height:1.55;
+    white-space:pre-wrap;
+  }
+  .comment-item .comment-date{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .comment-form input, .comment-form textarea{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    font-family:inherit;
+    font-size:14px;
+    margin-bottom:8px;
+    background:var(--card-bg, #fff);
+    color:var(--ink);
+  }
+  .comment-form textarea{ min-height:70px; resize:vertical; }
+  .comment-form button{
+    width:100%;
+    padding:11px;
+    border:none;
+    border-radius:9px;
+    background:var(--forest);
+    color:#fff;
+    font-family:inherit;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .comment-msg{
+    font-size:12.5px;
+    margin-top:8px;
+  }
+  .blog-not-found{
+    text-align:center;
+    padding:30px 10px;
+    color:var(--muted);
+    font-size:14px;
+  }
+  .blog-more-link-wrap{
+    text-align:center;
+    margin-top:26px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+  }
+  .chat-btn.pulse-attention{
+    animation:chatPulse 1.4s ease-out 3;
+  }
+  @keyframes chatPulse{
+    0%{ box-shadow:0 12px 26px -12px rgba(255,122,0,0.6), 0 0 0 0 rgba(255,122,0,0.55); }
+    70%{ box-shadow:0 12px 26px -12px rgba(255,122,0,0.6), 0 0 0 16px rgba(255,122,0,0); }
+    100%{ box-shadow:0 12px 26px -12px rgba(255,122,0,0.6), 0 0 0 0 rgba(255,122,0,0); }
+  }
+  .status{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:8px;
+    font-size:14px;
+    display:none;
+  }
+  .status.show{display:block;}
+  .status.ok{background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok-border);}
+  .status.err{background:var(--err-bg); color:var(--maroon); border:1px solid var(--err-border);}
+  .status.loading{background:var(--paper-dark); color:var(--forest);}
+  .whatsapp-note{
+    display:none;
+    margin-top:16px;
+    padding:16px;
+    border-radius:10px;
+    background:linear-gradient(135deg, #1F3B2C 0%, #16301F 100%);
+    text-align:center;
+  }
+  .whatsapp-note.show{display:block;}
+  .whatsapp-note p{
+    color:#FBF6EA;
+    font-size:17px;
+    font-weight:700;
+    line-height:1.6;
+    margin:0;
+  }
+  .trust-badge{
+    margin-top:14px;
+    font-size:12px;
+    color:var(--gold-light);
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .stats-bar{
+    display:flex;
+    justify-content:center;
+    gap:0;
+    max-width:560px;
+    margin:14px auto 0;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 18px 40px -20px rgba(31,59,44,0.30);
+    overflow:hidden;
+  }
+  .stat-item{
+    flex:1;
+    text-align:center;
+    padding:16px 6px;
+    border-right:1px solid var(--line);
+  }
+  .stat-item:last-child{ border-right:none; }
+  .stat-num{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:19px;
+    font-weight:700;
+    color:var(--forest);
+    display:block;
+  }
+  .stat-label{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:3px;
+    display:block;
+  }
+  #ratingStatNum{ color:var(--star); }
+  .services-section{
+    max-width:560px;
+    margin:16px auto 0;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 18px;
+  }
+  .services-section h2{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:17px;
+    font-weight:700;
+    color:var(--forest);
+    margin:0 0 12px;
+  }
+  .services-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  .services-list li{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--ink);
+  }
+  .services-list li::before{
+    content:"✓";
+    color:var(--forest);
+    font-weight:900;
+    flex-shrink:0;
+  }
+  .services-note{
+    font-size:12px;
+    color:var(--muted);
+    margin:0 0 12px;
+    line-height:1.5;
+  }
+  .faq-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .faq-item{
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:10px 12px;
+    background:var(--paper-dark);
+  }
+  .faq-item summary{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--forest);
+    cursor:pointer;
+    list-style:none;
+  }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::before{
+    content:"+ ";
+    font-weight:900;
+  }
+  .faq-item[open] summary::before{
+    content:"– ";
+  }
+  .faq-item p{
+    font-size:13px;
+    color:var(--ink);
+    line-height:1.55;
+    margin:8px 0 0;
+  }
+  .online-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(37,211,102,0.12);
+    color:#1a7a3e;
+    font-size:12.5px;
+    font-weight:700;
+    padding:6px 14px;
+    border-radius:999px;
+    margin-top:12px;
+  }
+  .online-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:#25D366;
+    box-shadow:0 0 0 0 rgba(37,211,102,0.6);
+    animation:pulseDot 1.6s infinite;
+  }
+  .big-visit-count{
+    margin-top:16px;
+    text-align:center;
+  }
+  .big-visit-count .bvc-num{
+    display:block;
+    font-family:'Noto Serif Bengali', serif;
+    font-size:44px;
+    font-weight:700;
+    color:var(--gold-light);
+    line-height:1.1;
+  }
+  .big-visit-count .bvc-label{
+    display:block;
+    font-size:13px;
+    color:#E8C784;
+    letter-spacing:.06em;
+    margin-top:2px;
+  }
+  @keyframes pulseDot{
+    0%{ box-shadow:0 0 0 0 rgba(37,211,102,0.5); }
+    70%{ box-shadow:0 0 0 8px rgba(37,211,102,0); }
+    100%{ box-shadow:0 0 0 0 rgba(37,211,102,0); }
+  }
+  .cta-block{
+    max-width:560px;
+    margin:20px auto 0;
+    text-align:center;
+    padding:0 4px;
+  }
+  .cta-text{
+    font-size:15.5px;
+    color:var(--forest);
+    font-weight:800;
+    margin:0 0 10px;
+    letter-spacing:.01em;
+  }
+  .cta-trust{
+    font-size:12px;
+    color:var(--muted);
+    font-weight:600;
+    margin:10px 0 0;
+    letter-spacing:.01em;
+  }
+  .cta-fill-btn{
+    width:100%;
+    padding:17px;
+    border:none;
+    border-radius:12px;
+    background:var(--forest);
+    color:var(--paper);
+    font-family:inherit;
+    font-size:16.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+    box-shadow:0 10px 20px -8px rgba(31,59,44,0.45);
+    transition:background .15s, transform .1s, box-shadow .15s;
+    animation:submitPulse 2.4s ease-in-out infinite;
+  }
+  .cta-fill-btn:active{ transform:scale(0.98); }
+  .close-form-btn{
+    display:block;
+    margin:0 0 16px auto;
+    padding:9px 16px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:var(--paper-dark);
+    color:var(--muted);
+    font-family:inherit;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .pre-form-wrap{
+    max-width:560px;
+    margin:0 auto;
+    padding:0 4px;
+  }
+  .testi-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 18px 40px -20px rgba(31,59,44,0.30);
+    padding:22px 20px;
+    margin-top:16px;
+  }
+  .testi-item{
+    background:var(--paper-dark);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .testi-item:last-child{ margin-bottom:0; }
+  .testi-stars{ color:var(--star); font-size:14px; margin-bottom:6px; }
+  .testi-text{ font-size:14px; line-height:1.6; color:var(--ink); margin:0 0 8px; }
+  .testi-name{ font-size:12.5px; font-weight:700; color:var(--forest); }
+  .faq-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 18px 40px -20px rgba(31,59,44,0.30);
+    padding:22px 20px 16px;
+    margin-top:16px;
+  }
+  .faq-item{
+    border-bottom:1px solid var(--line);
+    padding:12px 0;
+    transition:border-color .2s;
+  }
+  .faq-item:last-child{ border-bottom:none; }
+  .faq-q{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    cursor:pointer;
+    font-weight:600;
+    font-size:14.5px;
+    color:var(--forest);
+    transition:color .2s;
+  }
+  .faq-q .arrow{
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+    color:var(--gold);
+    font-size:13px;
+  }
+  .faq-item.open .faq-q .arrow{ transform:rotate(180deg); }
+  .faq-a{
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .3s cubic-bezier(.4,0,.2,1), opacity .25s ease, margin-top .3s ease;
+    opacity:0;
+    font-size:13.5px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  .faq-item.open .faq-a{
+    max-height:200px;
+    opacity:1;
+    margin-top:9px;
+  }
+  .faq-item.open .faq-a.privacy-text{ max-height:900px; }
+  .whatsapp-float{
+    position:fixed;
+    right:18px;
+    bottom:78px;
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    background:#25D366;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.25);
+    z-index:999;
+    text-decoration:none;
+  }
+  .back-to-top{
+    position:fixed;
+    right:18px;
+    bottom:22px;
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    background:var(--forest);
+    color:#fff;
+    border:none;
+    box-shadow:0 10px 20px -6px rgba(31,59,44,0.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    cursor:pointer;
+    z-index:60;
+    opacity:0;
+    transform:translateY(10px);
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease, background .15s;
+  }
+  .back-to-top.show{
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+  .back-to-top:active{ background:var(--forest-2); }
+  .step-progress{
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    margin-bottom:24px;
+  }
+  .step-dot{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .step-dot span{
+    width:32px; height:32px;
+    border-radius:50%;
+    background:var(--paper-dark);
+    border:2px solid var(--line);
+    color:var(--muted);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:14px;
+    transition:all .2s;
+  }
+  .step-dot label{
+    font-size:11px; color:var(--muted); margin:0; font-weight:600;
+  }
+  .step-dot.active span{
+    background:var(--forest); border-color:var(--forest); color:var(--paper);
+  }
+  .step-dot.active label{ color:var(--forest); }
+  .step-dot.done span{
+    background:var(--ok); border-color:var(--ok); color:#fff;
+  }
+  .step-dot.done label{ color:var(--ok); }
+  .step-line{
+    flex:1;
+    height:2px;
+    background:var(--line);
+    margin-top:16px;
+    max-width:60px;
+  }
+  .step-next-btn, .step-back-btn{
+    padding:13px;
+    border-radius:9px;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:22px;
+  }
+  .step-next-btn{
+    width:100%;
+    border:none;
+    background:var(--forest);
+    color:var(--paper);
+    box-shadow:0 10px 20px -8px rgba(31,59,44,0.45);
+    transition:background .15s, box-shadow .15s;
+  }
+  .step-next-btn:hover{ background:var(--forest-2); }
+  .step-btn-row{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .step-btn-row .step-next-btn, .step-btn-row #submitBtn{
+    flex:2;
+    margin-top:0;
+  }
+  .step-back-btn{
+    flex:1;
+    border:1.5px solid var(--forest);
+    background:var(--paper);
+    color:var(--forest);
+    margin-top:0;
+  }
+  #submitBtn{
+    border:none;
+    border-radius:9px;
+    background:var(--forest);
+    color:var(--paper);
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .captcha-box{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--paper-dark);
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:11px 14px;
+    margin-top:8px;
+  }
+  .captcha-box span{
+    font-weight:800;
+    color:var(--forest);
+    font-size:20px;
+    white-space:nowrap;
+  }
+  .captcha-box input{
+    border:1.5px solid var(--line) !important;
+    padding:8px 10px !important;
+    width:90px !important;
+  }
+  .status-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 18px 40px -20px rgba(31,59,44,0.30);
+    padding:22px 20px 24px;
+    margin-top:16px;
+  }
+  .check-btn{
+    width:100%;
+    margin-top:14px;
+    padding:12px;
+    border:1.5px solid var(--forest);
+    border-radius:9px;
+    background:var(--forest);
+    color:var(--paper);
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .check-btn:disabled{ opacity:.6; cursor:wait; }
+  .check-result{
+    margin-top:14px;
+    display:none;
+  }
+  .check-result.show{ display:block; }
+  .check-result .cr-box{
+    border-radius:9px;
+    padding:14px 16px;
+    font-size:14.5px;
+    line-height:1.7;
+  }
+  .check-result .cr-found{
+    background:var(--ok-bg); border:1px solid var(--ok-border); color:var(--ok);
+  }
+  .check-result .cr-notfound{
+    background:var(--err-bg); border:1px solid var(--err-border); color:var(--maroon);
+  }
+  .check-result .cr-status-badge{
+    display:inline-block;
+    background:var(--forest);
+    color:var(--paper);
+    font-weight:700;
+    padding:4px 12px;
+    border-radius:999px;
+    font-size:13.5px;
+    margin-top:6px;
+  }
+  .cr-steps{
+    display:flex;
+    align-items:center;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+  }
+  .cr-step{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:5px;
+    flex:0 0 auto;
+    min-width:64px;
+  }
+  .cr-step-dot{
+    width:16px; height:16px; border-radius:50%;
+    background:var(--paper); border:2px solid var(--line);
+  }
+  .cr-step.done .cr-step-dot{ background:var(--forest); border-color:var(--forest); }
+  .cr-step.active .cr-step-dot{ background:var(--paper); border-color:var(--forest); box-shadow:0 0 0 3px rgba(31,59,44,.15); }
+  .cr-step-label{ font-size:11.5px; color:var(--muted); text-align:center; }
+  .cr-step.active .cr-step-label{ color:var(--forest); font-weight:700; }
+  .cr-step.done .cr-step-label{ color:var(--forest); }
+  .cr-step-line{ flex:1 1 auto; height:2px; background:var(--line); margin:0 2px 18px; }
+  .cr-steps-cancelled{ color:var(--maroon); font-size:13px; }
+  footer{
+    text-align:center;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:20px;
+  }
+  .site-footer{
+    background:linear-gradient(135deg, var(--forest) 0%, var(--forest-2) 100%);
+    color:var(--gold-light);
+    margin-top:34px;
+    padding:34px 20px 30px;
+    text-align:center;
+  }
+  .site-footer-inner{
+    max-width:480px;
+    margin:0 auto;
+  }
+  .site-footer-brand{
+    font-family:'Noto Serif Bengali', serif;
+    font-weight:700;
+    font-size:18px;
+    color:var(--paper);
+    margin:0 0 8px;
+  }
+  .site-footer-tag{
+    font-size:12.5px;
+    line-height:1.6;
+    color:var(--gold-light);
+    opacity:0.9;
+    margin:0 0 18px;
+  }
+  .site-footer-links{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:18px;
+    padding-bottom:18px;
+    border-bottom:1px solid rgba(255,255,255,0.16);
+  }
+  .site-footer-links a{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--paper);
+    text-decoration:none;
+    opacity:0.9;
+  }
+  .site-footer-links a:hover{ opacity:1; text-decoration:underline; }
+  .site-footer-copy{
+    font-size:11.5px;
+    color:var(--gold-light);
+    opacity:0.75;
+    margin:0;
+  }
+  .fee-box{
+    background:var(--paper-dark);
+    border:1.5px dashed var(--gold);
+    border-radius:10px;
+    padding:16px 14px;
+    margin-top:8px;
+  }
+  .fee-amount{
+    margin:0 0 8px;
+    font-size:16px;
+    color:var(--forest);
+    text-align:center;
+  }
+  .fee-amount strong{
+    color:var(--maroon);
+    font-size:19px;
+  }
+  .fee-note{
+    margin:8px 0;
+    font-size:13px;
+    line-height:1.5;
+    color:var(--ink);
+  }
+  .fee-highlight{
+    color:var(--maroon);
+    font-weight:600;
+  }
+  .fee-methods{
+    margin:12px 0;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  .fee-method{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-left:4px solid var(--gold);
+    border-radius:7px;
+    padding:8px 10px;
+    font-size:14px;
+    color:var(--forest);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    cursor:pointer;
+    transition:background .12s;
+  }
+  .fee-method:active{ background:var(--paper-dark); }
+  .fee-method .fee-method-label{ flex-shrink:0; display:flex; align-items:center; }
+  .fee-method .fee-logo{
+    max-height:44px;
+    max-width:76px;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+    flex-shrink:0;
+  }
+  .fee-method .fee-number{
+    font-size:15px;
+    font-weight:700;
+    color:var(--maroon);
+    letter-spacing:.01em;
+    font-family:inherit;
+    direction:ltr;
+    unicode-bidi:plaintext;
+    flex-shrink:1;
+    min-width:0;
+  }
+  .fee-method .fee-check{
+    display:none;
+    color:#0d7a3a;
+    font-weight:900;
+    font-size:19px;
+    line-height:1;
+    flex-shrink:0;
+  }
+  .fee-method.selected .fee-check{ display:inline; }
+  .fee-method .copy-btn{
+    flex-shrink:0;
+    border:1px solid var(--gold);
+    background:var(--paper-dark);
+    color:var(--forest);
+    font-size:11.5px;
+    font-weight:700;
+    font-family:inherit;
+    padding:6px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:background .15s, transform .1s;
+  }
+  .fee-method .copy-btn:active{ transform:scale(0.94); }
+  .fee-method .copy-btn.copied{ background:var(--ok); color:#fff; border-color:var(--ok); }
+  .fee-method.selected{
+    border-left-color:var(--ok);
+    background:var(--ok-bg);
+    box-shadow:0 0 0 1.5px var(--ok-border) inset;
+  }
+  .selected-method-status{
+    display:none;
+    align-items:center;
+    gap:6px;
+    margin-top:10px;
+    padding:9px 12px;
+    border-radius:7px;
+    background:var(--ok-bg);
+    border:1px solid var(--ok-border);
+    color:var(--ok);
+    font-size:13.5px;
+    font-weight:700;
+  }
+  .selected-method-status.show{ display:flex; }
+  .download-btn{
+    display:none;
+    width:100%;
+    margin-top:12px;
+    padding:13px;
+    border:1.5px solid var(--forest);
+    border-radius:9px;
+    background:var(--paper);
+    color:var(--forest);
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .download-btn.show{display:block;}
+  .app-id-display{
+    display:none;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    background:var(--ok-bg);
+    border:1.5px dashed var(--ok-border);
+    border-radius:10px;
+    padding:12px 14px;
+    margin:12px 0;
+  }
+  .app-id-display.show{display:flex;}
+  .app-id-display-label{
+    font-size:12px;
+    color:var(--forest);
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .app-id-display-value{
+    font-size:16px;
+    font-weight:700;
+    color:var(--ok);
+    letter-spacing:.03em;
+    font-family:monospace;
+  }
+  .app-id-copy-btn{
+    margin-left:auto;
+    border:1px solid var(--gold);
+    background:transparent;
+    color:var(--forest);
+    border-radius:7px;
+    padding:6px 12px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .app-id-copy-btn:active{transform:scale(.97);}
+  .reading-progress-bar{
+    position:fixed;
+    top:0; left:0;
+    height:3px;
+    width:0%;
+    background:var(--gold);
+    z-index:9999;
+    transition:width .12s linear;
+  }
+  #receipt{
+    position:fixed;
+    left:-9999px;
+    top:0;
+    width:480px;
+    background:#FBF6EA;
+    font-family:'Hind Siliguri', sans-serif;
+    color:#22281F;
+    overflow:hidden;
+    border:1px solid #DED0AE;
+    box-shadow:0 0 0 6px #FBF6EA, 0 0 0 7px #E8C784;
+  }
+  #receipt .r-watermark{
+    position:absolute;
+    top:52%; left:50%;
+    transform:translate(-50%,-50%) rotate(-28deg);
+    font-family:'Noto Serif Bengali', serif;
+    font-size:64px;
+    font-weight:700;
+    color:#1F3B2C;
+    opacity:0.045;
+    white-space:nowrap;
+    pointer-events:none;
+    z-index:0;
+  }
+  #receipt .r-stamp{
+    position:absolute;
+    top:18px; right:20px;
+    width:78px; height:78px;
+    border:2px dashed #E8C784;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    transform:rotate(-14deg);
+    color:#E8C784;
+    font-size:11px;
+    font-weight:700;
+    text-align:center;
+    line-height:1.3;
+    z-index:2;
+    letter-spacing:.02em;
+  }
+  #receipt .r-header{
+    background:linear-gradient(135deg, #1F3B2C 0%, #16301F 100%);
+    color:#FBF6EA;
+    padding:30px 20px 26px;
+    text-align:center;
+    position:relative;
+    z-index:1;
+  }
+  #receipt .r-header img{
+    width:100px; height:100px; border-radius:16px; object-fit:contain;
+    background:#ffffff;
+    border:3px solid #E8C784;
+    margin-bottom:10px;
+  }
+  #receipt .r-eyebrow{
+    font-size:11px; letter-spacing:.12em; color:#E8C784; font-weight:600; margin-bottom:6px;
+  }
+  #receipt .r-title{
+    font-family:'Noto Serif Bengali', serif;
+    font-size:22px;
+    font-weight:700;
+  }
+  #receipt .r-sub{
+    font-size:13px; color:#E8C784; margin-top:6px;
+  }
+  #receipt .r-status{
+    background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok-border);
+    text-align:center; padding:10px; font-size:14px; font-weight:600;
+    position:relative; z-index:1;
+  }
+  #receipt .r-body{ padding:22px 24px 30px; position:relative; z-index:1; }
+  #receipt .r-idbox{
+    background:#1F3B2C; color:#FBF6EA; border-radius:10px; padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;
+  }
+  #receipt .r-idbox .r-idlabel{ font-size:11px; color:#E8C784; letter-spacing:.08em; margin-bottom:3px; }
+  #receipt .r-idbox .r-idvalue{ font-size:19px; font-weight:700; letter-spacing:.03em; }
+  #receipt .r-applicant-photo{
+    width:56px; height:56px; border-radius:8px; object-fit:cover;
+    border:2px solid #E8C784; flex-shrink:0;
+  }
+  #receipt .r-section{
+    font-size:12px; letter-spacing:.06em; color:#1F3B2C; font-weight:700;
+    text-transform:uppercase; margin:20px 0 10px;
+    border-bottom:1px solid #DED0AE; padding-bottom:6px;
+    display:flex; align-items:center; gap:6px;
+  }
+  #receipt .r-section:first-child{ margin-top:0; }
+  #receipt .r-row{
+    display:flex;
+    justify-content:space-between;
+    padding:8px 0;
+    border-bottom:1px dashed #DED0AE;
+    font-size:14px;
+  }
+  #receipt .r-row .label{ color:#6B6752; }
+  #receipt .r-row .value{ font-weight:600; color:#1F3B2C; text-align:right; max-width:260px; }
+  #receipt #r-idlink{ font-size:12px; word-break:break-all; max-width:280px; }
+  #receipt .r-comment{
+    font-size:13.5px; line-height:1.6; background:#F2EBDA; border-radius:8px;
+    padding:12px 14px; margin-top:8px; color:#22281F;
+  }
+  #receipt .r-foot{
+    margin-top:22px;
+    text-align:center;
+    font-size:11.5px;
+    color:var(--muted);
+    border-top:1px solid #DED0AE;
+    padding-top:14px;
+    line-height:1.8;
+  }
+  #receipt .r-foot .r-contact{
+    color:#16301F; font-weight:600; font-size:12.5px;
+  }
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446828545506016"
+     crossorigin="anonymous"></script>
+<style id="site-enhancements">
+.site-extra-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}.site-extra-links a,.site-extra-links button{border:1px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);padding:7px 11px;border-radius:999px;font:600 12px/1.2 inherit;text-decoration:none;cursor:pointer}.site-extra-links a:hover,.site-extra-links button:hover{opacity:.82}.site-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:99999}.site-modal.open{display:flex}.site-modal-card{max-width:680px;max-height:82vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.25)}.site-modal-card h2{margin-top:0}.site-modal-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:inherit}.mobile-action-bar{display:none}@media(max-width:700px){.mobile-action-bar{position:fixed;display:flex;bottom:0;left:0;right:0;z-index:9990;background:var(--card-bg,#fff);border-top:1px solid var(--line,#ddd);padding:7px;gap:7px}.mobile-action-bar a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:9px;background:var(--forest,#1f3b2c);color:#fff;font-weight:700;font-size:12px}.site-footer{padding-bottom:78px}}
+</style>
+<script>
+/* ALAMIN_COMPAT_ROUTE_V2 */
+(function(){
+  try{
+    var u = new URL(window.location.href);
+    var oldPost = u.searchParams.get('post');
+    var p = u.searchParams.get('p');
+    if(oldPost && !p){
+      u.searchParams.delete('post');
+      u.searchParams.set('p', String(oldPost).replace(/[^a-zA-Z0-9]/g,'').slice(0,12));
+      window.history.replaceState({}, '', u.toString());
+    }
+  }catch(e){}
+})();
+</script>
+
+<!-- ALAMIN_FINAL_PERF_V2 -->
+<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+<link rel="dns-prefetch" href="//embed.tawk.to">
+<link rel="dns-prefetch" href="//cdn.onesignal.com">
+
+<style id="first-paint-performance">
+/* Off-screen sections are laid out/painted only when needed; content remains fully available. */
+.posts-section,.services-section,.testi-card{content-visibility:auto;contain-intrinsic-size:620px;}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a class="site-brand" href="#top">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</a>
+  <div class="site-nav-links">
+    <a href="#top" data-i18n="nav.home">হোম</a>
+    <a href="?blog=all" data-i18n="nav.blog">ব্লগ</a>
+    <a href="#servicesSection" data-i18n="nav.services">সেবা</a>
+    <a href="#reviewsSection" data-i18n="nav.reviews">রিভিউ</a>
+    <a href="#contactSection" data-i18n="nav.contact">যোগাযোগ</a>
+  </div>
+</nav>
+
+<div id="landingTop">
+<header id="top">
+  <div class="top-action-bar">
+    <div class="share-wrap">
+      <button type="button" class="share-btn-new" id="shareBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"></line><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"></line></svg>
+        <span data-i18n="header.share">শেয়ার</span>
+      </button>
+      <div class="share-panel" id="sharePanel">
+        <div class="share-panel-title" data-i18n="header.shareVia">যেভাবে শেয়ার করতে চান</div>
+        <div class="share-icon-grid">
+          <a class="share-icon" data-platform="whatsapp" target="_blank" rel="noopener">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.9C21.95 6.45 17.5 2 12.04 2Zm0 18.06h-.01a8.14 8.14 0 0 1-4.15-1.14l-.3-.18-3.11.82.83-3.03-.19-.31a8.15 8.15 0 0 1-1.25-4.31c0-4.5 3.66-8.16 8.19-8.16 2.19 0 4.24.85 5.79 2.4a8.13 8.13 0 0 1 2.4 5.78c0 4.5-3.67 8.13-8.2 8.13Z"/></svg></span>
+            <span class="si-label">WhatsApp</span>
+          </a>
+          <a class="share-icon" data-platform="facebook" target="_blank" rel="noopener">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94Z"/></svg></span>
+            <span class="si-label">Facebook</span>
+          </a>
+          <a class="share-icon" data-platform="messenger" target="_blank" rel="noopener">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.14 2 11.5c0 2.9 1.3 5.5 3.4 7.28V22l3.1-1.7c.78.22 1.6.34 2.5.34 5.5 0 10-4.14 10-9.5S17.5 2 12 2Zm1.02 12.8-2.55-2.73-4.98 2.73 5.48-5.8 2.6 2.73 4.93-2.73-5.48 5.8Z"/></svg></span>
+            <span class="si-label">Messenger</span>
+          </a>
+          <a class="share-icon" data-platform="telegram" target="_blank" rel="noopener">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 3.5 2.7 10.9c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8l3-14c.3-1.2-.4-1.7-1.8-1.8ZM8.5 14.4l9.2-7.2c.4-.3.8-.1.5.3l-8 7.3-.3 3.3-1.4-3.7Z"/></svg></span>
+            <span class="si-label">Telegram</span>
+          </a>
+          <a class="share-icon" data-platform="twitter" target="_blank" rel="noopener">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 3h3l-7.5 8.6L21.8 21h-6.8l-5.3-6.9L3.6 21H.6l8-9.2L2.2 3h7l4.8 6.3Zm-1.2 16h1.7L7.8 4.9H6l10.3 14.1Z"/></svg></span>
+            <span class="si-label">X</span>
+          </a>
+          <button type="button" class="share-icon" data-platform="email">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 6-10 7L2 6"></path></svg></span>
+            <span class="si-label" data-i18n="header.email">ইমেইল</span>
+          </button>
+          <button type="button" class="share-icon" data-platform="copy">
+            <span class="si-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+            <span class="si-label" data-i18n="header.copyLink">লিংক কপি</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="icon-btn" id="langToggleBtn">
+      🌐 <span id="langToggleLabel">EN</span>
+    </button>
+    <button type="button" class="icon-btn" id="notifyToggleBtn" style="display:none;">
+      🔔 <span id="notifyToggleLabel">নোটিফিকেশন</span>
+    </button>
+    <button type="button" class="icon-btn" id="themeToggleBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      <span id="themeToggleLabel">ডার্ক মোড</span>
+    </button>
+  </div>
+  <img class="profile-pic" src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
+  <div class="eyebrow" data-i18n="hero.eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
+  <p class="tagline" data-i18n="hero.tagline">আপনার স্বপ্নই হোক আপনার ভবিষ্যৎ</p>
+  <h1 data-i18n="hero.h1">ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব — আইডি/পেজ/চ্যানেল হ্যাক, ডিজেবল, মনিটাইজেশন সমস্যা সমাধান</h1>
+  <p><span data-i18n="hero.byline">মোঃ আলামিন ইসলাম &nbsp;•&nbsp; গোপসেনা, কেশবপুর, যশোর</span></p>
+  <p style="margin-top:10px; font-size:13.5px; color:#E8C784; max-width:420px; margin-left:auto; margin-right:auto;" data-i18n="hero.desc">
+    যাদের ফেসবুক, ইনস্টাগ্রাম, টিকটক বা ইউটিউব আইডি/পেজ/চ্যানেল হ্যাক হয়েছে, নিষ্ক্রিয় (ডিজেবল) হয়ে গেছে, মনিটাইজেশন বন্ধ হয়ে গেছে বা অন্য যেকোনো সোশ্যাল মিডিয়া সংক্রান্ত সমস্যা আছে — নিচের ফর্মটি পূরণ করুন, আমি দেখে যোগাযোগ করব।
+  </p>
+  <div class="trust-badge" data-i18n="hero.trustBadge">✓ সরাসরি যোগাযোগ &nbsp;•&nbsp; ✓ নিরাপদ তথ্য &nbsp;•&nbsp; ✓ দ্রুত সাড়া</div>
+  <div class="online-badge"><span class="online-dot"></span> <span data-i18n="hero.online">এখন অনলাইন আছি</span></div>
+  <div class="big-visit-count">
+    <span class="bvc-num" id="bigVisitNum">—</span>
+    <span class="bvc-label" data-i18n="hero.totalVisit">মোট ভিজিট</span>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-num" id="solvedStatNum">—</span>
+    <span class="stat-label" data-i18n="stats.solved">সমাধান হয়েছে</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="totalAppStatNum">—</span>
+    <span class="stat-label" data-i18n="stats.totalApp">মোট আবেদন</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="ongoingStatNum">—</span>
+    <span class="stat-label" data-i18n="stats.ongoing">কাজ চলছে</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num" id="ratingStatNum">৪.৮★</span>
+    <span class="stat-label" id="ratingStatLabel" data-i18n="stats.rating">কাস্টমার রেটিং</span>
+  </div>
+</div>
+
+<section class="posts-section" id="postsSection" aria-label="সর্বশেষ আপডেট">
+  <div class="posts-section-head">
+    <h2>📢 <span data-i18n="posts.heading">ব্লগ ও সর্বশেষ আপডেট</span></h2>
+    <a class="blog-viewall-link" href="?blog=all" data-i18n="posts.viewAll">সব পোস্ট দেখুন →</a>
+  </div>
+  <p class="posts-section-sub" data-i18n="posts.sub">ফেসবুক, ইনস্টাগ্রাম, টিকটক, ইউটিউব সমস্যা, রিকভারি ও মনিটাইজেশন নিয়ে নিয়মিত লেখা ও আপডেট</p>
+  <div id="postsContainer" class="blog-grid">
+    <p class="posts-empty" data-i18n="posts.loading">আপডেট লোড হচ্ছে...</p>
+  </div>
+</section>
+
+<a class="whatsapp-btn" id="contactSection" onclick="if(typeof gtag==='function'){gtag('event','whatsapp_click',{'event_category':'engagement','event_label':'main_contact_button'});}" href="https://wa.me/8801764324313?text=আসসালামু%20আলাইকুম%2C%20আমি%20সোশ্যাল%20মিডিয়া%20সমস্যা%20নিয়ে%20যোগাযোগ%20করতে%20চাই।" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.9C21.95 6.45 17.5 2 12.04 2Zm0 18.06h-.01a8.14 8.14 0 0 1-4.15-1.14l-.3-.18-3.11.82.83-3.03-.19-.31a8.15 8.15 0 0 1-1.25-4.31c0-4.5 3.66-8.16 8.19-8.16 2.19 0 4.24.85 5.79 2.4a8.13 8.13 0 0 1 2.4 5.78c0 4.5-3.67 8.13-8.2 8.13Zm4.48-6.1c-.24-.12-1.45-.72-1.68-.8-.22-.08-.39-.12-.55.12-.16.24-.63.8-.78.96-.14.16-.29.18-.53.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.43-1.35-1.67-.14-.24-.02-.37.11-.49.11-.11.24-.29.37-.43.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.33-.76-1.82-.2-.48-.4-.42-.55-.42-.14 0-.31-.02-.47-.02-.16 0-.42.06-.64.3-.22.24-.85.83-.85 2.02 0 1.19.87 2.34 1 2.5.12.16 1.71 2.61 4.14 3.66.58.25 1.03.4 1.38.51.58.18 1.11.16 1.53.1.47-.07 1.45-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28Z"/></svg>
+  <span data-i18n="btn.whatsapp">WhatsApp-এ যোগাযোগ করুন</span>
+</a>
+
+<a class="facebook-btn" href="https://www.facebook.com/AlaminIslamAi13" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94Z"/></svg>
+  <span data-i18n="btn.facebook">আমাদের Facebook পেজ দেখুন</span>
+</a>
+
+<button type="button" class="chat-btn" id="liveChatBtn" onclick="openLiveChat()">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 5.94 2 10.8c0 2.66 1.36 5.03 3.5 6.63V22l3.86-2.12c.83.18 1.7.28 2.64.28 5.52 0 10-3.94 10-8.8S17.52 2 12 2Zm1 12h-2v-2h2v2Zm0-3.5h-2c0-3 3-2.75 3-4.5 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.25-3 2.5-3 4.5Z"/></svg>
+  <span data-i18n="btn.liveChat">লাইভ চ্যাট করুন</span>
+</button>
+
+<section class="services-section" id="servicesSection" aria-label="আমাদের সেবাসমূহ">
+  <h2 data-i18n="services.heading">আমাদের সেবাসমূহ</h2>
+  <p class="services-note" data-i18n="services.note">Facebook, Instagram, TikTok, YouTube Help — Account/Page/Channel Hacked, Disabled, Suspended এবং Monetization সংক্রান্ত সমস্যা সমাধান</p>
+  <ul class="services-list">
+    <li data-i18n="services.li1">ফেসবুক আইডি ও পেজ ফুল সেটআপ করা হয়</li>
+    <li data-i18n="services.li2">আইডি রিভিউ করা হয়</li>
+    <li data-i18n="services.li3">পে-আউট অ্যাকাউন্ট তৈরি করা হয়</li>
+    <li data-i18n="services.li4">পে-আউট এর ভুল নাম সংশোধন করা হয়</li>
+    <li data-i18n="services.li5">টিন (TIN) সার্টিফিকেট খোলা হয়</li>
+    <li data-i18n="services.li6">ব্যাংক অ্যাকাউন্ট সেটআপ করা হয়</li>
+    <li data-i18n="services.li7">সাসপেন্ড হয়ে যাওয়া আইডি সমাধান করা হয়</li>
+    <li data-i18n="services.li8">হ্যাক হয়ে যাওয়া পেজ/অ্যাকাউন্ট রিকভারি করা হয়</li>
+    <li data-i18n="services.li9">নিষ্ক্রিয় (ডিজেবল) হয়ে যাওয়া আইডি বা পেজ ফেরত আনা হয়</li>
+    <li data-i18n="services.li10">বন্ধ হয়ে যাওয়া মনিটাইজেশন সমাধান করা হয় (ইন-স্ট্রিম এড সমস্যাসহ)</li>
+    <li data-i18n="services.li11">কমিউনিটি স্ট্যান্ডার্ড ভায়োলেশন ও কপিরাইট স্ট্রাইক সমাধান করা হয়</li>
+    <li data-i18n="services.li12">বিজনেস ম্যানেজার ও এড অ্যাকাউন্ট ডিজেবল সমাধান করা হয়</li>
+    <li data-i18n="services.li13">ফেসবুক/মেটা সংক্রান্ত যেকোনো ইস্যু সমাধান করা হয়</li>
+    <li data-i18n="services.li14">ইনস্টাগ্রাম আইডি হ্যাক ও ডিজেবল সমাধান করা হয়</li>
+    <li data-i18n="services.li15">টিকটক আইডি হ্যাক ও ব্যান সমাধান করা হয়</li>
+    <li data-i18n="services.li16">ইউটিউব চ্যানেল হ্যাক, সাসপেন্ড ও মনিটাইজেশন সমাধান করা হয়</li>
+  </ul>
+</section>
+
+<div class="cta-block">
+  <p class="cta-text" data-i18n="cta.text">নিচের বাটনে ক্লিক করে মাত্র ৩ ধাপে আবেদন করুন</p>
+  <button type="button" class="cta-fill-btn" id="showFormBtn" onclick="revealRegForm()">
+    📝 <span data-i18n="cta.btn">আপনার তথ্য পূরণ করুন</span>
+  </button>
+  <p class="cta-trust" data-i18n="cta.trust">✓ সম্পূর্ণ নিরাপদ &nbsp;·&nbsp; ✓ দ্রুত সাড়া &nbsp;·&nbsp; ✓ সমাধান না হলে চার্জ ফেরত</p>
+</div>
+</div>
+
+<div id="blogView" style="display:none;">
+  <div class="blog-masthead">
+    <div class="blog-masthead-inner">
+      <span class="blog-masthead-kicker">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা ব্লগ</span>
+      <p class="blog-masthead-desc">ফেসবুক আইডি/পেজ সমস্যা, রিকভারি ও মনিটাইজেশন নিয়ে নিয়মিত লেখা ও আপডেট</p>
+    </div>
+  </div>
+  <div id="blogCatNav" class="blog-cat-nav"></div>
+
+  <div class="blog-layout">
+    <div class="blog-main">
+      <div id="blogArchiveWrap" class="blog-archive-wrap" style="display:none;">
+        <a class="blog-back-link" href="./">← হোমে ফিরুন</a>
+        <h1 id="blogArchiveTitle">সব আপডেট / পোস্ট</h1>
+        <p class="blog-archive-sub" id="blogArchiveSub">ফেসবুক সংক্রান্ত সব সমাধান, টিপস ও সর্বশেষ খবর একসাথে</p>
+        <div class="blog-search-wrap">
+          <input type="text" id="blogSearchInput" class="blog-search-input" placeholder="🔍 পোস্ট খুঁজুন (শিরোনাম বা বিষয় লিখুন)...">
+        </div>
+        <div id="blogTickerWrap" class="blog-ticker-wrap" style="display:none;">
+          <div class="blog-ticker-title">📢 এইমাত্র পাওয়া</div>
+          <ul id="blogTickerList" class="blog-ticker-list"></ul>
+        </div>
+        <div id="blogPhotoGrid" class="blog-photo-grid"></div>
+        <div id="blogArchiveGrid" class="blog-grid">
+          <p class="posts-empty">লোড হচ্ছে...</p>
+        </div>
+        <div id="blogCatSections"></div>
+      </div>
+
+      <div id="blogDetailWrap" class="blog-detail" style="display:none;">
+        <div class="reading-progress-bar" id="readingProgressBar"></div>
+        <a class="blog-back-link" href="./">← হোমে ফিরুন</a>
+        <div id="blogDetailContent">
+          <p class="posts-empty">লোড হচ্ছে...</p>
+        </div>
+      </div>
+    </div>
+
+    <aside class="blog-sidebar">
+      <div class="blog-widget blog-fb-widget">
+        <h3>ফেসবুক পেজ</h3>
+        <a href="https://www.facebook.com/AlaminIslamAi13" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94Z"/></svg>
+          <span>FB সমাধান — আমাদের পেজ দেখুন</span>
+        </a>
+      </div>
+
+      <div id="blogRecentWidget" class="blog-widget blog-recent-widget" style="display:none;">
+        <h3>🕒 সাম্প্রতিক পোস্ট</h3>
+        <div id="blogRecentList" class="blog-list-compact"></div>
+      </div>
+
+      <div class="blog-widget blog-subscribe-box">
+        <h3>আমাদের ব্লগ সাবস্ক্রাইব করুন</h3>
+        <p>এই ব্লগে যোগ দিতে আপনার ইমেইল ঠিকানা লিখুন। নতুন পোস্ট আসলে আপনাকে ইমেইল করে জানানো হবে।</p>
+        <label for="blogSubscribeEmail">ইমেইল ঠিকানা</label>
+        <div class="blog-subscribe-row">
+          <input type="email" id="blogSubscribeEmail" placeholder="ইমেইল ঠিকানা">
+          <button type="button" id="blogSubscribeBtn" onclick="submitBlogSubscribe()">সাবস্ক্রাইব</button>
+        </div>
+        <div class="blog-subscribe-count">Join <span id="blogSubscriberCount">0</span> other subscribers</div>
+        <div class="blog-subscribe-msg" id="blogSubscribeMsg"></div>
+      </div>
+
+      <div class="blog-widget">
+        <div id="blogCalendarCap" class="blog-calendar-cap"></div>
+        <table class="blog-calendar">
+          <thead><tr id="blogCalendarHead"></tr></thead>
+          <tbody id="blogCalendarBody"></tbody>
+        </table>
+      </div>
+    </aside>
+  </div>
+
+  <div class="blog-footer">
+    © সর্বস্বত্ব সংরক্ষিত — FB সমাধান<br>
+    এই ওয়েবসাইটের কোনো লেখা, ভিডিও বা ছবি অনুমতি ছাড়া কোথাও প্রকাশ করা সম্পূর্ণ বেআইনি।<br><br>
+    সম্পাদক: <strong>মোঃ আলামিন ইসলাম</strong><br>
+    যোগাযোগ: গোপসেনা, কেশবপুর, যশোর<br>
+    WhatsApp: +8801764324313 &nbsp;·&nbsp; ইমেইল: facebookhelpbd0@gmail.com
+  </div>
+</div>
+
+<main id="mainFormSection" style="display:none;">
+  <form id="regForm">
+
+    <input type="text" id="hpField" name="website" autocomplete="off" tabindex="-1" aria-hidden="true"
+      style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0;">
+
+
+    <button type="button" class="close-form-btn" onclick="hideRegForm()">✕ বন্ধ করুন</button>
+
+    <div class="draft-restore-note" id="draftBanner">
+      <span>✓ আপনার আগের অসম্পূর্ণ তথ্য পুনরুদ্ধার করা হয়েছে।</span>
+      <button type="button" id="clearDraftBtn">মুছে নতুন শুরু</button>
+    </div>
+
+    <div class="step-progress">
+      <div class="step-dot active" id="stepDot1"><span>১</span><label>ব্যক্তিগত</label></div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="stepDot2"><span>২</span><label>ঠিকানা</label></div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="stepDot3"><span>৩</span><label>আবেদন ফি</label></div>
+    </div>
+
+    <div class="form-step" id="step1">
+    <div class="section-label" style="margin-top:0;">👤 ব্যক্তিগত তথ্য</div>
+
+    <label for="fullName">পূর্ণ নাম <span class="req">*</span></label>
+    <input type="text" id="fullName" required placeholder="যেমনঃ মোঃ আলামিন ইসলাম">
+
+    <label for="phone">আন্তর্জাতিক মোবাইল নম্বর <span class="req">*</span></label>
+    <input type="tel" id="phone" required placeholder="যেমনঃ +8801712345678 / +14155552671" inputmode="tel" autocomplete="tel" aria-describedby="phoneHint">
+    <div class="field-hint" id="phoneHint">যেকোনো দেশের নম্বর দিন। সম্ভব হলে দেশের কোডসহ + দিয়ে লিখুন।</div>
+
+    <label for="applicantPhoto">আপনার ছবি আপলোড করুন <span class="req">*</span></label>
+    <input type="file" id="applicantPhoto" accept="image/*" required>
+    <img id="photoPreview" class="photo-preview" alt="ছবি প্রিভিউ" loading="lazy" decoding="async">
+
+    <label for="platform">কোন প্ল্যাটফর্মের সমস্যা? <span class="req">*</span></label>
+    <select id="platform" required>
+      <option value="">নির্বাচন করুন</option>
+      <option value="Facebook">Facebook</option>
+      <option value="Instagram">Instagram</option>
+      <option value="TikTok">TikTok</option>
+      <option value="YouTube">YouTube</option>
+      <option value="অন্যান্য">অন্যান্য</option>
+    </select>
+
+    <label for="idLink">আপনার আইডি / প্রোফাইল / চ্যানেল লিংক (Facebook/Instagram/TikTok/YouTube) <span class="req">*</span></label>
+    <input type="url" id="idLink" required placeholder="https://facebook.com/... বা Instagram/TikTok/YouTube লিংক">
+
+    <div class="row2">
+      <div>
+        <label for="dob">জন্ম তারিখ <span class="req">*</span></label>
+        <input type="date" id="dob" required>
+      </div>
+      <div>
+        <label for="gender">লিঙ্গ <span class="req">*</span></label>
+        <select id="gender" required>
+          <option value="">নির্বাচন করুন</option>
+          <option value="পুরুষ">পুরুষ</option>
+          <option value="মহিলা">মহিলা</option>
+          <option value="অন্যান্য">অন্যান্য</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-hint" id="dobHint">আবেদন করতে হলে বয়স কমপক্ষে ১৩ বছর হতে হবে।</div>
+
+    <label for="email">ইমেইল ঠিকানা <span class="req">*</span></label>
+    <input type="email" id="email" required placeholder="example@gmail.com">
+
+    <button type="button" class="step-next-btn" onclick="goToStep(2)">পরবর্তী ধাপ →</button>
+    </div>
+
+    <div class="form-step" id="step2" style="display:none;">
+    <div class="section-label" style="margin-top:0;">📍 ঠিকানা</div>
+
+    <label for="country">দেশ <span class="req">*</span></label>
+    <select id="country" required>
+      <option value="">দেশের তালিকা লোড হচ্ছে…</option>
+    </select>
+
+    <label for="division">বিভাগ / State / Province <span class="req">*</span></label>
+    <select id="division" required disabled>
+      <option value="">প্রথমে দেশ নির্বাচন করুন</option>
+    </select>
+
+    <label for="district">জেলা / City / District <span class="req">*</span></label>
+    <select id="district" required disabled>
+      <option value="">প্রথমে বিভাগ নির্বাচন করুন</option>
+    </select>
+
+    <label for="upazila">থানা / উপজেলা / Locality <span class="req">*</span></label>
+    <input type="text" id="upazila" required list="upazilaList" placeholder="বাংলাদেশে উপজেলা নির্বাচন/লিখুন; বিদেশে Locality/থানা লিখুন" autocomplete="address-level3">
+    <datalist id="upazilaList"></datalist>
+
+    <label for="areaDetail">গ্রাম / এলাকা / Street Address <span class="req">*</span></label>
+    <input type="text" id="areaDetail" required placeholder="গ্রাম, পাড়া, মহল্লা, রাস্তা বা বাড়ির বিস্তারিত ঠিকানা লিখুন" autocomplete="street-address">
+
+    <div class="section-label">⚠️ সমস্যার বিবরণ</div>
+
+    <label for="comment">আপনার ফেসবুক সমস্যার বিবরণ <span class="req">*</span></label>
+    <textarea id="comment" required placeholder="যেমনঃ পেজ হ্যাক হয়ে গেছে, অ্যাকাউন্ট নিষ্ক্রিয় হয়ে গেছে, মনিটাইজেশন বন্ধ হয়ে গেছে ইত্যাদি — বিস্তারিত লিখুন"></textarea>
+
+    <label for="screenshot">সমস্যার স্ক্রিনশট আপলোড করুন <span class="req">*</span></label>
+    <input type="file" id="screenshot" accept="image/*" required>
+
+    <div class="step-btn-row">
+      <button type="button" class="step-back-btn" onclick="goToStep(1)">← আগের ধাপ</button>
+      <button type="button" class="step-next-btn" onclick="goToStep(3)">পরবর্তী ধাপ →</button>
+    </div>
+    </div>
+
+    <div class="form-step" id="step3" style="display:none;">
+    <div class="section-label" style="margin-top:0;">💳 আবেদন ফি</div>
+
+    <div class="fee-box">
+      <p class="fee-amount">আবেদন ফি মাত্র <strong>২০ টাকা</strong></p>
+      <p class="fee-note">এটা করা হয়েছে কারণ, মজা করে যাতে কেউ আবেদন না করতে পারে তার জন্য ফি রাখা হচ্ছে।</p>
+      <div class="fee-methods">
+        <div class="fee-method" id="feeMethod-বিকাশ" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01309519503','বিকাশ')"><span class="fee-method-label"><strong>বিকাশ</strong></span><img class="fee-logo" src="bkash-logo.png" alt="বিকাশ" loading="lazy"><span class="fee-number">01309519503</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01309519503','বিকাশ')">📋 কপি</button></div>
+        <div class="fee-method" id="feeMethod-নগদ" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01764324313','নগদ')"><span class="fee-method-label"><strong>নগদ</strong></span><img class="fee-logo" src="nagad-logo.png" alt="নগদ" loading="lazy"><span class="fee-number">01764324313</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01764324313','নগদ')">📋 কপি</button></div>
+        <div class="fee-method" id="feeMethod-রকেট" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01764324313','রকেট')"><span class="fee-method-label"><strong>রকেট</strong></span><img class="fee-logo" src="rocket-logo.jpg" alt="রকেট" loading="lazy"><span class="fee-number">01764324313</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01764324313','রকেট')">📋 কপি</button></div>
+        <div class="fee-method" id="feeMethod-উপায়" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01764324313','উপায়')"><span class="fee-method-label"><strong>উপায়</strong></span><img class="fee-logo" src="upay-logo.png" alt="উপায়" loading="lazy"><span class="fee-number">01764324313</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01764324313','উপায়')">📋 কপি</button></div>
+      </div>
+      <div id="selectedMethodStatus" class="selected-method-status"></div>
+      <p class="fee-note">উপরের যেকোনো একটি নম্বরে ২০ টাকা <strong>Send Money</strong> করে নিচে ট্রানজেকশন আইডি লিখুন।</p>
+      <p class="fee-note fee-highlight">⚠️ সকল সার্ভিসের জন্য আলোচনা সাপেক্ষে টাকা চার্জ করে থাকি। কোনো কাজ ফ্রি করা হয় না। তাই কাজ করানোর আগেই উপরে Whatapk বাটুনে ক্লিক করে কথা বলে নেওয়া ভালো। কাজ ছোট হোক কিংবা বড় সকল কাজের জন্য  চার্জ প্রয়োজ্য।</p>
+    </div>
+
+    <select id="paymentMethod" style="display:none;">
+      <option value="">নির্বাচন করুন</option>
+      <option value="বিকাশ">বিকাশ</option>
+      <option value="নগদ">নগদ</option>
+      <option value="রকেট">রকেট</option>
+      <option value="উপায়">উপায়</option>
+    </select>
+
+    <label for="txnId">ট্রানজেকশন আইডি (Transaction ID) <span class="req">*</span></label>
+    <input type="text" id="txnId" required placeholder="যেমনঃ 8N7A2XXXXX">
+
+    <label for="senderNumber">যে নম্বর থেকে টাকা পাঠিয়েছেন <span class="req">*</span></label>
+    <input type="tel" id="senderNumber" required placeholder="01XXXXXXXXX" pattern="01[0-9]{9}">
+
+    <label for="captchaAns">যাচাই করুন <span class="req">*</span></label>
+    <div class="captcha-box">
+      <span id="captchaQ"></span>
+      <input type="text" id="captchaAns" required inputmode="numeric" placeholder="উত্তর">
+    </div>
+
+    <label style="display:flex; align-items:flex-start; gap:10px; margin-top:18px; font-weight:500; font-size:14px; cursor:pointer;">
+      <input type="checkbox" id="confirmCheck" required style="width:auto; margin-top:3px; flex-shrink:0;">
+      <span>সকল তথ্য সঠিক থাকলে চেক বক্সে ক্লিক করুন <span class="req">*</span></span>
+    </label>
+
+    <div class="step-btn-row">
+      <button type="button" class="step-back-btn" onclick="goToStep(2)">← আগের ধাপ</button>
+      <button type="submit" id="submitBtn">রেজিস্ট্রেশন সম্পন্ন করুন</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="app-id-display" id="appIdDisplay">
+      <span class="app-id-display-label">আপনার আবেদন নম্বর:</span>
+      <span class="app-id-display-value" id="appIdDisplayValue"></span>
+      <button type="button" class="app-id-copy-btn" id="appIdCopyBtn">📋 কপি করুন</button>
+    </div>
+    <button type="button" class="download-btn" id="downloadBtn">রশিদ ডাউনলোড করুন (PDF)</button>
+    <div class="whatsapp-note" id="whatsappNote">
+      <p>উপরের বাটনে চাপলে রশিদ ডাউনলোড হবে এবং শেয়ার মেনু খুলবে — সেখান থেকে WhatsApp সিলেক্ট করে আমাদের 01764324313 নম্বরে পাঠিয়ে দিন। ধন্যবাদ 🙏</p>
+    </div>
+    </div>
+  </form>
+
+  <div class="status-card">
+    <div class="section-label" style="margin-top:0;">আবেদনের অবস্থা যাচাই করুন</div>
+    <label for="checkId">আপনার আবেদন নম্বর দিন (যেমনঃ APP-12345678)</label>
+    <input type="text" id="checkId" placeholder="APP-XXXXXXXX">
+    <button type="button" id="checkBtn" class="check-btn">যাচাই করুন</button>
+    <div class="check-result" id="checkResult"></div>
+  </div>
+
+  <footer>আপনার তথ্য নিরাপদে সংরক্ষণ করা হবে</footer>
+</main>
+
+<div class="pre-form-wrap" id="landingBottom">
+  <div class="faq-card" id="faqSection">
+    <div class="section-label" style="margin-top:0;" data-i18n="faq.heading">সচরাচর জিজ্ঞাসিত প্রশ্ন</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q1">আবেদন করার কতদিনের মধ্যে যোগাযোগ করা হয়?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a1">আবেদন পাওয়ার পর যাচাই করে যত দ্রুত সম্ভব হোয়াটসঅ্যাপ বা মোবাইলে যোগাযোগ করা হয়। সাধারণত ২৪ ঘণ্টার মধ্যেই সাড়া দেওয়া হয়।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q2">আবেদন ফি কি ফেরতযোগ্য?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a2">আবেদন ফি শুধু আবেদন যাচাইয়ের জন্য নেওয়া হয়, তাই এটি ফেরতযোগ্য নয়। সেবা সংক্রান্ত চার্জ আলাদাভাবে আলোচনা করে নির্ধারণ করা হয়।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q3">কোন ধরনের সমস্যা সমাধান করা হয়?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a3">ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব — এই সব প্ল্যাটফর্মের আইডি বা পেজ/চ্যানেল ফুল সেট-আপ করা হয়, আইডি রিভিউ করা হয়, পে আউট একাউন্ট করা হয়, পে আউট এর ভুল নাম ঠিক করা হয়, যে কোনো ইস্যু ঠিক করা হয়, টিন সাটিফিকেট খোলা হয়, ব্যাংক একাউন্ট সেট-আপ করা। আইডি সাসপেন্ড বা ব্যান হলে ঠিক করা। পেজ/অ্যাকাউন্ট/চ্যানেল হ্যাক হলে রিকভারি করা হয়, নিষ্ক্রিয় হয়ে যাওয়া আইডি বা পেজ ফেরত আনা হয়, মনিটাইজেশন বন্ধ হয়ে যাওয়া এবং এই সংক্রান্ত অন্যান্য সমস্যা নিয়ে কাজ করা হয়।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q4">সেবার জন্য মোট খরচ কত হবে?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a4">সমস্যার ধরন অনুযায়ী খরচ ভিন্ন হয়। আবেদন যাচাইয়ের পর সরাসরি আলোচনা করে খরচ জানিয়ে দেওয়া হয় — কোনো কাজ ফ্রি করা হয় না।</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q6">সমাধান হতে সাধারণত কত সময় লাগে?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a6">সমস্যার ধরন ও প্ল্যাটফর্মের প্রক্রিয়ার ওপর নির্ভর করে সময় ভিন্ন হয়। ছোটখাটো সমস্যা সাধারণত কয়েক দিনের মধ্যেই সমাধান হয়, তবে জটিল কেস (যেমন ব্যাংক বা পে-আউট পর্যায়ে যাচাই) একটু বেশি সময় নিতে পারে। প্রতিটি ধাপ সম্পর্কে হোয়াটসঅ্যাপে আপডেট জানিয়ে দেওয়া হয়।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q7">একাধিক আইডি/পেজ/চ্যানেলের জন্য কি একসাথে আবেদন করা যাবে?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a7">হ্যাঁ, তবে প্রতিটি আইডি/পেজ/চ্যানেলের জন্য আলাদাভাবে ফর্ম পূরণ করে আবেদন করতে হবে, যাতে প্রতিটি সমস্যা আলাদাভাবে যাচাই ও ট্র্যাক করা যায়। একাধিক আবেদন নিয়ে সরাসরি সহায়তা লাগলে উপরের WhatsApp নম্বরে জানাতে পারেন।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q8">বিদেশ থেকেও কি আবেদন করা যাবে?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a8">হ্যাঁ, পৃথিবীর যেকোনো দেশ থেকে আবেদন করা যায়। ফর্মে দেশ, বিভাগ/State, জেলা/City, থানা/উপজেলা/Locality এবং গ্রাম/এলাকার ঠিকানা দেওয়া যাবে — যাচাই, যোগাযোগ ও পরামর্শ অনলাইনে ও হোয়াটসঅ্যাপের মাধ্যমে সম্পন্ন করা হয়।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q9">সমস্যা সমাধান না হলে কী হবে?</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a" data-i18n="faq.a9">প্রতিটি আবেদন প্রথমে যাচাই করে দেখা হয়, যাতে কাজ শুরুর আগেই সমাধানের সম্ভাবনা সম্পর্কে স্বচ্ছভাবে জানানো যায়। কাজ চলাকালীন কোনো বাধা এলে তা সাথে সাথে হোয়াটসঅ্যাপে জানিয়ে দেওয়া হয়। এরপরও যদি শেষ পর্যন্ত সমস্যার সমাধান করা সম্ভব না হয়, তাহলে নেওয়া সার্ভিস চার্জ ফেরত দেওয়া হয় (প্রাথমিক আবেদন যাচাই ফি ব্যতীত) — কোনোকিছু গোপন রাখা হয় না।</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q5">গোপনীয়তা নীতি</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="faq-a privacy-text" data-i18n="faq.a5">
+        আপনার দেওয়া নাম, মোবাইল নম্বর, ইমেইল, জন্ম তারিখ, ঠিকানা, ছবি ও আইডি/প্রোফাইল/চ্যানেল লিংক শুধুমাত্র আপনার আবেদন যাচাই ও যোগাযোগের কাজে ব্যবহার করা হয়। এই তথ্য আমাদের নিজস্ব Google Sheet ও Google Drive-এ সংরক্ষিত থাকে এবং তৃতীয় কোনো পক্ষের সাথে শেয়ার বা বিক্রি করা হয় না।<br><br>
+        পেমেন্ট স্ক্রিনশট ও ট্রানজেকশন আইডি শুধু ফি পরিশোধ যাচাইয়ের জন্য রাখা হয়।<br><br>
+        নোটিফিকেশন বা লোকেশন পারমিশন সম্পূর্ণ ঐচ্ছিক — অনুমতি না দিলেও ফর্ম পূরণ ও রেজিস্ট্রেশন করা যাবে।<br><br>
+        আপনার তথ্য মুছে ফেলতে বা সংক্রান্ত কোনো প্রশ্ন থাকলে উপরের WhatsApp নম্বরে যোগাযোগ করুন।
+      </div>
+    </div>
+  </div>
+
+  <div class="testi-card" id="reviewsSection">
+    <div class="section-label" style="margin-top:0;" data-i18n="reviews.heading">কাস্টমারদের মতামত</div>
+    <div id="reviewsContainer">
+      <p style="font-size:13.5px; color:var(--muted); text-align:center; padding:10px 0;">রিভিউ লোড হচ্ছে...</p>
+    </div>
+  </div>
+
+  <div class="testi-card">
+    <div class="section-label" style="margin-top:0;" data-i18n="reviewForm.heading">আপনার অভিজ্ঞতা জানান</div>
+    <div id="reviewFormBox">
+      <label><span data-i18n="reviewForm.rating">রেটিং দিন</span> <span class="req">*</span></label>
+      <div id="starPicker" role="group" aria-label="রেটিং, ১ থেকে ৫ তারা নির্বাচন করুন" style="font-size:28px; letter-spacing:4px; margin:6px 0 14px; cursor:pointer;">
+        <span data-val="1">☆</span><span data-val="2">☆</span><span data-val="3">☆</span><span data-val="4">☆</span><span data-val="5">☆</span>
+      </div>
+      <label for="reviewName" data-i18n="reviewForm.name">আপনার নাম (ঐচ্ছিক)</label>
+      <input type="text" id="reviewName" placeholder="যেমনঃ মোঃ করিম">
+      <label for="reviewText"><span data-i18n="reviewForm.text">আপনার মতামত</span> <span class="req">*</span></label>
+      <textarea id="reviewText" placeholder="আপনার অভিজ্ঞতা লিখুন..."></textarea>
+      <button type="button" id="reviewSubmitBtn" style="width:100%; margin-top:14px; padding:13px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer;" data-i18n="reviewForm.submit">রিভিউ জমা দিন</button>
+      <div id="reviewMsg" style="display:none; margin-top:12px; padding:11px 13px; border-radius:8px; font-size:13.5px;"></div>
+    </div>
+  </div>
+</div>
+
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <p class="site-footer-brand" data-i18n="footer.brand">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</p>
+    <p class="site-footer-tag" data-i18n="footer.tag">ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব সংক্রান্ত সমস্যা সমাধানে বিশ্বস্ত সেবা — কেশবপুর, যশোর</p>
+    <div class="site-footer-links">
+      <a href="#top" data-i18n="nav.home">হোম</a>
+      <a href="?blog=all" data-i18n="nav.blog">ব্লগ</a>
+      <a href="#servicesSection" data-i18n="nav.services">সেবা</a>
+      <a href="#reviewsSection" data-i18n="nav.reviews">রিভিউ</a>
+      <a href="#contactSection" data-i18n="nav.contact">যোগাযোগ</a>
+      <a href="about.html">আমাদের সম্পর্কে</a>
+      <a href="privacy.html">গোপনীয়তা নীতি</a>
+    </div>
+    <p class="site-footer-copy">© <span id="footerYear"></span> <span data-i18n="footer.copy">মোঃ আলামিন ইসলাম। সর্বস্বত্ব সংরক্ষিত।</span></p>
+  </div>
+<div id="siteExtraLinks" class="site-extra-links"><a href="#contactSection">যোগাযোগ</a><button type="button" onclick="openSitePolicy('privacy')">গোপনীয়তা</button><button type="button" onclick="openSitePolicy('disclaimer')">ডিসক্লেইমার</button><a href="#faqSection">সাধারণ প্রশ্ন</a><a data-site-youtube href="#" target="_blank" rel="noopener">YouTube</a><a data-site-telegram href="#" target="_blank" rel="noopener">Telegram</a><a data-site-email href="#">ইমেইল</a></div>
+</footer>
+
+<a href="https://wa.me/8801764324313?text=%E0%A6%86%E0%A6%B8%E0%A6%B8%E0%A6%BE%E0%A6%B2%E0%A6%BE%E0%A6%AE%E0%A7%81%20%E0%A6%86%E0%A6%B2%E0%A6%BE%E0%A6%87%E0%A6%95%E0%A7%81%E0%A6%AE%2C%20%E0%A6%86%E0%A6%AE%E0%A6%BF%20%E0%A6%B8%E0%A6%BE%E0%A6%B9%E0%A6%BE%E0%A6%AF%E0%A7%8D%E0%A6%AF%20%E0%A6%9A%E0%A6%BE%E0%A6%87%E0%A5%A4" target="_blank" rel="noopener" class="whatsapp-float" id="whatsappFloatBtn" aria-label="হোয়াটসঅ্যাপে যোগাযোগ করুন" onclick="if(typeof gtag==='function'){gtag('event','whatsapp_click',{'event_category':'engagement','event_label':'floating_button'});}">
+  <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff"><path d="M16.001 3C9.373 3 4 8.373 4 15.001c0 2.386.7 4.61 1.912 6.482L4 29l7.687-1.878A11.94 11.94 0 0 0 16.001 27C22.629 27 28 21.629 28 15.001 28 8.373 22.629 3 16.001 3zm7.016 17.219c-.3.844-1.49 1.556-2.457 1.762-.654.14-1.508.25-4.386-.941-3.68-1.526-6.049-5.263-6.234-5.508-.183-.245-1.494-1.988-1.494-3.793s.947-2.694 1.283-3.063c.336-.369.734-.462.978-.462.244 0 .489.002.702.014.226.011.529-.086.826.629.3.72.998 2.472 1.086 2.652.09.18.152.393.03.638-.121.245-.183.395-.365.61-.183.216-.383.482-.548.647-.183.183-.373.381-.16.746.213.365.947 1.562 2.033 2.53 1.397 1.246 2.575 1.633 2.94 1.816.365.183.578.153.79-.093.213-.245.917-1.07 1.163-1.437.244-.365.489-.303.822-.183.335.121 2.13 1.005 2.495 1.188.365.183.61.274.7.427.09.153.09.884-.21 1.727z"/></svg>
+</a>
+<button type="button" class="back-to-top" id="backToTopBtn" aria-label="উপরে ফিরুন">↑</button>
+
+<div id="receipt">
+  <div class="r-watermark">✓ যাচাইকৃত</div>
+  <div class="r-stamp">অনুমোদিত<br>✓</div>
+  <div class="r-header">
+    <img src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
+    <div class="r-eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
+    <div class="r-title">আবেদন রশিদ</div>
+    <div class="r-sub">মোঃ আলামিন ইসলাম • গোপসেনা, কেশবপুর, যশোর</div>
+  </div>
+  <div class="r-status" id="r-status">✓ রেজিস্ট্রেশন সফল হয়েছে</div>
+  <div class="r-body">
+    <div class="r-idbox">
+      <div>
+        <div class="r-idlabel">আবেদন নম্বর</div>
+        <div class="r-idvalue" id="r-id"></div>
+      </div>
+      <img class="r-applicant-photo" id="r-applicant-photo" src="" alt="আবেদনকারীর ছবি" style="display:none;" loading="lazy" decoding="async">
+    </div>
+    <div class="r-row"><span class="label">প্ল্যাটফর্ম</span><span class="value" id="r-platform"></span></div>
+    <div class="r-row"><span class="label">আইডি/প্রোফাইল লিংক</span><span class="value" id="r-idlink"></span></div>
+    <div class="r-row"><span class="label">তারিখ ও সময়</span><span class="value" id="r-date"></span></div>
+
+    <div class="r-section">ব্যক্তিগত তথ্য</div>
+    <div class="r-row"><span class="label">পূর্ণ নাম</span><span class="value" id="r-name"></span></div>
+    <div class="r-row"><span class="label">মোবাইল নম্বর</span><span class="value" id="r-phone"></span></div>
+    <div class="r-row"><span class="label">জন্ম তারিখ</span><span class="value" id="r-dob"></span></div>
+    <div class="r-row"><span class="label">লিঙ্গ</span><span class="value" id="r-gender"></span></div>
+    <div class="r-row"><span class="label">ইমেইল</span><span class="value" id="r-email"></span></div>
+
+    <div class="r-section">ঠিকানা</div>
+    <div class="r-row"><span class="label">দেশ</span><span class="value" id="r-country"></span></div>
+    <div class="r-row"><span class="label">বিভাগ / State</span><span class="value" id="r-division"></span></div>
+    <div class="r-row"><span class="label">জেলা / City</span><span class="value" id="r-district"></span></div>
+    <div class="r-row"><span class="label">থানা / উপজেলা / Locality</span><span class="value" id="r-upazila"></span></div>
+    <div class="r-row"><span class="label">গ্রাম / এলাকা</span><span class="value" id="r-area"></span></div>
+
+    <div class="r-section">সমস্যার বিবরণ</div>
+    <div class="r-comment" id="r-comment"></div>
+
+    <div class="r-section">আবেদন ফি</div>
+    <div class="r-row"><span class="label">পেমেন্ট মাধ্যম</span><span class="value" id="r-payment"></span></div>
+    <div class="r-row"><span class="label">ট্রানজেকশন আইডি</span><span class="value" id="r-txn"></span></div>
+    <div class="r-row"><span class="label">প্রেরকের নম্বর</span><span class="value" id="r-sender"></span></div>
+
+    <div class="r-foot">
+      এই রশিদটি সংরক্ষণ করুন — প্রয়োজনে যোগাযোগের সময় দেখাতে পারবেন।<br>
+      <span class="r-contact">📞 হোয়াটসঅ্যাপ: 01764324313</span>
+    </div>
+  </div>
+</div>
+
+<script src="site-app.js" defer></script>
+
+<!-- ============ Tawk.to লাইভ চ্যাট উইজেট ============
+     নিচের YOUR_PROPERTY_ID এবং YOUR_WIDGET_ID বদলে আপনার নিজের ভ্যালু বসান।
+     কীভাবে পাবেন তা চ্যাটের নিচের নির্দেশনায় দেওয়া আছে। -->
+<script type="text/javascript">
+var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+// চ্যাট বক্স আর অটো-ওপেন হবে না; ভিজিটর বাবল/বাটনে ট্যাপ করলে তবেই খুলবে।
+Tawk_API.onLoad = function(){
+  try { Tawk_API.minimize(); } catch(e){}
+};
+// ============ মোবাইলে ১৫ সেকেন্ড পর চ্যাট বাটনে পালস অ্যানিমেশন (ফুলস্ক্রিন খুলবে না) ============
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if (window.innerWidth <= 768) {
+      var chatBtn = document.getElementById('liveChatBtn');
+      if (chatBtn) chatBtn.classList.add('pulse-attention');
+    }
+  }, 15000);
+});
+
+// ============ WhatsApp/Facebook বাটনের নিচের "লাইভ চ্যাট করুন" বাটন ============
+function openLiveChat(){
+  if (window.Tawk_API && typeof Tawk_API.maximize === 'function') {
+    Tawk_API.maximize();
+  } else {
+    // widget script তখনও লোড হচ্ছে হয়তো, একটু পর আবার চেষ্টা করা হচ্ছে
+    var tries = 0;
+    var waitForTawk = setInterval(function(){
+      tries++;
+      if (window.Tawk_API && typeof Tawk_API.maximize === 'function') {
+        Tawk_API.maximize();
+        clearInterval(waitForTawk);
+      } else if (tries > 20) {
+        clearInterval(waitForTawk);
+      }
+    }, 300);
+  }
+}
+(function(){
+  function loadTawk(){
+    if(window.__tawkLoaded) return;
+    window.__tawkLoaded = true;
+    var s1 = document.createElement('script'), s0 = document.getElementsByTagName('script')[0];
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/6a9e3f52d0128c3449822ce1/1k1t2enfc';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+  }
+  if('requestIdleCallback' in window) requestIdleCallback(loadTawk,{timeout:5000});
+  else setTimeout(loadTawk,5000);
+})();
+</script>
+
+<div id="sitePolicyModal" class="site-modal" role="dialog" aria-modal="true" aria-labelledby="sitePolicyTitle"><div class="site-modal-card"><button class="site-modal-close" onclick="closeSitePolicy()" aria-label="বন্ধ করুন">×</button><h2 id="sitePolicyTitle">গোপনীয়তা নীতি</h2><div id="sitePolicyBody"></div></div></div>
+<div class="mobile-action-bar"><a href="#contactSection">📞 যোগাযোগ</a><a href="https://wa.me/8801764324313" target="_blank" rel="noopener">💬 WhatsApp</a><a href="#blogView">📰 ব্লগ</a></div>
+<script>
+function openSitePolicy(type){const m=document.getElementById('sitePolicyModal'),t=document.getElementById('sitePolicyTitle'),b=document.getElementById('sitePolicyBody');if(type==='disclaimer'){t.textContent='ডিসক্লেইমার';b.innerHTML='<p>এই সাইটের তথ্য সাধারণ সহায়তা ও শিক্ষামূলক উদ্দেশ্যে দেওয়া হয়। কোনো অ্যাকাউন্ট, পেজ বা চ্যানেল পুনরুদ্ধার নিশ্চিতভাবে হবে—এমন নিশ্চয়তা এখানে দেওয়া হচ্ছে না। তৃতীয় পক্ষের প্ল্যাটফর্মের নিজস্ব নীতি ও সিদ্ধান্ত প্রযোজ্য। প্রয়োজনীয় তথ্য দেওয়ার আগে সংবেদনশীল পাসওয়ার্ড বা OTP শেয়ার করবেন না।</p>';}else{t.textContent='গোপনীয়তা নীতি';b.innerHTML='<p>আপনার দেওয়া তথ্য আবেদন যাচাই, যোগাযোগ ও সেবা দেওয়ার কাজে ব্যবহার করা হয়। প্রয়োজনের বাইরে তথ্য প্রকাশ বা বিক্রি না করার নীতি অনুসরণ করা হয়। তবে Google Sheets/Drive, WhatsApp বা অন্যান্য তৃতীয় পক্ষের সেবায় তথ্য ব্যবহারের ক্ষেত্রে তাদের নিজস্ব নীতিও প্রযোজ্য। তথ্য মুছে ফেলা বা সংশোধনের অনুরোধ করতে যোগাযোগ করুন।</p>';}m.classList.add('open');document.body.style.overflow='hidden';}function closeSitePolicy(){const m=document.getElementById('sitePolicyModal');m.classList.remove('open');document.body.style.overflow='';}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSitePolicy()});document.getElementById('sitePolicyModal').addEventListener('click',e=>{if(e.target.id==='sitePolicyModal')closeSitePolicy()});
+</script>
+</body>
+  </html>
