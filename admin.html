@@ -13,11 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="অ্যাডমিন প্যানেল">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="preconnect" href="https://script.google.com">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#FBF6EA;
@@ -461,7 +457,6 @@ function __handleAuthIssue(errCode){
   try{ if(typeof visitStatsTimer !== 'undefined' && visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; } }catch(e){}
   if(errCode === 'session expired'){
     sessionStorage.removeItem('adminPw');
-    try{ __clearAdminCache(); }catch(e){}
   }
   if(!__sessionIssueShown){
     __sessionIssueShown = true;
@@ -477,108 +472,6 @@ function __handleAuthIssue(errCode){
 
 // Admin API calls use normal GET so Google Apps Script Web App can return JSON reliably.
 
-// ============ অ্যাডমিন দ্রুত লোডিং: আগের ডেটা সাথে সাথে + ব্যাকগ্রাউন্ডে নতুন ডেটা ============
-// Apps Script ধীর হলে আগে ৪-৫ মিনিট পর্যন্ত "লোড হচ্ছে..." থাকত। এখন:
-//  ১) আগে একবার যে ডেটা এসেছিল সেটা সাথে সাথে দেখানো হয় (ডিভাইসে সংরক্ষিত কপি থেকে)।
-//  ২) পেছনে নতুন ডেটা আনা হয় (৩০ সেকেন্ড টাইমআউট, ২ বার রিট্রাই); নতুন কিছু থাকলে স্ক্রিন নিজে আপডেট হয়।
-//  ৩) প্রথমবার বা কপি না থাকলে আগের মতোই সরাসরি আনা হয়, ব্যর্থ হলে {success:false} দিয়ে এরর দেখায়।
-// শুধু পড়ার (read-only) রিকোয়েস্টে এটা কাজ করে; এডিট/ডিলিট/আপডেট কখনো ক্যাশ বা রিট্রাই হয় না।
-// লগআউট বা সেশন শেষ হলে সংরক্ষিত কপি মুছে ফেলা হয়।
-const __CACHE_PREFIX = 'admCache:';
-function __clearAdminCache(){
-  try{
-    Object.keys(localStorage).forEach(k => { if(k.indexOf(__CACHE_PREFIX) === 0) localStorage.removeItem(k); });
-  }catch(e){}
-}
-(function(){
-  const origFetch = window.fetch.bind(window);
-  const LOADERS = {
-    list: 'loadEntries', listPosts: 'loadAdminPosts', listReviews: 'loadAdminReviews',
-    listComments: 'loadAdminComments', listSubscribers: 'loadSubscribers', getVisitStats: 'loadVisitStats',
-    listTrash: 'loadTrash', getSiteSettings: 'loadSiteSettings', listAdminActivity: 'loadAdminActivity',
-    getStats: 'fetchPersistentStats', getApplicationHistory: null
-  };
-  function actionOf(url){ const m = /[?&]action=([a-zA-Z_]+)/.exec(url); return m ? m[1] : ''; }
-  function cacheKey(url){
-    // পাসওয়ার্ড/টাইমস্ট্যাম্প/force বাদ দিয়ে কী বানানো হয়
-    return __CACHE_PREFIX + url.slice(SCRIPT_URL.length).replace(/([?&])(password|_|force)=[^&]*/g, '$1').replace(/[?&]+$/,'');
-  }
-  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-  function jsonResp(text){ return new Response(text, {status:200, headers:{'Content-Type':'application/json'}}); }
-  function failResp(){ return jsonResp(JSON.stringify({success:false, error:'network'})); }
-
-  async function networkText(input, init){
-    for(let attempt = 0; attempt < 3; attempt++){
-      try{
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 30000);
-        const resp = await origFetch(input, Object.assign({}, init || {}, {signal: ctrl.signal}));
-        clearTimeout(timer);
-        const text = await resp.text();
-        JSON.parse(text); // HTML এরর পেজ হলে এখানে ব্যর্থ হয়ে রিট্রাই হবে
-        return text;
-      }catch(err){
-        if(attempt < 2) await sleep(1500 * (attempt + 1));
-      }
-    }
-    return null;
-  }
-  function isGood(text){
-    try{ const d = JSON.parse(text); return d && d.success !== false; }catch(e){ return false; }
-  }
-  const inflight = {};
-  function userIsTyping(){
-    const a = document.activeElement;
-    return a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
-  }
-  function revalidate(key, input, init, action, cachedText){
-    if(inflight[key]) return;
-    inflight[key] = true;
-    networkText(input, init).then(text => {
-      inflight[key] = false;
-      if(text === null || !isGood(text)){
-        try{ const d = text && JSON.parse(text); if(d && (d.error === 'session expired' || d.error === 'locked')) __handleAuthIssue(d.error); }catch(e){}
-        return;
-      }
-      try{ localStorage.setItem(key, text); }catch(e){}
-      if(text !== cachedText){
-        const fnName = LOADERS[action];
-        // ডেটা বদলালে স্ক্রিন আপডেট; কেউ লিখতে থাকলে তার লেখা নষ্ট না করতে এড়িয়ে যাওয়া হয়
-        if(fnName && typeof window[fnName] === 'function' && !userIsTyping()){
-          try{ window[fnName](); }catch(e){}
-        }
-      }
-    });
-  }
-
-  window.fetch = function(input, init){
-    if(typeof input !== 'string' || input.indexOf(SCRIPT_URL) !== 0) return origFetch(input, init);
-    const action = actionOf(input);
-    if(!(action in LOADERS) || (init && init.method && String(init.method).toUpperCase() !== 'GET')){
-      return origFetch(input, init);
-    }
-    const key = cacheKey(input);
-    const force = /[?&]force=1/.test(input);
-    const needsPw = /[?&]password=/.test(input);
-    let cached = null;
-    if(!force && needsPw){ try{ cached = localStorage.getItem(key); }catch(e){} }
-    if(cached && isGood(cached)){
-      revalidate(key, input, init, action, cached);
-      return Promise.resolve(jsonResp(cached));
-    }
-    return (async function(){
-      const text = await networkText(input, init);
-      if(text === null) return failResp();
-      if(needsPw && isGood(text)){ try{ localStorage.setItem(key, text); }catch(e){} }
-      return jsonResp(text);
-    })();
-  };
-})();
-
-// ছবির ছোট সংস্করণ (লিস্টে ছোট ছবি, ক্লিক করলে বড়টা) — Drive থেকে ১০০০-১২০০px ছবি নামানো লোড ধীর করত
-function thumbSmall(u, w){ u = String(u || ''); return u.replace(/sz=w\d+/, 'sz=w' + w).replace(/=w\d+$/, '=w' + w); }
-
-const origWarmFetch = window.fetch.bind(window);
 const STATUS_OPTIONS = ["অপেক্ষমান", "কাজ চলছে", "সম্পন্ন", "বাতিল"];
 // স্ট্যাটাস আগে ফ্রি-টেক্সট ইনপুট দিয়ে টাইপ করা হতো বলে ভুলবশত অতিরিক্ত স্পেস/টাইপো ঢুকে যেতে পারত,
 // যার ফলে ফিল্টার চিপে ক্লিক করলে "মিল না পাওয়ায়" এন্ট্রি বাদ পড়ে যেত। তাই তুলনা করার আগে সবসময়
@@ -593,12 +486,25 @@ let selectedRowIndexes = new Set();
 
 const COLLAPSIBLE_SECTION_IDS = ['visitAnalyticsBody', 'reviewsBody', 'commentsBody', 'postFormBody', 'subscribersBody', 'settingsBody'];
 
+const __sectionLoaded = {};
+function loadSectionData_(id){
+  if(__sectionLoaded[id]) return;
+  __sectionLoaded[id] = true;
+  try{
+    if(id === 'visitAnalyticsBody'){ loadVisitStats(); startVisitStatsAutoRefresh(); }
+    else if(id === 'reviewsBody'){ loadAdminReviews(); }
+    else if(id === 'commentsBody'){ loadAdminComments(); }
+    else if(id === 'postFormBody'){ loadAdminPosts(); }
+    else if(id === 'subscribersBody'){ loadSubscribers(); }
+  }catch(e){ __sectionLoaded[id] = false; }
+}
 function toggleSection(id, headerEl){
   const body = document.getElementById(id);
   const arrow = headerEl.querySelector('.secArrow');
   const opening = body.style.display === 'none';
   body.style.display = opening ? 'block' : 'none';
   if(arrow) arrow.textContent = opening ? '▾' : '▸';
+  if(opening) loadSectionData_(id);
   saveOpenSections();
 }
 
@@ -623,6 +529,7 @@ function restoreOpenSections(){
       const header = body.previousElementSibling;
       const arrow = header ? header.querySelector('.secArrow') : null;
       if(arrow) arrow.textContent = '▾';
+      loadSectionData_(id);
     });
   }catch(err){}
 }
@@ -827,10 +734,10 @@ function exportSubscribersCsv(){
 function exportCsv(){
   const rows = (window.__lastFilteredRows && window.__lastFilteredRows.length) ? window.__lastFilteredRows : allRows;
   if(!rows.length){ alert('ডাউনলোড করার মতো কোনো এন্ট্রি নেই।'); return; }
-  const headers = ['তারিখ','নাম','ফোন','জন্ম তারিখ','লিঙ্গ','ইমেইল','দেশ','বিভাগ / State','জেলা / City','থানা / উপজেলা / Locality','গ্রাম / এলাকা','মন্তব্য','পেমেন্ট মেথড','TxnID','প্রেরক নম্বর','আবেদন নম্বর','স্ট্যাটাস','প্রাইভেট নোট','ছবি লিংক','আইডি/প্রোফাইল লিংক'];
+  const headers = ['তারিখ','নাম','ফোন','জন্ম তারিখ','লিঙ্গ','ইমেইল','বিভাগ','জেলা','এলাকা','মন্তব্য','পেমেন্ট মেথড','TxnID','প্রেরক নম্বর','আবেদন নম্বর','স্ট্যাটাস','প্রাইভেট নোট','ছবি লিংক','আইডি/প্রোফাইল লিংক'];
   const csvRows = [headers.join(',')];
   rows.forEach(r => {
-    const line = [r.date, r.fullName, r.phone, r.dob, r.gender, r.email, r.country, r.division, r.district, r.upazila, r.areaDetail, r.comment, r.paymentMethod, r.txnId, r.senderNumber, r.appId, r.status, r.note, r.photoUrl, r.idLink]
+    const line = [r.date, r.fullName, r.phone, r.dob, r.gender, r.email, r.division, r.district, r.areaDetail, r.comment, r.paymentMethod, r.txnId, r.senderNumber, r.appId, r.status, r.note, r.photoUrl, r.idLink]
       .map(v => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"')
       .join(',');
     csvRows.push(line);
@@ -869,7 +776,7 @@ function deleteEntry(rowIndex, fullName, cardEl){
 
 function startAutoRefresh(){
   if(autoRefreshTimer) return;
-  autoRefreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadEntries(); }, 25000);
+  autoRefreshTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadEntries(); }, 60000);
 }
 
 function stopAutoRefresh(){
@@ -1130,7 +1037,7 @@ function loadAdminPosts(){
     .then(r => r.json())
     .then(data => {
       if(!data.success){
-        listEl.innerHTML = 'পোস্ট লোড করতে সমস্যা হয়েছে। <button type="button" onclick="loadAdminPosts()" style="margin-left:6px; padding:4px 10px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">আবার চেষ্টা করুন</button>';
+        listEl.textContent = 'পোস্ট লোড করতে সমস্যা হয়েছে।';
         return;
       }
       renderPostsAnalyticsSummary(data.posts || []);
@@ -1148,7 +1055,7 @@ function loadAdminPosts(){
         const safeShortContent = shortRaw.replace(/</g,'&lt;');
         const safeId = String(p.id || '').replace(/</g,'&lt;');
         const mediaHtml =
-          (p.imageUrl ? '<img loading="lazy" decoding="async" src="' + thumbSmall(p.imageUrl, 400) + '" style="max-width:100%; max-height:140px; border-radius:8px; margin:6px 0; display:block;">' : '') +
+          (p.imageUrl ? '<img src="' + p.imageUrl + '" style="max-width:100%; max-height:140px; border-radius:8px; margin:6px 0; display:block;">' : '') +
           (p.videoUrl ? '<div style="font-size:12px; color:var(--forest); margin:4px 0;">🎬 ভিডিও যুক্ত আছে</div>' : '');
         const isScheduled = p.publishAt && p.published === false;
         const isDraft = !!p.draft;
@@ -1425,17 +1332,11 @@ function addPost(isDraft){
   Promise.resolve()
     .then(()=>{
       if(imageFile){
-        if(window.editedPostImageData){
-          payload.imageBase64 = window.editedPostImageData;
-          payload.imageName = String(imageFile.name || 'edited-image').replace(/\.[^.]+$/,'') + '.jpg';
-          payload.imageType = 'image/jpeg';
-        } else {
-          return fileToBase64(imageFile).then(dataUrl=>{
-            payload.imageBase64 = dataUrl;
-            payload.imageName = imageFile.name;
-            payload.imageType = imageFile.type || 'image/jpeg';
-          });
-        }
+        return fileToBase64(imageFile).then(dataUrl=>{
+          payload.imageBase64 = dataUrl;
+          payload.imageName = imageFile.name;
+          payload.imageType = imageFile.type || 'image/jpeg';
+        });
       }
     })
     .then(()=>{
@@ -1685,7 +1586,7 @@ function loadVisitStats(){
 
 function startVisitStatsAutoRefresh(){
   if(visitStatsTimer) return;
-  visitStatsTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadVisitStats(); }, 25000);
+  visitStatsTimer = setInterval(()=>{ if(document.visibilityState === 'visible') loadVisitStats(); }, 60000);
 }
 function stopVisitStatsAutoRefresh(){
   if(visitStatsTimer){ clearInterval(visitStatsTimer); visitStatsTimer = null; }
@@ -1823,20 +1724,19 @@ function login(){
     });
 }
 
-let __secondaryStarted = false;
-function kickoffSecondaryLoads(){
-  if(__secondaryStarted) return;
-  __secondaryStarted = true;
-  loadAdminReviews(); loadAdminComments(); loadAdminPosts(); fetchPersistentStats();
-  setTimeout(() => { loadSubscribers(); }, 300);
-  setTimeout(() => { loadVisitStats(); startVisitStatsAutoRefresh(); }, 800); // সবচেয়ে ভারী — সবার শেষে
-}
-
 function verifyAndEnter(){
-  __secondaryStarted = false; // লগআউটের পর আবার লগইন করলেও বাকি অংশগুলো লোড হবে
   const pw = sessionStorage.getItem('adminPw');
   if(!pw){ return; }
   document.getElementById('loginErr').style.display = 'none';
+
+  // Performance: token already verified by login/session; show the Admin shell immediately
+  // instead of making the whole page wait for the application list request.
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
+  const initialLoading = document.getElementById('loadingMsg');
+  if(initialLoading) initialLoading.style.display = 'block';
+  const initialUpdated = document.getElementById('lastUpdated');
+  if(initialUpdated) initialUpdated.textContent = 'ডেটা লোড হচ্ছে…';
 
   // আগের সফল ডেটা থাকলে আগে সেটাই দেখাই — Admin খুলতেই টেবিল দেখা যাবে।
   let hadCache = false;
@@ -1860,8 +1760,6 @@ function verifyAndEnter(){
     }
   }catch(e){}
 
-  // list ধীর (যেমন Apps Script cold start) হলেও ১.৫ সেকেন্ড পরে বাকি অংশগুলো আলাদাভাবে লোড শুরু হয়ে যাবে।
-  setTimeout(kickoffSecondaryLoads, 1500);
   // Backend verification/background refresh — cache থাকলে এটি UI আটকে রাখবে না।
   fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
@@ -1870,6 +1768,7 @@ function verifyAndEnter(){
       if(data.success){
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('panel').style.display = 'block';
+        if(initialLoading) initialLoading.style.display = 'none';
         allRows = Array.isArray(data.rows) ? data.rows : [];
         try{ sessionStorage.setItem('adminListCacheV2', JSON.stringify({time:Date.now(), rows:allRows})); }catch(e){}
         restoreFilterState();
@@ -1879,11 +1778,13 @@ function verifyAndEnter(){
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + new Date().toLocaleTimeString('bn-BD');
         startAutoRefresh();
         updateBackupReminder();
-        // বাকি অংশগুলো (রিভিউ, কমেন্ট, পোস্ট...) সাথে সাথে একসাথে (parallel) লোড হয়, কোনো কৃত্রিম বিলম্ব নেই।
-        kickoffSecondaryLoads();
+        // Performance v2: heavy sections are lazy-loaded when opened.
+        setTimeout(() => { fetchPersistentStats(); }, 300);
       } else {
-        __secondaryStarted = true; // লগইন ব্যর্থ — বাকি রিকোয়েস্ট পাঠানোর দরকার নেই
         sessionStorage.removeItem('adminPw');
+        document.getElementById('panel').style.display = 'none';
+        document.getElementById('loginBox').style.display = 'block';
+        if(initialLoading) initialLoading.style.display = 'none';
         if(!hadCache){
           document.getElementById('loginErr').textContent = data.error && data.error !== 'wrong password'
             ? ('লগইন করতে সমস্যা হয়েছে — ' + data.error)
@@ -1893,8 +1794,11 @@ function verifyAndEnter(){
       }
     })
     .catch(() => {
+      if(initialLoading) initialLoading.style.display = 'none';
       // পুরনো ক্যাশ থাকলে Admin চালু রেখেই offline/stale অবস্থায় ব্যবহার করা যাবে।
       if(!hadCache){
+        document.getElementById('panel').style.display = 'none';
+        document.getElementById('loginBox').style.display = 'block';
         document.documentElement.classList.remove('has-session');
         document.getElementById('loginErr').textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।';
         document.getElementById('loginErr').style.display = 'block';
@@ -1906,7 +1810,6 @@ function logout(){
   document.documentElement.classList.remove('has-session');
   const oldTok = sessionStorage.getItem('adminPw');
   sessionStorage.removeItem('adminPw');
-  try{ __clearAdminCache(); }catch(e){}
   if(oldTok){ try{ fetch(SCRIPT_URL + '?action=logout&password=' + encodeURIComponent(oldTok)).catch(()=>{}); }catch(err){} }
   stopAutoRefresh();
   stopVisitStatsAutoRefresh();
@@ -1922,43 +1825,47 @@ function logout(){
 // (পুল-টু-রিফ্রেশে লগআউট হওয়া এড়াতে 'pagehide'-এ পাসওয়ার্ড মোছা বন্ধ করা হয়েছে;
 // এখন পাসওয়ার্ড sessionStorage-এ থাকে, তাই রিফ্রেশে লগইন থাকে আর ট্যাব বন্ধ করলে আপনাআপনি মুছে যায়)
 
-function loadEntries(){
+let __adminListRequest = null;
+
+function fetchAdminList_(onDone){
+  if(__adminListRequest) return __adminListRequest;
   const pw = sessionStorage.getItem('adminPw');
-  fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw))
+  if(!pw) return Promise.resolve(null);
+  __adminListRequest = fetch(SCRIPT_URL + '?action=list&password=' + encodeURIComponent(pw) + '&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json())
-    .then(data => {
-      if(data.success){
-        allRows = data.rows;
-        applyCurrentFilter();
-        fetchPersistentStats();
-        const now = new Date();
-        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
-      }
-    })
-    .catch(() => {
-      // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
-    });
+    .then(data => { if(typeof onDone === 'function') onDone(data); return data; })
+    .finally(() => { __adminListRequest = null; });
+  return __adminListRequest;
+}
+
+function loadEntries(){
+  fetchAdminList_(data => {
+    if(data && data.success){
+      allRows = Array.isArray(data.rows) ? data.rows : [];
+      applyCurrentFilter();
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+    }
+  }).catch(() => {
+    // নীরবে ব্যর্থ হোক, অটো-রিফ্রেশে বারবার এলার্ট দেখানোর দরকার নেই
+  });
 }
 
 function manualRefresh(){
   document.getElementById('loadingMsg').style.display = 'block';
   document.getElementById('emptyMsg').style.display = 'none';
-  const pw = sessionStorage.getItem('adminPw');
-  fetch(SCRIPT_URL + '?action=list&force=1&password=' + encodeURIComponent(pw))
-    .then(r => r.json())
-    .then(data => {
-      document.getElementById('loadingMsg').style.display = 'none';
-      if(data.success){
-        allRows = data.rows;
-        applyCurrentFilter();
-        const now = new Date();
-        document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
-      }
-    })
-    .catch(() => {
-      document.getElementById('loadingMsg').style.display = 'none';
-      alert('লোড করতে সমস্যা হয়েছে।');
-    });
+  fetchAdminList_(data => {
+    document.getElementById('loadingMsg').style.display = 'none';
+    if(data && data.success){
+      allRows = Array.isArray(data.rows) ? data.rows : [];
+      applyCurrentFilter();
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
+    }
+  }).catch(() => {
+    document.getElementById('loadingMsg').style.display = 'none';
+    alert('লোড করতে সমস্যা হয়েছে।');
+  });
 }
 
 function renderList(rows){
@@ -1976,7 +1883,7 @@ function renderList(rows){
       '<div class="card-top">' +
         '<div style="display:flex; align-items:center; gap:8px;">' +
           '<input type="checkbox" class="bulkCheck" data-row="' + row.rowIndex + '" style="width:18px; height:18px; flex-shrink:0;">' +
-          (row.photoUrl ? '<img class="applicant-photo" loading="lazy" decoding="async" src="' + thumbSmall(row.photoUrl, 160) + '" alt="ছবি" onclick="window.open(\'' + row.photoUrl + '\', \'_blank\')">' : '') +
+          (row.photoUrl ? '<img class="applicant-photo" src="' + row.photoUrl + '" alt="ছবি" onclick="window.open(\'' + row.photoUrl + '\', \'_blank\')">' : '') +
           '<div><div class="card-name">' + esc(row.fullName) + '</div><div class="card-id">' + (row.appId === 'N/A' ? 'সারি #' + row.rowIndex : esc(row.appId)) + (/^\d{2}\/\d{2}\/\d{4}/.test(String(row.date || '')) ? ' • ' + esc(row.date) : '') + '</div></div>' +
         '</div>' +
         '<div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">' +
@@ -1990,7 +1897,7 @@ function renderList(rows){
           '<div class="info-item"><span class="ic">📱</span><div><span class="lbl">ফোন</span><span class="val">' + esc(row.phone) + '</span></div></div>' +
           (row.platform ? '<div class="info-item"><span class="ic">🌐</span><div><span class="lbl">প্ল্যাটফর্ম</span><span class="val">' + esc(row.platform) + '</span></div></div>' : '') +
           (row.email ? '<div class="info-item"><span class="ic">📧</span><div><span class="lbl">ইমেইল</span><span class="val">' + esc(row.email) + '</span></div></div>' : '') +
-          '<div class="info-item"><span class="ic">📍</span><div><span class="lbl">ঠিকানা</span><span class="val">' + (row.country ? esc(row.country) + ', ' : '') + esc(row.division) + ', ' + esc(row.district) + (row.upazila ? ', ' + esc(row.upazila) : '') + (row.areaDetail ? ' - ' + esc(row.areaDetail) : '') + '</span></div></div>' +
+          '<div class="info-item"><span class="ic">📍</span><div><span class="lbl">ঠিকানা</span><span class="val">' + esc(row.division) + ', ' + esc(row.district) + (row.areaDetail ? ' - ' + esc(row.areaDetail) : '') + '</span></div></div>' +
           '<div class="info-item"><span class="ic">💳</span><div><span class="lbl">পেমেন্ট</span><span class="val">' + esc(row.paymentMethod) + ' • TxnID: ' + esc(row.txnId) + ' • ' + esc(row.senderNumber) + '</span></div></div>' +
         '</div>' +
         (row.idLink ?
@@ -2001,7 +1908,7 @@ function renderList(rows){
         (row.screenshotUrl ?
           '<div class="screenshot-block">' +
             '<div class="screenshot-label">সমস্যার স্ক্রিনশট</div>' +
-            '<img class="screenshot-img" loading="lazy" decoding="async" src="' + thumbSmall(row.screenshotUrl, 500) + '" alt="সমস্যার স্ক্রিনশট" onclick="window.open(\'' + row.screenshotUrl + '\', \'_blank\')">' +
+            '<img class="screenshot-img" src="' + row.screenshotUrl + '" alt="সমস্যার স্ক্রিনশট" onclick="window.open(\'' + row.screenshotUrl + '\', \'_blank\')">' +
           '</div>' : '') +
         '<hr class="card-divider">' +
         '<div class="card-actions">' +
@@ -2131,11 +2038,30 @@ function updateStatus(rowIndex, newStatus, btn, card){
 }
 
 function normalizePhone(phone){
-  let digits = String(phone || '').replace(/\D/g, '');
-  if(digits.startsWith('0')) digits = '88' + digits;
-  else if(digits.startsWith('880')) digits = digits;
-  else if(!digits.startsWith('88')) digits = '880' + digits;
-  return digits;
+  const raw = String(phone || '').trim();
+  let digits = raw.replace(/\D/g, '');
+  if(!digits) return '';
+
+  // International numbers must keep their real country code.
+  // Examples: +44 7xxxxxxxxx -> 447xxxxxxxxx, 0044... -> 447...
+  if(raw.startsWith('+')) return digits;
+  if(digits.startsWith('00')) return digits.slice(2);
+
+  // Bangladesh local numbers remain backward-compatible.
+  if(digits.startsWith('0')) return '88' + digits;
+  if(digits.startsWith('880')) return digits;
+
+  // If a country code was already supplied without '+' (common imports),
+  // do not incorrectly turn it into 880xxxxxxxx.
+  const intlPrefixes = [
+    '44','1','91','61','971','966','974','90','49','33','39','34',
+    '81','82','86','7','92','94','977','98','65','60','62','63','64',
+    '55','52','27','20'
+  ];
+  if(intlPrefixes.some(code => digits.startsWith(code))) return digits;
+
+  // Legacy fallback for a bare Bangladesh number.
+  return '880' + digits;
 }
 
 function statusMessage(fullName, appId, status){
@@ -2194,15 +2120,13 @@ document.getElementById('pwInput').addEventListener('keydown', (e)=>{
 
 // পেজ লোড হলে আগে থেকে লগইন করা থাকলে সরাসরি প্যানেলে ঢুকিয়ে দিন
 try{
+  sessionStorage.removeItem('adminPw');   // পুরনো সংস্করণে রাখা পাসওয়ার্ড থাকলে মুছে ফেলা
   const savedTok = sessionStorage.getItem('adminPw');
   if(savedTok && savedTok.indexOf('tk_') !== 0){ sessionStorage.removeItem('adminPw'); }
   if(!sessionStorage.getItem('adminPw')){ document.documentElement.classList.remove('has-session'); }  // আসল পাসওয়ার্ড আর ফোনে রাখা হয় না
 }catch(err){}
 if(sessionStorage.getItem('adminPw')){
   verifyAndEnter();
-} else {
-  // লগইন পেজ দেখানোর সময়ই Apps Script-কে "জাগিয়ে" রাখা হয় — পাসওয়ার্ড লিখতে লিখতে cold start শেষ হয়ে যায়
-  try{ origWarmFetch(SCRIPT_URL + '?action=ping&_=' + Date.now(), {mode:'no-cors', cache:'no-store'}).catch(()=>{}); }catch(e){}
 }
 </script>
 <script>function clearAdminLocalCache(){try{['lastCsvExport','adminOpenSections'].forEach(k=>localStorage.removeItem(k));sessionStorage.removeItem('adminPw');const m=document.getElementById('adminLocalMsg');if(m)m.textContent='✓ লোকাল ক্যাশ/সেশন পরিষ্কার হয়েছে। নিরাপত্তার জন্য আবার লগইন করুন।';}catch(e){}}</script><script id="admin-workflow-upgrade">
@@ -2314,6 +2238,7 @@ if(sessionStorage.getItem('adminPw')){
       #applicationTimelineModal .tlDate{font-size:11px;opacity:.62;margin-bottom:3px}
       #applicationTimelineModal .tlAction{font-size:13px;font-weight:800;margin-bottom:3px}
       #applicationTimelineModal .tlDetails{font-size:12px;line-height:1.5;opacity:.78;word-break:break-word}
+      #applicationTimelineModal .tlActor{font-size:10.5px;line-height:1.4;margin-top:5px;opacity:.58;word-break:break-word}
       #applicationTimelineModal .tlEmpty{padding:22px;text-align:center;opacity:.65}
       @media(max-width:520px){#applicationTimelineModal .tlSummary{grid-template-columns:1fr}.tlBox{border-radius:16px}}
     `;
@@ -2340,7 +2265,7 @@ if(sessionStorage.getItem('adminPw')){
     var events=Array.isArray(data.events)?data.events:[];
     if(!events.length) html+='<div class="tlEmpty">এই আবেদনের কোনো ইতিহাস পাওয়া যায়নি।</div>';
     else events.forEach(function(ev){
-      html+='<div class="tlEvent"><i class="tlDot"></i><div class="tlDate">'+esc(ev.date||'')+'</div><div class="tlAction">'+esc(ev.action||'পরিবর্তন')+'</div><div class="tlDetails">'+esc(ev.details||'')+'</div></div>';
+      html+='<div class="tlEvent"><i class="tlDot"></i><div class="tlDate">'+esc(ev.date||'')+'</div><div class="tlAction">'+esc(ev.action||'পরিবর্তন')+'</div><div class="tlDetails">'+esc(ev.details||'')+'</div><div class="tlActor">👤 পরিবর্তন করেছেন: '+esc(ev.actor||'অজানা')+'</div></div>';
     });
     c.innerHTML=html;
   }
@@ -2378,257 +2303,6 @@ if(sessionStorage.getItem('adminPw')){
     ensureModal();
     setTimeout(function(){decorate();try{if(typeof window.applyCurrentFilter==='function')window.applyCurrentFilter();}catch(e){}},450);
   });
-})();
-</script>
-
-<script id="FBH_PHASE4_UPGRADES">
-(function(){
-  'use strict';
-  const esc=v=>{const d=document.createElement('div');d.textContent=String(v==null?'':v);return d.innerHTML;};
-  const money=n=>Number(n||0).toLocaleString('bn-BD')+' টাকা';
-  const pw=()=>sessionStorage.getItem('adminPw')||'';
-  const apiGet=(action, extra={})=>{
-    const q=new URLSearchParams(Object.assign({action:action,password:pw(),_:Date.now()},extra));
-    return fetch(SCRIPT_URL+'?'+q.toString(),{cache:'no-store'}).then(r=>r.json());
-  };
-
-  // ---------------- Token login / lockout recovery ----------------
-  function ensureTokenLoginBox(){
-    const box=document.getElementById('loginBox'); if(!box||document.getElementById('adminTokenInput')) return;
-    const loginBtn=document.getElementById('loginBtn');
-    const wrap=document.createElement('div'); wrap.style.cssText='margin-top:12px;padding-top:12px;border-top:1px solid var(--line);';
-    wrap.innerHTML='<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Lockout হলেও বৈধ ১৪ দিনের অ্যাডমিন টোকেন দিয়ে প্রবেশ করতে পারবেন:</div><input id="adminTokenInput" type="text" autocomplete="off" placeholder="tk_... টোকেন" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--line);font-family:monospace;font-size:12px;box-sizing:border-box;margin-bottom:7px;"><button type="button" id="adminTokenLoginBtn" style="width:100%;padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:800;">🔐 টোকেন দিয়ে প্রবেশ</button>';
-    (loginBtn||box.lastElementChild).after(wrap);
-    document.getElementById('adminTokenLoginBtn').onclick=function(){
-      const token=document.getElementById('adminTokenInput').value.trim(); if(!token){return;}
-      this.disabled=true; this.textContent='যাচাই হচ্ছে...';
-      fetch(SCRIPT_URL+'?action=list&password='+encodeURIComponent(token)+'&_='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
-        this.disabled=false; this.textContent='🔐 টোকেন দিয়ে প্রবেশ';
-        if(d.success){sessionStorage.setItem('adminPw',token);document.getElementById('loginErr').style.display='none';verifyAndEnter();}
-        else {document.getElementById('loginErr').textContent=d.error==='session expired'?'টোকেনের মেয়াদ শেষ হয়েছে।':'টোকেনটি বৈধ নয়।';document.getElementById('loginErr').style.display='block';}
-      }).catch(()=>{this.disabled=false;this.textContent='🔐 টোকেন দিয়ে প্রবেশ';document.getElementById('loginErr').textContent='সংযোগে সমস্যা হয়েছে।';document.getElementById('loginErr').style.display='block';});
-    };
-  }
-
-  // ---------------- Revenue dashboard ----------------
-  function ensureRevenueCard(){
-    if(document.getElementById('verifiedRevenueCard')) return;
-    const dash=document.getElementById('dashboard'); if(!dash) return;
-    const card=document.createElement('div'); card.id='verifiedRevenueCard';
-    card.style.cssText='margin:12px 0;background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;';
-    card.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><div><div style="font-weight:800;color:var(--forest);">💰 Verified Payment Revenue</div><div id="revenueMeta" style="font-size:11.5px;color:var(--muted);margin-top:3px;">লোড হচ্ছে...</div></div><button type="button" id="revenueRefreshBtn" style="padding:6px 10px;border:1px solid var(--forest);border-radius:7px;background:var(--card-bg);color:var(--forest);">রিফ্রেশ</button></div><div id="revenueValue" style="font-size:24px;font-weight:900;color:var(--ink);margin-top:8px;">—</div>';
-    dash.after(card);
-    document.getElementById('revenueRefreshBtn').onclick=loadRevenue;
-  }
-  function loadRevenue(){
-    ensureRevenueCard();
-    const val=document.getElementById('revenueValue'), meta=document.getElementById('revenueMeta');
-    if(!val||!meta) return;
-    apiGet('getRevenue').then(d=>{
-      if(d.success){ val.textContent=money(d.verifiedRevenue); meta.textContent='ভেরিফাইড পেমেন্ট: '+Number(d.verifiedCount||0).toLocaleString('bn-BD')+'টি · প্রতি আবেদন '+money(d.feePerApplication); }
-      else if(d.error==='session expired'||d.error==='locked') __handleAuthIssue(d.error);
-      else meta.textContent='আয়ের হিসাব লোড করা যায়নি।';
-    }).catch(()=>{meta.textContent='সংযোগে সমস্যা হয়েছে।';});
-  }
-  const oldFetchStats=window.fetchPersistentStats;
-  window.fetchPersistentStats=function(){ if(typeof oldFetchStats==='function') oldFetchStats(); setTimeout(loadRevenue,80); };
-
-  // ---------------- Applications Trash / Restore ----------------
-  window.loadTrash=function(){
-    const box=document.getElementById('trashPanel'); if(!box) return;
-    box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
-    apiGet('listTrash').then(d=>{
-      if(!d.success){ if(d.error==='session expired'||d.error==='locked') __handleAuthIssue(d.error); box.textContent='✕ '+(d.error||'লোড করা যায়নি।'); return; }
-      if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">Trash খালি।</div>';return;}
-      box.innerHTML=d.rows.slice(0,100).map(x=>{
-        const name=x.type==='application'?(x.title||'আবেদন'):(x.title||'পোস্ট');
-        const extra=x.appId?(' · '+esc(x.appId)):'';
-        return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0;font-size:12.5px;"><span>🗑️ <b>'+esc(x.label||x.type)+'</b> · '+esc(name)+extra+'<br><small style="color:var(--muted);">'+esc(x.date||'')+'</small></span><button type="button" onclick="restoreTrash('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">Restore</button></div>';
-      }).join('');
-    }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
-  };
-  window.restoreTrash=function(row){
-    if(!confirm('এই আইটেমটি Restore করতে চান?')) return;
-    apiGet('restoreTrash',{row:row}).then(d=>{
-      if(d.success){loadTrash(); if(d.type==='post'&&typeof loadAdminPosts==='function')loadAdminPosts(); if(d.type==='application'&&typeof loadEntries==='function')loadEntries(); if(d.type==='app'&&typeof loadAppsManager==='function')loadAppsManager(); if(typeof loadRevenue==='function')loadRevenue();}
-      else alert(d.error||'Restore করা যায়নি।');
-    }).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
-  };
-  window.deleteEntry=function(rowIndex,fullName,cardEl){
-    if(!confirm(fullName+' এর আবেদনটি Trash-এ পাঠাতে চান? পরে Trash থেকে Restore করা যাবে।')) return;
-    apiGet('deleteRow',{row:rowIndex}).then(d=>{
-      if(d.success){
-        if(cardEl) cardEl.remove();
-        allRows=(allRows||[]).filter(r=>Number(r.rowIndex)!==Number(rowIndex));
-        if(typeof applyCurrentFilter==='function') applyCurrentFilter();
-        if(typeof loadTrash==='function') loadTrash();
-        loadRevenue();
-      }else alert(d.error||'Trash-এ পাঠানো যায়নি।');
-    }).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
-  };
-
-  // ---------------- Separate Posts / New Post / Scheduled sections ----------------
-  function makeSection(title,id,html){
-    const wrap=document.createElement('div');
-    wrap.id=id;
-    wrap.style.cssText='background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0;';
-    wrap.innerHTML='<div style="font-weight:800;color:var(--forest);margin-bottom:10px;">'+title+'</div>'+html;
-    return wrap;
-  }
-  function scrollToId(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
-  function ensurePostSections(){
-    const formBody=document.getElementById('postFormBody'); if(!formBody||document.getElementById('postsListStandalone')) return;
-    const formCard=formBody.parentElement;
-    const oldAnalytics=document.getElementById('postsAnalyticsSummary');
-    const oldList=document.getElementById('postsList');
-    const postListCard=makeSection('📝 পোস্টের লিস্ট আলাদা','postsListStandalone','<div id="postsAnalyticsSummaryStandalone"></div><div id="postsListStandaloneBody">লোড হচ্ছে...</div>');
-    const listBody=postListCard.querySelector('#postsListStandaloneBody');
-    if(oldAnalytics) listBody.appendChild(oldAnalytics);
-    if(oldList){ listBody.appendChild(oldList); }
-    formCard.after(postListCard);
-
-    const scheduledCard=makeSection('⏰ Scheduled Posts','scheduledPostsStandalone','<div id="scheduledPostsList">লোড হচ্ছে...</div>');
-    postListCard.after(scheduledCard);
-
-    // The existing loader still writes to #postsList, which was moved above.
-    // Give the moved list a stable ID and keep the analytics container intact.
-    loadScheduledPosts();
-
-    // Separate action buttons near the top.
-    const toolbar=document.querySelector('#panel main .toolbar');
-    if(toolbar&&!document.getElementById('postQuickActions')){
-      const bar=document.createElement('div');bar.id='postQuickActions';bar.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 12px;';
-      bar.innerHTML='<button type="button" style="padding:9px;border:1px solid var(--forest);border-radius:8px;background:var(--forest);color:#fff;font-weight:800;">➕ নতুন পোস্ট</button><button type="button" style="padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:800;">📝 পোস্টের লিস্ট</button><button type="button" style="padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:800;">⏰ Scheduled</button>';
-      const bs=bar.querySelectorAll('button');bs[0].onclick=()=>scrollToId(formCard.id);bs[1].onclick=()=>scrollToId('postsListStandalone');bs[2].onclick=()=>{scrollToId('scheduledPostsStandalone');loadScheduledPosts();};
-      toolbar.after(bar);
-    }
-    // Rename current form heading without changing its existing behavior.
-    const head=formCard.querySelector('div[onclick*="postFormBody"]'); if(head){const t=head.querySelector('div');if(t)t.innerHTML='<span class="secArrow">▸</span> ➕ নতুন পোস্ট';}
-  }
-  window.loadScheduledPosts=function(){
-    const box=document.getElementById('scheduledPostsList'); if(!box) return;
-    box.textContent='লোড হচ্ছে...';
-    apiGet('listScheduledPosts').then(d=>{
-      if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
-      if(!d.posts||!d.posts.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">এখন কোনো future scheduled post নেই।</div>';return;}
-      box.innerHTML=d.posts.map(p=>'<div style="border-bottom:1px solid var(--line);padding:10px 0;display:flex;gap:10px;align-items:flex-start;">'+(p.imageUrl?'<img src="'+esc(thumbSmall(p.imageUrl,180))+'" style="width:72px;height:52px;object-fit:cover;border-radius:7px;">':'<div style="width:72px;height:52px;border-radius:7px;background:rgba(127,127,127,.08);display:flex;align-items:center;justify-content:center;">📝</div>')+'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:13.5px;">'+esc(p.title)+'</div><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">'+esc(formatScheduleDisplay(p.publishAt))+' · '+esc(p.category||'সাধারণ আপডেট')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;"><button type="button" onclick="editScheduledPost('+Number(p.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">✏️ Edit</button><button type="button" onclick="publishPostNow('+Number(p.rowIndex)+');setTimeout(loadScheduledPosts,800);" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--forest);color:#fff;font-weight:700;">এখনই প্রকাশ</button><button type="button" onclick="deletePost('+Number(p.rowIndex)+');setTimeout(loadScheduledPosts,800);" style="padding:6px 10px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);">Trash</button></div></div></div>').join('');
-    }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
-  };
-  window.editScheduledPost=function(rowIndex){
-    if((window.__adminPostsData||{})[rowIndex]){startEditPost(rowIndex);scrollToId('postsListStandalone');return;}
-    if(typeof loadAdminPosts==='function'){
-      loadAdminPosts();
-      setTimeout(()=>{if((window.__adminPostsData||{})[rowIndex]){startEditPost(rowIndex);scrollToId('postsListStandalone');}},900);
-    }
-  };
-
-  // Refresh scheduled list whenever the normal post list is refreshed.
-  const oldLoadPosts=window.loadAdminPosts;
-  window.loadAdminPosts=function(){
-    const r=oldLoadPosts.apply(this,arguments);
-    setTimeout(()=>{if(typeof loadScheduledPosts==='function')loadScheduledPosts();},250);
-    return r;
-  };
-
-  // ---------------- Apps / Download Links manager ----------------
-  function ensureAppsSection(){
-    if(document.getElementById('appsManagerSection')) return;
-    const anchor=document.getElementById('scheduledPostsStandalone') || document.getElementById('postFormBody')?.parentElement;
-    if(!anchor || !anchor.parentElement) return;
-    const card=makeSection('📱 Apps / Download Links','appsManagerSection','<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">এখান থেকে App, Audio, Video, Image বা যেকোনো Download/Share Link যোগ, Edit ও Trash করতে পারবেন। বড় ফাইল (যেমন 500 MB–1 GB) সাইটে Upload না করে Google Drive/অন্যান্য storage-এর Link দিন। Delete করলে Trash থেকে Restore করা যাবে।</div><div id="appEditorBox" style="display:grid;gap:7px;margin-bottom:12px;"><input id="appEditId" type="hidden"><input id="appTitle" placeholder="অ্যাপ/লিংকের নাম" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appVersion" placeholder="Version (ঐচ্ছিক)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appUrl" placeholder="https://official-site.example/download" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appIcon" placeholder="Icon URL (ঐচ্ছিক)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><textarea id="appDescription" placeholder="সংক্ষিপ্ত বর্ণনা (ঐচ্ছিক)" style="width:100%;min-height:70px;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;resize:vertical;"></textarea><div style="padding:10px;border:1px dashed var(--line);border-radius:9px;background:rgba(127,127,127,.05);font-size:11.5px;color:var(--muted);">🔗 বড় ফাইলের জন্য শুধু Download/Share Link ব্যবহার করুন। 500 MB–1 GB বা তার বেশি ফাইল আপনার storage/server-এ রেখে এখানে Link দিন।</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;"><button type="button" id="saveAppBtn" style="padding:9px 13px;border:1px solid var(--forest);border-radius:8px;background:var(--forest);color:#fff;font-weight:800;">🔗 লিংক সেভ</button><button type="button" id="cancelAppEditBtn" style="display:none;padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">বাতিল</button><button type="button" onclick="loadAppsManager()" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">রিফ্রেশ</button></div><div id="appManagerMsg" style="font-size:12.5px;margin-top:3px;"></div></div><div id="appsManagerList">লোড হচ্ছে...</div>');
-    anchor.after(card);
-    document.getElementById('saveAppBtn').onclick=saveAppManager;
-    document.getElementById('cancelAppEditBtn').onclick=clearAppEditor;
-    loadAppsManager();
-  }
-  function clearAppEditor(){
-    ['appEditId','appTitle','appVersion','appUrl','appIcon','appDescription'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-    const au=document.getElementById('appUrl'); if(au){au.disabled=false;au.placeholder='https://official-site.example/download';}
-    const b=document.getElementById('saveAppBtn');if(b){b.textContent='🔗 লিংক সেভ';b.disabled=false;}
-    const c=document.getElementById('cancelAppEditBtn');if(c)c.style.display='none';
-  }
-  window.editAppManager=function(id){
-    const a=(window.__appsManagerData||[]).find(x=>String(x.id)===String(id));if(!a)return;
-    document.getElementById('appEditId').value=a.id;document.getElementById('appTitle').value=a.title||'';document.getElementById('appVersion').value=a.version||'';document.getElementById('appUrl').value=a.url||'';document.getElementById('appIcon').value=a.icon||'';document.getElementById('appDescription').value=a.description||'';
-    document.getElementById('saveAppBtn').textContent='💾 পরিবর্তন সেভ';document.getElementById('cancelAppEditBtn').style.display='inline-block';scrollToId('appsManagerSection');
-  };
-  window.deleteAppManager=function(id,title){
-    if(!confirm('“'+title+'”-কে Trash-এ পাঠাতে চান? পরে Restore করা যাবে।'))return;
-    apiGet('deleteApp',{id:id}).then(d=>{if(d.success){loadAppsManager();if(typeof loadTrash==='function')loadTrash();}else alert(d.error||'Delete করা যায়নি।');}).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
-  };
-  window.loadAppsManager=function(){
-    const box=document.getElementById('appsManagerList');if(!box)return;box.textContent='লোড হচ্ছে...';
-    apiGet('listApps').then(d=>{
-      if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
-      window.__appsManagerData=d.apps||[];
-      if(!window.__appsManagerData.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);padding:10px 0;">এখনো কোনো অ্যাপ/লিংক যোগ করা হয়নি।</div>';return;}
-      box.innerHTML=window.__appsManagerData.map(a=>'<div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0;"><div style="width:46px;height:46px;border-radius:10px;background:rgba(127,127,127,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:24px;flex:0 0 46px;">'+(a.icon?'<img src="'+esc(a.icon)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">':'📱')+'</div><div style="flex:1;min-width:0;"><div style="font-weight:800;word-break:break-word;">'+esc(a.title)+'</div><div style="font-size:11.5px;color:var(--muted);word-break:break-all;">'+esc(a.url)+(a.version?' · '+esc(a.version):'')+'</div></div><div style="display:flex;gap:5px;flex-wrap:wrap;"><button type="button" onclick="editAppManager(\''+String(a.id).replace(/'/g,"\\'")+'\')" style="padding:6px 9px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">✏️ Edit</button><button type="button" onclick="deleteAppManager(\''+String(a.id).replace(/'/g,"\\'")+'\',\''+String(a.title).replace(/'/g,"\\'")+'\')" style="padding:6px 9px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">🗑️ Trash</button></div></div>').join('');
-    }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
-  };
-  function readFileAsDataUrl(file){
-    return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('read failed'));r.readAsDataURL(file);});
-  }
-  async function saveAppManager(){
-    const id=document.getElementById('appEditId').value.trim(),title=document.getElementById('appTitle').value.trim(),version=document.getElementById('appVersion').value.trim(),url=document.getElementById('appUrl').value.trim(),icon=document.getElementById('appIcon').value.trim(),description=document.getElementById('appDescription').value.trim(),msg=document.getElementById('appManagerMsg'),btn=document.getElementById('saveAppBtn');
-    if(!title){msg.textContent='নাম দিন।';msg.style.color='var(--maroon)';return;}
-    if(!url||!/^https?:\/\//i.test(url)){msg.textContent='সঠিক http/https Download বা Share Link দিন।';msg.style.color='var(--maroon)';return;}
-    btn.disabled=true;btn.textContent=id?'💾 পরিবর্তন সেভ হচ্ছে...':'🔗 লিংক সেভ হচ্ছে...';msg.textContent='';
-    try{
-      const d=await apiGet('saveApp',{id:id,title:title,version:version,url:url,icon:icon,description:description});
-      if(d.success){msg.textContent=id?'✓ পরিবর্তন সেভ হয়েছে।':'✓ Link যোগ হয়েছে।';msg.style.color='var(--ok)';clearAppEditor();loadAppsManager();}
-      else {msg.textContent=d.error||'সেভ করা যায়নি।';msg.style.color='var(--maroon)';btn.disabled=false;btn.textContent=id?'💾 পরিবর্তন সেভ':'🔗 লিংক সেভ';}
-    }catch(e){msg.textContent='সংযোগে সমস্যা: '+(e&&e.message?e.message:'অজানা সমস্যা');msg.style.color='var(--maroon)';btn.disabled=false;btn.textContent=id?'💾 পরিবর্তন সেভ':'🔗 লিংক সেভ';}
-  }
-
-  // ---------------- Image editor ----------------
-  let editorState={img:null,canvas:null,ctx:null,base:null,drawMode:false,lastX:0,lastY:0,dragging:false,crop:null};
-  window.editedPostImageData='';
-  function ensureImageEditor(){
-    if(document.getElementById('imageEditorModal')) return;
-    const style=document.createElement('style');style.textContent=`
-      #imageEditorModal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100000;display:none;align-items:center;justify-content:center;padding:12px;box-sizing:border-box}
-      #imageEditorModal .ieBox{width:min(900px,100%);max-height:94vh;overflow:auto;background:var(--card-bg,#fff);color:var(--ink,#222);border-radius:16px;padding:14px}
-      #imageEditorModal .ieCanvasWrap{background:#111;border-radius:10px;overflow:auto;text-align:center;max-height:58vh}
-      #imageEditorCanvas{max-width:100%;height:auto;display:block;margin:auto;touch-action:none}
-      #imageEditorModal input,#imageEditorModal textarea{font-family:inherit}
-    `;document.head.appendChild(style);
-    const m=document.createElement('div');m.id='imageEditorModal';
-    m.innerHTML='<div class="ieBox"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;"><b>🖼️ ছবি Edit</b><button type="button" id="ieClose" style="font-size:22px;border:0;background:transparent;cursor:pointer;">×</button></div><div class="ieCanvasWrap"><canvas id="imageEditorCanvas"></canvas></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;"><input id="ieText" placeholder="ছবির উপর লেখা" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><input id="ieColor" type="color" value="#ffffff" style="height:38px;width:100%;padding:2px;border:1px solid var(--line);border-radius:7px;"><input id="ieTextSize" type="number" min="10" max="160" value="32" placeholder="Text size" style="padding:8px;border:1px solid var(--line);border-radius:7px;"><input id="ieResizeW" type="number" min="120" max="4000" placeholder="নতুন Width (px)" style="padding:8px;border:1px solid var(--line);border-radius:7px;"></div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;"><button type="button" id="ieAddText" style="padding:8px 10px;">✍️ লেখা যোগ</button><button type="button" id="ieMarker" style="padding:8px 10px;">🖍️ Marker</button><button type="button" id="ieCrop" style="padding:8px 10px;">✂️ Crop</button><button type="button" id="ieApplyCrop" style="padding:8px 10px;display:none;">Crop Apply</button><button type="button" id="ieResize" style="padding:8px 10px;">↔️ Resize</button><button type="button" id="ieUndo" style="padding:8px 10px;">↩️ Undo</button><button type="button" id="ieDone" style="padding:8px 12px;background:var(--forest);color:#fff;border:0;border-radius:7px;font-weight:800;">✓ ব্যবহার করুন</button></div><div id="ieHint" style="font-size:11.5px;color:var(--muted);margin-top:7px;">লেখা যোগ করলে canvas-এর মাঝামাঝি বসবে। Marker বা Crop চালু করে ছবির উপর drag করুন।</div></div>';
-    document.body.appendChild(m);
-    editorState.canvas=m.querySelector('#imageEditorCanvas');editorState.ctx=editorState.canvas.getContext('2d');
-    m.querySelector('#ieClose').onclick=()=>m.style.display='none';
-    m.querySelector('#ieAddText').onclick=()=>{const t=m.querySelector('#ieText').value.trim();if(!t)return;const c=editorState.canvas,x=c.width/2,y=c.height/2,size=Math.max(10,Math.min(160,Number(m.querySelector('#ieTextSize').value)||32));editorState.ctx.font='700 '+size+'px sans-serif';editorState.ctx.fillStyle=m.querySelector('#ieColor').value;editorState.ctx.textAlign='center';editorState.ctx.textBaseline='middle';editorState.ctx.fillText(t,x,y);};
-    m.querySelector('#ieMarker').onclick=()=>{editorState.drawMode=!editorState.drawMode; m.querySelector('#ieMarker').style.background=editorState.drawMode?'var(--gold)':'';};
-    m.querySelector('#ieCrop').onclick=()=>{editorState.crop=null;editorState.drawMode=false;m.querySelector('#ieApplyCrop').style.display='inline-block';m.querySelector('#ieHint').textContent='Crop: ছবির উপর টেনে একটি rectangle নির্বাচন করুন, তারপর Crop Apply চাপুন।';};
-    m.querySelector('#ieApplyCrop').onclick=()=>{if(!editorState.crop)return;const q=editorState.crop,c=editorState.canvas,tmp=document.createElement('canvas');tmp.width=q.w;tmp.height=q.h;tmp.getContext('2d').drawImage(c,q.x,q.y,q.w,q.h,0,0,q.w,q.h);editorState.canvas.width=q.w;editorState.canvas.height=q.h;editorState.ctx.drawImage(tmp,0,0);editorState.crop=null;m.querySelector('#ieApplyCrop').style.display='none';m.querySelector('#ieHint').textContent='Crop সম্পন্ন।';};
-    m.querySelector('#ieResize').onclick=()=>{const w=Math.max(120,Math.min(4000,Number(m.querySelector('#ieResizeW').value)||0));if(!w)return;const c=editorState.canvas,h=Math.max(1,Math.round(c.height*(w/c.width))),tmp=document.createElement('canvas');tmp.width=w;tmp.height=h;tmp.getContext('2d').drawImage(c,0,0,w,h);c.width=w;c.height=h;editorState.ctx.drawImage(tmp,0,0);};
-    m.querySelector('#ieUndo').onclick=()=>{if(editorState.base)resetCanvas(editorState.base);};
-    const pos=e=>{const r=editorState.canvas.getBoundingClientRect(),sx=editorState.canvas.width/r.width,sy=editorState.canvas.height/r.height;const p=e.touches?e.touches[0]:e;return {x:(p.clientX-r.left)*sx,y:(p.clientY-r.top)*sy};};
-    const down=e=>{if(!editorState.drawMode&&m.querySelector('#ieApplyCrop').style.display==='none')return;const p=pos(e);editorState.lastX=p.x;editorState.lastY=p.y;editorState.dragging=true;editorState.crop={x:p.x,y:p.y,w:0,h:0};e.preventDefault();};
-    const move=e=>{if(!editorState.dragging)return;const p=pos(e);if(editorState.drawMode){editorState.ctx.strokeStyle=m.querySelector('#ieColor').value;editorState.ctx.lineWidth=8;editorState.ctx.lineCap='round';editorState.ctx.beginPath();editorState.ctx.moveTo(editorState.lastX,editorState.lastY);editorState.ctx.lineTo(p.x,p.y);editorState.ctx.stroke();editorState.lastX=p.x;editorState.lastY=p.y;}else{editorState.crop.w=p.x-editorState.crop.x;editorState.crop.h=p.y-editorState.crop.y;}e.preventDefault();};
-    const up=()=>{editorState.dragging=false;if(!editorState.drawMode&&editorState.crop){let q=editorState.crop;if(q.w<0){q.x+=q.w;q.w=-q.w;}if(q.h<0){q.y+=q.h;q.h=-q.h;}q.x=Math.max(0,Math.min(q.x,editorState.canvas.width-1));q.y=Math.max(0,Math.min(q.y,editorState.canvas.height-1));q.w=Math.min(q.w,editorState.canvas.width-q.x);q.h=Math.min(q.h,editorState.canvas.height-q.y);editorState.crop=q;}};
-    editorState.canvas.addEventListener('mousedown',down);editorState.canvas.addEventListener('mousemove',move);window.addEventListener('mouseup',up);editorState.canvas.addEventListener('touchstart',down,{passive:false});editorState.canvas.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);
-    m.querySelector('#ieDone').onclick=()=>{window.editedPostImageData=editorState.canvas.toDataURL('image/jpeg',.9);m.style.display='none';const im=document.getElementById('newPostImagePreview');if(im)im.src=window.editedPostImageData;const hint=document.getElementById('newPostImageEditHint');if(hint)hint.textContent='✓ Edited image ready';};
-  }
-  function resetCanvas(dataUrl){const img=new Image();img.onload=()=>{const c=editorState.canvas,maxW=1200,scale=Math.min(1,maxW/img.naturalWidth);c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));editorState.ctx.clearRect(0,0,c.width,c.height);editorState.ctx.drawImage(img,0,0,c.width,c.height);};img.src=dataUrl;}
-  window.openPostImageEditor=function(){const input=document.getElementById('newPostImage');if(!input||!input.files[0]){alert('আগে একটি ছবি নির্বাচন করুন।');return;}ensureImageEditor();fileToBase64(input.files[0]).then(data=>{editorState.base=data;window.editedPostImageData='';resetCanvas(data);document.getElementById('imageEditorModal').style.display='flex';});};
-  window.clearNewPostImage=function(){const i=document.getElementById('newPostImage');if(i)i.value='';const w=document.getElementById('newPostImagePreviewWrap');if(w)w.style.display='none';window.editedPostImageData='';const h=document.getElementById('newPostImageEditHint');if(h)h.textContent='';};
-
-  // Hook the existing image preview to show Edit button.
-  function enhanceImageUpload(){
-    const wrap=document.getElementById('newPostImagePreviewWrap');if(!wrap||document.getElementById('editNewPostImageBtn'))return;
-    const btn=document.createElement('button');btn.id='editNewPostImageBtn';btn.type='button';btn.textContent='🖼️ Edit ছবি';btn.style.cssText='margin-top:4px;margin-left:5px;padding:4px 10px;font-size:12px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);';btn.onclick=openPostImageEditor;
-    const remove=wrap.querySelector('button'); if(remove) remove.after(btn); else wrap.appendChild(btn);
-    const hint=document.createElement('span');hint.id='newPostImageEditHint';hint.style.cssText='margin-left:6px;font-size:11.5px;color:var(--ok);';wrap.appendChild(hint);
-  }
-
-
-  document.addEventListener('DOMContentLoaded',()=>{
-    ensureTokenLoginBox();
-    ensureRevenueCard();loadRevenue();ensurePostSections();ensureAppsSection();enhanceImageUpload();
-    setTimeout(()=>{ensurePostSections();enhanceImageUpload();loadRevenue();},600);
-  });
-  window.addEventListener('load',()=>{ensureTokenLoginBox();ensureRevenueCard();ensurePostSections();ensureAppsSection();enhanceImageUpload();loadRevenue();});
 })();
 </script>
 </body>
