@@ -421,7 +421,6 @@ let __CSC = null;
 let __globalStates = [];
 let __globalCities = [];
 let __locationLoadPromise = null;
-let __locationChangeToken = 0;
 
 function setSelectOptions(select, items, placeholder){
   select.innerHTML = '';
@@ -435,103 +434,7 @@ function setSelectOptions(select, items, placeholder){
     opt.textContent = String(item.text ?? item.name ?? '');
     select.appendChild(opt);
   });
-  populateSearchList(select.id);
 }
-
-// ============ সার্চ ইনপুট + দেশভিত্তিক ফোন কোড ============
-const __locationSearchMap = {
-  country: {input:'countrySearch', list:'countrySearchList'},
-  division: {input:'divisionSearch', list:'divisionSearchList'},
-  district: {input:'districtSearch', list:'districtSearchList'}
-};
-function populateSearchList(selectId){
-  const cfg=__locationSearchMap[selectId]; if(!cfg) return;
-  const dl=document.getElementById(cfg.list); const sel=document.getElementById(selectId);
-  if(!dl||!sel) return;
-  dl.innerHTML='';
-  Array.from(sel.options).slice(1).forEach(o=>{
-    const x=document.createElement('option'); x.value=o.textContent; dl.appendChild(x);
-  });
-}
-function syncSearchFromSelect(selectId){
-  const cfg=__locationSearchMap[selectId]; const sel=document.getElementById(selectId);
-  const inp=cfg&&document.getElementById(cfg.input); if(!sel||!inp) return;
-  inp.value=sel.value ? (sel.options[sel.selectedIndex]?.textContent||'') : '';
-}
-function bindLocationSearch(selectId){
-  const cfg=__locationSearchMap[selectId]; const sel=document.getElementById(selectId); const inp=cfg&&document.getElementById(cfg.input);
-  if(!sel||!inp||inp.dataset.bound) return; inp.dataset.bound='1';
-  inp.addEventListener('input',()=>{
-    const q=inp.value.trim().toLocaleLowerCase();
-    const opts=Array.from(sel.options).slice(1);
-    const exact=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
-    // টাইপ করার মাঝপথে কোনো দেশ/স্টেট অটো-সিলেক্ট করা হবে না।
-    // এতে 'Ind' লিখলে ভুল করে India নির্বাচন হয়ে যাওয়ার সমস্যা বন্ধ হয়।
-    if(!q || !exact){
-      if(sel.value) sel.value='';
-      return;
-    }
-    sel.value=exact.value;
-    sel.dispatchEvent(new Event('change',{bubbles:true}));
-  });
-  inp.addEventListener('change',()=>{
-    const q=inp.value.trim().toLocaleLowerCase();
-    const opts=Array.from(sel.options).slice(1);
-    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
-    if(match){
-      sel.value=match.value;
-      sel.dispatchEvent(new Event('change',{bubbles:true}));
-      syncSearchFromSelect(selectId);
-    } else {
-      sel.value='';
-      sel.dispatchEvent(new Event('change',{bubbles:true}));
-      inp.setCustomValidity(q ? 'তালিকা থেকে একটি বৈধ নাম নির্বাচন করুন।' : '');
-    }
-  });
-  inp.addEventListener('blur',()=>{
-    const q=inp.value.trim().toLocaleLowerCase();
-    const opts=Array.from(sel.options).slice(1);
-    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
-    inp.setCustomValidity(q && !match ? 'তালিকা থেকে একটি বৈধ নাম নির্বাচন করুন।' : '');
-  });
-  sel.addEventListener('change',()=>syncSearchFromSelect(selectId));
-}
-function refreshLocationSearchUI(){
-  Object.keys(__locationSearchMap).forEach(id=>{ bindLocationSearch(id); populateSearchList(id); syncSearchFromSelect(id); });
-}
-function setupPhoneCountrySelector(countries){
-  const sel=document.getElementById('phoneCountry'); if(!sel) return;
-  const current=countrySelect?.value || 'BD';
-  const items=(countries||[]).map(c=>({iso:c.iso2||c.isoCode||'',name:c.name||'',emoji:c.emoji||'',code:c.phonecode||c.phone_code||c.phoneCode||c.callingCode||''})).filter(x=>x.iso&&x.name);
-  sel.innerHTML='';
-  items.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
-    const o=document.createElement('option'); o.value=c.iso; o.dataset.phonecode=String(c.code||'').replace(/^\+/,''); o.textContent=(c.emoji?(c.emoji+' '):'')+c.name+(c.code?' (+'+String(c.code).replace(/^\+/,'')+')':''); sel.appendChild(o);
-  });
-  if(!sel.options.length){ const o=document.createElement('option');o.value='BD';o.dataset.phonecode='880';o.textContent='🇧🇩 Bangladesh (+880)';sel.appendChild(o); }
-  sel.value=items.some(x=>x.iso===current)?current:(items.some(x=>x.iso==='BD')?'BD':sel.options[0].value);
-  updatePhoneHint();
-}
-function syncPhoneCountry(countryCode){
-  const sel=document.getElementById('phoneCountry'); if(!sel) return;
-  const opt=Array.from(sel.options).find(o=>o.value===countryCode); if(opt){ sel.value=countryCode; updatePhoneHint(); }
-}
-function updatePhoneHint(){
-  const sel=document.getElementById('phoneCountry'); const hint=document.getElementById('phoneHint');
-  if(!sel||!hint) return;
-  const opt=sel.options[sel.selectedIndex]; const code=opt?.dataset.phonecode||'';
-  hint.textContent=code ? 'দেশ অনুযায়ী country code: +'+code+' — নম্বরটি international format-এ লিখুন।' : 'দেশ অনুযায়ী আন্তর্জাতিক মোবাইল নম্বর লিখুন।';
-}
-const __phoneCountryEl=document.getElementById('phoneCountry');
-if(__phoneCountryEl){
-  __phoneCountryEl.addEventListener('change',()=>{
-    updatePhoneHint();
-    if(countrySelect && countrySelect.value!==__phoneCountryEl.value){
-      countrySelect.value=__phoneCountryEl.value;
-      countrySelect.dispatchEvent(new Event('change',{bubbles:true}));
-    }
-  });
-}
-['country','division','district'].forEach(bindLocationSearch);
 
 function clearUpazilaSuggestions(message){
   upazilaList.innerHTML = '';
@@ -574,213 +477,6 @@ function addGlobalStates(states){
   clearUpazilaSuggestions('থানা / Locality / County লিখুন');
 }
 
-// ============ VERIFIED COUNTRY LIST ============
-// 195 states: 193 UN Member States + Holy See + State of Palestine.
-// This fixed list prevents the runtime location package from omitting a country.
-const VERIFIED_COUNTRIES = [
-  {iso2:"AF", name:"Afghanistan", phonecode:"93"},
-  {iso2:"AL", name:"Albania", phonecode:"355"},
-  {iso2:"DZ", name:"Algeria", phonecode:"213"},
-  {iso2:"AD", name:"Andorra", phonecode:"376"},
-  {iso2:"AO", name:"Angola", phonecode:"244"},
-  {iso2:"AG", name:"Antigua and Barbuda", phonecode:"1268"},
-  {iso2:"AR", name:"Argentina", phonecode:"54"},
-  {iso2:"AM", name:"Armenia", phonecode:"374"},
-  {iso2:"AU", name:"Australia", phonecode:"61"},
-  {iso2:"AT", name:"Austria", phonecode:"43"},
-  {iso2:"AZ", name:"Azerbaijan", phonecode:"994"},
-  {iso2:"BS", name:"Bahamas", phonecode:"1242"},
-  {iso2:"BH", name:"Bahrain", phonecode:"973"},
-  {iso2:"BD", name:"Bangladesh", phonecode:"880"},
-  {iso2:"BB", name:"Barbados", phonecode:"1246"},
-  {iso2:"BY", name:"Belarus", phonecode:"375"},
-  {iso2:"BE", name:"Belgium", phonecode:"32"},
-  {iso2:"BZ", name:"Belize", phonecode:"501"},
-  {iso2:"BJ", name:"Benin", phonecode:"229"},
-  {iso2:"BT", name:"Bhutan", phonecode:"975"},
-  {iso2:"BO", name:"Bolivia", phonecode:"591"},
-  {iso2:"BA", name:"Bosnia and Herzegovina", phonecode:"387"},
-  {iso2:"BW", name:"Botswana", phonecode:"267"},
-  {iso2:"BR", name:"Brazil", phonecode:"55"},
-  {iso2:"BN", name:"Brunei", phonecode:"673"},
-  {iso2:"BG", name:"Bulgaria", phonecode:"359"},
-  {iso2:"BF", name:"Burkina Faso", phonecode:"226"},
-  {iso2:"BI", name:"Burundi", phonecode:"257"},
-  {iso2:"CV", name:"Cabo Verde", phonecode:"238"},
-  {iso2:"KH", name:"Cambodia", phonecode:"855"},
-  {iso2:"CM", name:"Cameroon", phonecode:"237"},
-  {iso2:"CA", name:"Canada", phonecode:"1"},
-  {iso2:"CF", name:"Central African Republic", phonecode:"236"},
-  {iso2:"TD", name:"Chad", phonecode:"235"},
-  {iso2:"CL", name:"Chile", phonecode:"56"},
-  {iso2:"CN", name:"China", phonecode:"86"},
-  {iso2:"CO", name:"Colombia", phonecode:"57"},
-  {iso2:"KM", name:"Comoros", phonecode:"269"},
-  {iso2:"CG", name:"Congo", phonecode:"242"},
-  {iso2:"CR", name:"Costa Rica", phonecode:"506"},
-  {iso2:"CI", name:"Côte d'Ivoire", phonecode:"225"},
-  {iso2:"HR", name:"Croatia", phonecode:"385"},
-  {iso2:"CU", name:"Cuba", phonecode:"53"},
-  {iso2:"CY", name:"Cyprus", phonecode:"357"},
-  {iso2:"CZ", name:"Czechia", phonecode:"420"},
-  {iso2:"CD", name:"Democratic Republic of the Congo", phonecode:"243"},
-  {iso2:"DK", name:"Denmark", phonecode:"45"},
-  {iso2:"DJ", name:"Djibouti", phonecode:"253"},
-  {iso2:"DM", name:"Dominica", phonecode:"1767"},
-  {iso2:"DO", name:"Dominican Republic", phonecode:"1809"},
-  {iso2:"EC", name:"Ecuador", phonecode:"593"},
-  {iso2:"EG", name:"Egypt", phonecode:"20"},
-  {iso2:"SV", name:"El Salvador", phonecode:"503"},
-  {iso2:"GQ", name:"Equatorial Guinea", phonecode:"240"},
-  {iso2:"ER", name:"Eritrea", phonecode:"291"},
-  {iso2:"EE", name:"Estonia", phonecode:"372"},
-  {iso2:"SZ", name:"Eswatini", phonecode:"268"},
-  {iso2:"ET", name:"Ethiopia", phonecode:"251"},
-  {iso2:"FJ", name:"Fiji", phonecode:"679"},
-  {iso2:"FI", name:"Finland", phonecode:"358"},
-  {iso2:"FR", name:"France", phonecode:"33"},
-  {iso2:"GA", name:"Gabon", phonecode:"241"},
-  {iso2:"GM", name:"Gambia", phonecode:"220"},
-  {iso2:"GE", name:"Georgia", phonecode:"995"},
-  {iso2:"DE", name:"Germany", phonecode:"49"},
-  {iso2:"GH", name:"Ghana", phonecode:"233"},
-  {iso2:"GR", name:"Greece", phonecode:"30"},
-  {iso2:"GD", name:"Grenada", phonecode:"1473"},
-  {iso2:"GT", name:"Guatemala", phonecode:"502"},
-  {iso2:"GN", name:"Guinea", phonecode:"224"},
-  {iso2:"GW", name:"Guinea-Bissau", phonecode:"245"},
-  {iso2:"GY", name:"Guyana", phonecode:"592"},
-  {iso2:"HT", name:"Haiti", phonecode:"509"},
-  {iso2:"HN", name:"Honduras", phonecode:"504"},
-  {iso2:"HU", name:"Hungary", phonecode:"36"},
-  {iso2:"IS", name:"Iceland", phonecode:"354"},
-  {iso2:"IN", name:"India", phonecode:"91"},
-  {iso2:"ID", name:"Indonesia", phonecode:"62"},
-  {iso2:"IR", name:"Iran", phonecode:"98"},
-  {iso2:"IQ", name:"Iraq", phonecode:"964"},
-  {iso2:"IE", name:"Ireland", phonecode:"353"},
-  {iso2:"IL", name:"Israel", phonecode:"972"},
-  {iso2:"IT", name:"Italy", phonecode:"39"},
-  {iso2:"JM", name:"Jamaica", phonecode:"1876"},
-  {iso2:"JP", name:"Japan", phonecode:"81"},
-  {iso2:"JO", name:"Jordan", phonecode:"962"},
-  {iso2:"KZ", name:"Kazakhstan", phonecode:"7"},
-  {iso2:"KE", name:"Kenya", phonecode:"254"},
-  {iso2:"KI", name:"Kiribati", phonecode:"686"},
-  {iso2:"KW", name:"Kuwait", phonecode:"965"},
-  {iso2:"KG", name:"Kyrgyzstan", phonecode:"996"},
-  {iso2:"LA", name:"Laos", phonecode:"856"},
-  {iso2:"LV", name:"Latvia", phonecode:"371"},
-  {iso2:"LB", name:"Lebanon", phonecode:"961"},
-  {iso2:"LS", name:"Lesotho", phonecode:"266"},
-  {iso2:"LR", name:"Liberia", phonecode:"231"},
-  {iso2:"LY", name:"Libya", phonecode:"218"},
-  {iso2:"LI", name:"Liechtenstein", phonecode:"423"},
-  {iso2:"LT", name:"Lithuania", phonecode:"370"},
-  {iso2:"LU", name:"Luxembourg", phonecode:"352"},
-  {iso2:"MG", name:"Madagascar", phonecode:"261"},
-  {iso2:"MW", name:"Malawi", phonecode:"265"},
-  {iso2:"MY", name:"Malaysia", phonecode:"60"},
-  {iso2:"MV", name:"Maldives", phonecode:"960"},
-  {iso2:"ML", name:"Mali", phonecode:"223"},
-  {iso2:"MT", name:"Malta", phonecode:"356"},
-  {iso2:"MH", name:"Marshall Islands", phonecode:"692"},
-  {iso2:"MR", name:"Mauritania", phonecode:"222"},
-  {iso2:"MU", name:"Mauritius", phonecode:"230"},
-  {iso2:"MX", name:"Mexico", phonecode:"52"},
-  {iso2:"FM", name:"Micronesia", phonecode:"691"},
-  {iso2:"MD", name:"Moldova", phonecode:"373"},
-  {iso2:"MC", name:"Monaco", phonecode:"377"},
-  {iso2:"MN", name:"Mongolia", phonecode:"976"},
-  {iso2:"ME", name:"Montenegro", phonecode:"382"},
-  {iso2:"MA", name:"Morocco", phonecode:"212"},
-  {iso2:"MZ", name:"Mozambique", phonecode:"258"},
-  {iso2:"MM", name:"Myanmar", phonecode:"95"},
-  {iso2:"NA", name:"Namibia", phonecode:"264"},
-  {iso2:"NR", name:"Nauru", phonecode:"674"},
-  {iso2:"NP", name:"Nepal", phonecode:"977"},
-  {iso2:"NL", name:"Netherlands", phonecode:"31"},
-  {iso2:"NZ", name:"New Zealand", phonecode:"64"},
-  {iso2:"NI", name:"Nicaragua", phonecode:"505"},
-  {iso2:"NE", name:"Niger", phonecode:"227"},
-  {iso2:"NG", name:"Nigeria", phonecode:"234"},
-  {iso2:"KP", name:"North Korea", phonecode:"850"},
-  {iso2:"MK", name:"North Macedonia", phonecode:"389"},
-  {iso2:"NO", name:"Norway", phonecode:"47"},
-  {iso2:"OM", name:"Oman", phonecode:"968"},
-  {iso2:"PK", name:"Pakistan", phonecode:"92"},
-  {iso2:"PW", name:"Palau", phonecode:"680"},
-  {iso2:"PA", name:"Panama", phonecode:"507"},
-  {iso2:"PG", name:"Papua New Guinea", phonecode:"675"},
-  {iso2:"PY", name:"Paraguay", phonecode:"595"},
-  {iso2:"PE", name:"Peru", phonecode:"51"},
-  {iso2:"PH", name:"Philippines", phonecode:"63"},
-  {iso2:"PL", name:"Poland", phonecode:"48"},
-  {iso2:"PT", name:"Portugal", phonecode:"351"},
-  {iso2:"QA", name:"Qatar", phonecode:"974"},
-  {iso2:"RO", name:"Romania", phonecode:"40"},
-  {iso2:"RU", name:"Russia", phonecode:"7"},
-  {iso2:"RW", name:"Rwanda", phonecode:"250"},
-  {iso2:"KN", name:"Saint Kitts and Nevis", phonecode:"1869"},
-  {iso2:"LC", name:"Saint Lucia", phonecode:"1758"},
-  {iso2:"VC", name:"Saint Vincent and the Grenadines", phonecode:"1784"},
-  {iso2:"WS", name:"Samoa", phonecode:"685"},
-  {iso2:"SM", name:"San Marino", phonecode:"378"},
-  {iso2:"ST", name:"Sao Tome and Principe", phonecode:"239"},
-  {iso2:"SA", name:"Saudi Arabia", phonecode:"966"},
-  {iso2:"SN", name:"Senegal", phonecode:"221"},
-  {iso2:"RS", name:"Serbia", phonecode:"381"},
-  {iso2:"SC", name:"Seychelles", phonecode:"248"},
-  {iso2:"SL", name:"Sierra Leone", phonecode:"232"},
-  {iso2:"SG", name:"Singapore", phonecode:"65"},
-  {iso2:"SK", name:"Slovakia", phonecode:"421"},
-  {iso2:"SI", name:"Slovenia", phonecode:"386"},
-  {iso2:"SB", name:"Solomon Islands", phonecode:"677"},
-  {iso2:"SO", name:"Somalia", phonecode:"252"},
-  {iso2:"ZA", name:"South Africa", phonecode:"27"},
-  {iso2:"KR", name:"South Korea", phonecode:"82"},
-  {iso2:"SS", name:"South Sudan", phonecode:"211"},
-  {iso2:"ES", name:"Spain", phonecode:"34"},
-  {iso2:"LK", name:"Sri Lanka", phonecode:"94"},
-  {iso2:"SD", name:"Sudan", phonecode:"249"},
-  {iso2:"SR", name:"Suriname", phonecode:"597"},
-  {iso2:"SE", name:"Sweden", phonecode:"46"},
-  {iso2:"CH", name:"Switzerland", phonecode:"41"},
-  {iso2:"SY", name:"Syria", phonecode:"963"},
-  {iso2:"TJ", name:"Tajikistan", phonecode:"992"},
-  {iso2:"TZ", name:"Tanzania", phonecode:"255"},
-  {iso2:"TH", name:"Thailand", phonecode:"66"},
-  {iso2:"TL", name:"Timor-Leste", phonecode:"670"},
-  {iso2:"TG", name:"Togo", phonecode:"228"},
-  {iso2:"TO", name:"Tonga", phonecode:"676"},
-  {iso2:"TT", name:"Trinidad and Tobago", phonecode:"1868"},
-  {iso2:"TN", name:"Tunisia", phonecode:"216"},
-  {iso2:"TR", name:"Türkiye", phonecode:"90"},
-  {iso2:"TM", name:"Turkmenistan", phonecode:"993"},
-  {iso2:"TV", name:"Tuvalu", phonecode:"688"},
-  {iso2:"UG", name:"Uganda", phonecode:"256"},
-  {iso2:"UA", name:"Ukraine", phonecode:"380"},
-  {iso2:"AE", name:"United Arab Emirates", phonecode:"971"},
-  {iso2:"GB", name:"United Kingdom", phonecode:"44"},
-  {iso2:"US", name:"United States", phonecode:"1"},
-  {iso2:"UY", name:"Uruguay", phonecode:"598"},
-  {iso2:"UZ", name:"Uzbekistan", phonecode:"998"},
-  {iso2:"VU", name:"Vanuatu", phonecode:"678"},
-  {iso2:"VA", name:"Holy See (Vatican City)", phonecode:"39"},
-  {iso2:"VE", name:"Venezuela", phonecode:"58"},
-  {iso2:"VN", name:"Vietnam", phonecode:"84"},
-  {iso2:"YE", name:"Yemen", phonecode:"967"},
-  {iso2:"ZM", name:"Zambia", phonecode:"260"},
-  {iso2:"ZW", name:"Zimbabwe", phonecode:"263"},
-  {iso2:"PS", name:"State of Palestine", phonecode:"970"}
-];
-
-function isoToFlag(iso){
-  const code = String(iso || '').toUpperCase();
-  if(!/^[A-Z]{2}$/.test(code)) return '';
-  return String.fromCodePoint(...[...code].map(c => 127397 + c.charCodeAt(0)));
-}
-
 async function loadCountryStateCityLibrary(){
   if(__CSC) return __CSC;
   if(__locationLoadPromise) return __locationLoadPromise;
@@ -794,31 +490,21 @@ async function loadGlobalCountries(){
   if(countrySelect.options.length > 1 && !countrySelect.disabled) return;
   try{
     const csc = await loadCountryStateCityLibrary();
-    const countries = VERIFIED_COUNTRIES.map(c=>({
-      ...c,
-      emoji: isoToFlag(c.iso2)
-    }));
-    const items = countries.map(c=>({
-      value: c.iso2,
+    const countries = await csc.getCountries();
+    const items = (countries || []).map(c=>({
+      value: c.iso2 || c.isoCode,
       text: (c.emoji ? c.emoji + ' ' : '') + c.name
     })).sort((a,b)=>a.text.localeCompare(b.text));
     setSelectOptions(countrySelect, items, 'দেশ নির্বাচন করুন');
-    setupPhoneCountrySelector(countries || []);
     countrySelect.disabled = false;
-    const countrySearchEl = document.getElementById('countrySearch');
-    if(countrySearchEl) countrySearchEl.disabled = false;
     // বাংলাদেশের ব্যবহারকারীর আগের অভিজ্ঞতা বজায় রাখতে বাংলাদেশকে ডিফল্ট রাখা হচ্ছে।
     if((countries || []).some(c => (c.iso2 || c.isoCode) === 'BD')){
       countrySelect.value = 'BD';
-      syncSearchFromSelect('country');
-      syncPhoneCountry('BD');
       await handleCountryChange();
     }
   }catch(err){
     countrySelect.innerHTML = '<option value="">দেশের তালিকা লোড হয়নি — আবার চেষ্টা করুন</option>';
     countrySelect.disabled = true;
-    const countrySearchEl = document.getElementById('countrySearch');
-    if(countrySearchEl) countrySearchEl.disabled = true;
     divisionSelect.disabled = true;
     districtSelect.disabled = true;
     clearUpazilaSuggestions('দেশ নির্বাচন করার পর লিখুন');
@@ -827,10 +513,7 @@ async function loadGlobalCountries(){
 }
 
 async function handleCountryChange(){
-  const requestToken = ++__locationChangeToken;
   const countryCode = countrySelect.value;
-  syncSearchFromSelect('country');
-  syncPhoneCountry(countryCode);
   __globalStates = [];
   __globalCities = [];
   divisionSelect.disabled = true;
@@ -849,11 +532,9 @@ async function handleCountryChange(){
   try{
     const csc = await loadCountryStateCityLibrary();
     const states = await csc.getStatesOfCountry(countryCode);
-    if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
     addGlobalStates(states || []);
     if(!(states || []).length){
       __globalCities = await csc.getCitiesOfCountry(countryCode);
-      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
       const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name), text:c.name}));
       setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
@@ -876,7 +557,6 @@ function loadDivisions(){
 afterFirstPaint(loadGlobalCountries, 1800);
 
 divisionSelect.addEventListener('change', async ()=>{
-  const requestToken = ++__locationChangeToken;
   const countryCode = countrySelect.value;
   const divCode = divisionSelect.value;
   districtSelect.disabled = true;
@@ -895,7 +575,6 @@ divisionSelect.addEventListener('change', async ()=>{
     try{
       const csc = await loadCountryStateCityLibrary();
       __globalCities = await csc.getCitiesOfCountry(countryCode);
-      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode || divisionSelect.value !== divCode) return;
       setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
     }catch(err){ console.warn('Country cities load failed:', err); }
@@ -905,7 +584,6 @@ divisionSelect.addEventListener('change', async ()=>{
   try{
     const csc = await loadCountryStateCityLibrary();
     __globalCities = await csc.getCitiesOfState(countryCode, divCode);
-    if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode || divisionSelect.value !== divCode) return;
     setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
     districtSelect.disabled = false;
   }catch(err){ console.warn('State cities load failed:', err); }
@@ -1478,31 +1156,6 @@ form.addEventListener('submit', async (e)=>{
   // নীরবে বাতিল করা হয়, কোনো এরর দেখানো হয় না যাতে বট বুঝতে না পারে।
   const hpField = document.getElementById('hpField');
   if(hpField && hpField.value.trim()){
-    return;
-  }
-
-  // দৃশ্যমান search field ও আসল location selection অবশ্যই বৈধ হতে হবে।
-  const countrySearch = document.getElementById('countrySearch');
-  const divisionSearch = document.getElementById('divisionSearch');
-  const districtSearch = document.getElementById('districtSearch');
-  const validSelected = (sel, input) => {
-    if(!sel || !input || !sel.value) return false;
-    const selectedText = sel.options[sel.selectedIndex]?.textContent?.trim() || '';
-    return !!selectedText && input.value.trim().toLocaleLowerCase() === selectedText.toLocaleLowerCase();
-  };
-  if(!validSelected(countrySelect, countrySearch)){
-    showStatus('err','অনুগ্রহ করে তালিকা থেকে একটি বৈধ দেশ নির্বাচন করুন।');
-    countrySearch?.focus();
-    return;
-  }
-  if(!validSelected(divisionSelect, divisionSearch)){
-    showStatus('err','অনুগ্রহ করে তালিকা থেকে একটি বৈধ বিভাগ / State / Province নির্বাচন করুন।');
-    divisionSearch?.focus();
-    return;
-  }
-  if(!validSelected(districtSelect, districtSearch)){
-    showStatus('err','অনুগ্রহ করে তালিকা থেকে একটি বৈধ জেলা / City / District নির্বাচন করুন।');
-    districtSearch?.focus();
     return;
   }
 
