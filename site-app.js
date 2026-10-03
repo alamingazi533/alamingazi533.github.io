@@ -1,4 +1,3 @@
-/* COUNTRY-DROPDOWN-FIX-V2: built-in ISO country list; GB/United Kingdom guaranteed */
 // ============ CONFIG ============
 // এখানে আপনার Google Apps Script Web App URL বসান (নতুন Deploy করে যেটা পাবেন)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO73WcUWXvajeSej5yVfBN0aH7gj7cfJRirwgX6DlyrAKxb3U/exec";
@@ -422,6 +421,7 @@ let __CSC = null;
 let __globalStates = [];
 let __globalCities = [];
 let __locationLoadPromise = null;
+let __locationChangeToken = 0;
 
 function setSelectOptions(select, items, placeholder){
   select.innerHTML = '';
@@ -435,7 +435,90 @@ function setSelectOptions(select, items, placeholder){
     opt.textContent = String(item.text ?? item.name ?? '');
     select.appendChild(opt);
   });
+  populateSearchList(select.id);
 }
+
+// ============ সার্চ ইনপুট + দেশভিত্তিক ফোন কোড ============
+const __locationSearchMap = {
+  country: {input:'countrySearch', list:'countrySearchList'},
+  division: {input:'divisionSearch', list:'divisionSearchList'},
+  district: {input:'districtSearch', list:'districtSearchList'}
+};
+function populateSearchList(selectId){
+  const cfg=__locationSearchMap[selectId]; if(!cfg) return;
+  const dl=document.getElementById(cfg.list); const sel=document.getElementById(selectId);
+  if(!dl||!sel) return;
+  dl.innerHTML='';
+  Array.from(sel.options).slice(1).forEach(o=>{
+    const x=document.createElement('option'); x.value=o.textContent; dl.appendChild(x);
+  });
+}
+function syncSearchFromSelect(selectId){
+  const cfg=__locationSearchMap[selectId]; const sel=document.getElementById(selectId);
+  const inp=cfg&&document.getElementById(cfg.input); if(!sel||!inp) return;
+  inp.value=sel.value ? (sel.options[sel.selectedIndex]?.textContent||'') : '';
+}
+function bindLocationSearch(selectId){
+  const cfg=__locationSearchMap[selectId]; const sel=document.getElementById(selectId); const inp=cfg&&document.getElementById(cfg.input);
+  if(!sel||!inp||inp.dataset.bound) return; inp.dataset.bound='1';
+  inp.addEventListener('input',()=>{
+    const q=inp.value.trim().toLocaleLowerCase();
+    const opts=Array.from(sel.options).slice(1);
+    if(!q){ sel.value=''; sel.dispatchEvent(new Event('change',{bubbles:true})); return; }
+    const exact=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q);
+    const match=exact || opts.find(o=>o.textContent.trim().toLocaleLowerCase().startsWith(q));
+    if(match){
+      sel.value=match.value;
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+    } else {
+      sel.value='';
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  });
+  inp.addEventListener('change',()=>{
+    const q=inp.value.trim().toLocaleLowerCase();
+    const opts=Array.from(sel.options).slice(1);
+    const match=opts.find(o=>o.textContent.trim().toLocaleLowerCase()===q) || opts.find(o=>o.textContent.trim().toLocaleLowerCase().startsWith(q));
+    if(match){ sel.value=match.value; sel.dispatchEvent(new Event('change',{bubbles:true})); syncSearchFromSelect(selectId); }
+  });
+  sel.addEventListener('change',()=>syncSearchFromSelect(selectId));
+}
+function refreshLocationSearchUI(){
+  Object.keys(__locationSearchMap).forEach(id=>{ bindLocationSearch(id); populateSearchList(id); syncSearchFromSelect(id); });
+}
+function setupPhoneCountrySelector(countries){
+  const sel=document.getElementById('phoneCountry'); if(!sel) return;
+  const current=countrySelect?.value || 'BD';
+  const items=(countries||[]).map(c=>({iso:c.iso2||c.isoCode||'',name:c.name||'',emoji:c.emoji||'',code:c.phonecode||c.phone_code||c.phoneCode||c.callingCode||''})).filter(x=>x.iso&&x.name);
+  sel.innerHTML='';
+  items.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+    const o=document.createElement('option'); o.value=c.iso; o.dataset.phonecode=String(c.code||'').replace(/^\+/,''); o.textContent=(c.emoji?(c.emoji+' '):'')+c.name+(c.code?' (+'+String(c.code).replace(/^\+/,'')+')':''); sel.appendChild(o);
+  });
+  if(!sel.options.length){ const o=document.createElement('option');o.value='BD';o.dataset.phonecode='880';o.textContent='🇧🇩 Bangladesh (+880)';sel.appendChild(o); }
+  sel.value=items.some(x=>x.iso===current)?current:(items.some(x=>x.iso==='BD')?'BD':sel.options[0].value);
+  updatePhoneHint();
+}
+function syncPhoneCountry(countryCode){
+  const sel=document.getElementById('phoneCountry'); if(!sel) return;
+  const opt=Array.from(sel.options).find(o=>o.value===countryCode); if(opt){ sel.value=countryCode; updatePhoneHint(); }
+}
+function updatePhoneHint(){
+  const sel=document.getElementById('phoneCountry'); const hint=document.getElementById('phoneHint');
+  if(!sel||!hint) return;
+  const opt=sel.options[sel.selectedIndex]; const code=opt?.dataset.phonecode||'';
+  hint.textContent=code ? 'দেশ অনুযায়ী country code: +'+code+' — নম্বরটি international format-এ লিখুন।' : 'দেশ অনুযায়ী আন্তর্জাতিক মোবাইল নম্বর লিখুন।';
+}
+const __phoneCountryEl=document.getElementById('phoneCountry');
+if(__phoneCountryEl){
+  __phoneCountryEl.addEventListener('change',()=>{
+    updatePhoneHint();
+    if(countrySelect && countrySelect.value!==__phoneCountryEl.value){
+      countrySelect.value=__phoneCountryEl.value;
+      countrySelect.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  });
+}
+['country','division','district'].forEach(bindLocationSearch);
 
 function clearUpazilaSuggestions(message){
   upazilaList.innerHTML = '';
@@ -487,61 +570,44 @@ async function loadCountryStateCityLibrary(){
   return __locationLoadPromise;
 }
 
-const ISO_COUNTRIES_FALLBACK = [{"value":"AF","text":"Afghanistan"},{"value":"AL","text":"Albania"},{"value":"DZ","text":"Algeria"},{"value":"AS","text":"American Samoa"},{"value":"AD","text":"Andorra"},{"value":"AO","text":"Angola"},{"value":"AI","text":"Anguilla"},{"value":"AQ","text":"Antarctica"},{"value":"AG","text":"Antigua and Barbuda"},{"value":"AR","text":"Argentina"},{"value":"AM","text":"Armenia"},{"value":"AW","text":"Aruba"},{"value":"AU","text":"Australia"},{"value":"AT","text":"Austria"},{"value":"AZ","text":"Azerbaijan"},{"value":"BS","text":"Bahamas"},{"value":"BH","text":"Bahrain"},{"value":"BD","text":"Bangladesh"},{"value":"BB","text":"Barbados"},{"value":"BY","text":"Belarus"},{"value":"BE","text":"Belgium"},{"value":"BZ","text":"Belize"},{"value":"BJ","text":"Benin"},{"value":"BM","text":"Bermuda"},{"value":"BT","text":"Bhutan"},{"value":"BO","text":"Bolivia, Plurinational State of"},{"value":"BQ","text":"Bonaire, Sint Eustatius and Saba"},{"value":"BA","text":"Bosnia and Herzegovina"},{"value":"BW","text":"Botswana"},{"value":"BV","text":"Bouvet Island"},{"value":"BR","text":"Brazil"},{"value":"IO","text":"British Indian Ocean Territory"},{"value":"BN","text":"Brunei Darussalam"},{"value":"BG","text":"Bulgaria"},{"value":"BF","text":"Burkina Faso"},{"value":"BI","text":"Burundi"},{"value":"CV","text":"Cabo Verde"},{"value":"KH","text":"Cambodia"},{"value":"CM","text":"Cameroon"},{"value":"CA","text":"Canada"},{"value":"KY","text":"Cayman Islands"},{"value":"CF","text":"Central African Republic"},{"value":"TD","text":"Chad"},{"value":"CL","text":"Chile"},{"value":"CN","text":"China"},{"value":"CX","text":"Christmas Island"},{"value":"CC","text":"Cocos (Keeling) Islands"},{"value":"CO","text":"Colombia"},{"value":"KM","text":"Comoros"},{"value":"CG","text":"Congo"},{"value":"CD","text":"Congo, The Democratic Republic of the"},{"value":"CK","text":"Cook Islands"},{"value":"CR","text":"Costa Rica"},{"value":"HR","text":"Croatia"},{"value":"CU","text":"Cuba"},{"value":"CW","text":"Curaçao"},{"value":"CY","text":"Cyprus"},{"value":"CZ","text":"Czechia"},{"value":"CI","text":"Côte d'Ivoire"},{"value":"DK","text":"Denmark"},{"value":"DJ","text":"Djibouti"},{"value":"DM","text":"Dominica"},{"value":"DO","text":"Dominican Republic"},{"value":"EC","text":"Ecuador"},{"value":"EG","text":"Egypt"},{"value":"SV","text":"El Salvador"},{"value":"GQ","text":"Equatorial Guinea"},{"value":"ER","text":"Eritrea"},{"value":"EE","text":"Estonia"},{"value":"SZ","text":"Eswatini"},{"value":"ET","text":"Ethiopia"},{"value":"FK","text":"Falkland Islands (Malvinas)"},{"value":"FO","text":"Faroe Islands"},{"value":"FJ","text":"Fiji"},{"value":"FI","text":"Finland"},{"value":"FR","text":"France"},{"value":"GF","text":"French Guiana"},{"value":"PF","text":"French Polynesia"},{"value":"TF","text":"French Southern Territories"},{"value":"GA","text":"Gabon"},{"value":"GM","text":"Gambia"},{"value":"GE","text":"Georgia"},{"value":"DE","text":"Germany"},{"value":"GH","text":"Ghana"},{"value":"GI","text":"Gibraltar"},{"value":"GR","text":"Greece"},{"value":"GL","text":"Greenland"},{"value":"GD","text":"Grenada"},{"value":"GP","text":"Guadeloupe"},{"value":"GU","text":"Guam"},{"value":"GT","text":"Guatemala"},{"value":"GG","text":"Guernsey"},{"value":"GN","text":"Guinea"},{"value":"GW","text":"Guinea-Bissau"},{"value":"GY","text":"Guyana"},{"value":"HT","text":"Haiti"},{"value":"HM","text":"Heard Island and McDonald Islands"},{"value":"VA","text":"Holy See (Vatican City State)"},{"value":"HN","text":"Honduras"},{"value":"HK","text":"Hong Kong"},{"value":"HU","text":"Hungary"},{"value":"IS","text":"Iceland"},{"value":"IN","text":"India"},{"value":"ID","text":"Indonesia"},{"value":"IR","text":"Iran, Islamic Republic of"},{"value":"IQ","text":"Iraq"},{"value":"IE","text":"Ireland"},{"value":"IM","text":"Isle of Man"},{"value":"IL","text":"Israel"},{"value":"IT","text":"Italy"},{"value":"JM","text":"Jamaica"},{"value":"JP","text":"Japan"},{"value":"JE","text":"Jersey"},{"value":"JO","text":"Jordan"},{"value":"KZ","text":"Kazakhstan"},{"value":"KE","text":"Kenya"},{"value":"KI","text":"Kiribati"},{"value":"KP","text":"Korea, Democratic People's Republic of"},{"value":"KR","text":"Korea, Republic of"},{"value":"KW","text":"Kuwait"},{"value":"KG","text":"Kyrgyzstan"},{"value":"LA","text":"Lao People's Democratic Republic"},{"value":"LV","text":"Latvia"},{"value":"LB","text":"Lebanon"},{"value":"LS","text":"Lesotho"},{"value":"LR","text":"Liberia"},{"value":"LY","text":"Libya"},{"value":"LI","text":"Liechtenstein"},{"value":"LT","text":"Lithuania"},{"value":"LU","text":"Luxembourg"},{"value":"MO","text":"Macao"},{"value":"MG","text":"Madagascar"},{"value":"MW","text":"Malawi"},{"value":"MY","text":"Malaysia"},{"value":"MV","text":"Maldives"},{"value":"ML","text":"Mali"},{"value":"MT","text":"Malta"},{"value":"MH","text":"Marshall Islands"},{"value":"MQ","text":"Martinique"},{"value":"MR","text":"Mauritania"},{"value":"MU","text":"Mauritius"},{"value":"YT","text":"Mayotte"},{"value":"MX","text":"Mexico"},{"value":"FM","text":"Micronesia, Federated States of"},{"value":"MD","text":"Moldova, Republic of"},{"value":"MC","text":"Monaco"},{"value":"MN","text":"Mongolia"},{"value":"ME","text":"Montenegro"},{"value":"MS","text":"Montserrat"},{"value":"MA","text":"Morocco"},{"value":"MZ","text":"Mozambique"},{"value":"MM","text":"Myanmar"},{"value":"NA","text":"Namibia"},{"value":"NR","text":"Nauru"},{"value":"NP","text":"Nepal"},{"value":"NL","text":"Netherlands"},{"value":"NC","text":"New Caledonia"},{"value":"NZ","text":"New Zealand"},{"value":"NI","text":"Nicaragua"},{"value":"NE","text":"Niger"},{"value":"NG","text":"Nigeria"},{"value":"NU","text":"Niue"},{"value":"NF","text":"Norfolk Island"},{"value":"MK","text":"North Macedonia"},{"value":"MP","text":"Northern Mariana Islands"},{"value":"NO","text":"Norway"},{"value":"OM","text":"Oman"},{"value":"PK","text":"Pakistan"},{"value":"PW","text":"Palau"},{"value":"PS","text":"Palestine, State of"},{"value":"PA","text":"Panama"},{"value":"PG","text":"Papua New Guinea"},{"value":"PY","text":"Paraguay"},{"value":"PE","text":"Peru"},{"value":"PH","text":"Philippines"},{"value":"PN","text":"Pitcairn"},{"value":"PL","text":"Poland"},{"value":"PT","text":"Portugal"},{"value":"PR","text":"Puerto Rico"},{"value":"QA","text":"Qatar"},{"value":"RO","text":"Romania"},{"value":"RU","text":"Russian Federation"},{"value":"RW","text":"Rwanda"},{"value":"RE","text":"Réunion"},{"value":"BL","text":"Saint Barthélemy"},{"value":"SH","text":"Saint Helena, Ascension and Tristan da Cunha"},{"value":"KN","text":"Saint Kitts and Nevis"},{"value":"LC","text":"Saint Lucia"},{"value":"MF","text":"Saint Martin (French part)"},{"value":"PM","text":"Saint Pierre and Miquelon"},{"value":"VC","text":"Saint Vincent and the Grenadines"},{"value":"WS","text":"Samoa"},{"value":"SM","text":"San Marino"},{"value":"ST","text":"Sao Tome and Principe"},{"value":"SA","text":"Saudi Arabia"},{"value":"SN","text":"Senegal"},{"value":"RS","text":"Serbia"},{"value":"SC","text":"Seychelles"},{"value":"SL","text":"Sierra Leone"},{"value":"SG","text":"Singapore"},{"value":"SX","text":"Sint Maarten (Dutch part)"},{"value":"SK","text":"Slovakia"},{"value":"SI","text":"Slovenia"},{"value":"SB","text":"Solomon Islands"},{"value":"SO","text":"Somalia"},{"value":"ZA","text":"South Africa"},{"value":"GS","text":"South Georgia and the South Sandwich Islands"},{"value":"SS","text":"South Sudan"},{"value":"ES","text":"Spain"},{"value":"LK","text":"Sri Lanka"},{"value":"SD","text":"Sudan"},{"value":"SR","text":"Suriname"},{"value":"SJ","text":"Svalbard and Jan Mayen"},{"value":"SE","text":"Sweden"},{"value":"CH","text":"Switzerland"},{"value":"SY","text":"Syrian Arab Republic"},{"value":"TW","text":"Taiwan, Province of China"},{"value":"TJ","text":"Tajikistan"},{"value":"TZ","text":"Tanzania, United Republic of"},{"value":"TH","text":"Thailand"},{"value":"TL","text":"Timor-Leste"},{"value":"TG","text":"Togo"},{"value":"TK","text":"Tokelau"},{"value":"TO","text":"Tonga"},{"value":"TT","text":"Trinidad and Tobago"},{"value":"TN","text":"Tunisia"},{"value":"TM","text":"Turkmenistan"},{"value":"TC","text":"Turks and Caicos Islands"},{"value":"TV","text":"Tuvalu"},{"value":"TR","text":"Türkiye"},{"value":"UG","text":"Uganda"},{"value":"UA","text":"Ukraine"},{"value":"AE","text":"United Arab Emirates"},{"value":"GB","text":"United Kingdom"},{"value":"US","text":"United States"},{"value":"UM","text":"United States Minor Outlying Islands"},{"value":"UY","text":"Uruguay"},{"value":"UZ","text":"Uzbekistan"},{"value":"VU","text":"Vanuatu"},{"value":"VE","text":"Venezuela, Bolivarian Republic of"},{"value":"VN","text":"Viet Nam"},{"value":"VG","text":"Virgin Islands, British"},{"value":"VI","text":"Virgin Islands, U.S."},{"value":"WF","text":"Wallis and Futuna"},{"value":"EH","text":"Western Sahara"},{"value":"YE","text":"Yemen"},{"value":"ZM","text":"Zambia"},{"value":"ZW","text":"Zimbabwe"},{"value":"AX","text":"Åland Islands"}];
-
 async function loadGlobalCountries(){
-  // Country dropdown is intentionally independent of the external CSC API.
-  // This guarantees that the complete built-in ISO list (including GB / United Kingdom)
-  // is always available even if the external API is slow, unavailable, or incomplete.
   if(countrySelect.options.length > 1 && !countrySelect.disabled) return;
-
   try{
-    const items = ISO_COUNTRIES_FALLBACK
-      .map(c => ({
-        value: String(c.value || '').toUpperCase(),
-        text: String(c.text || '')
-      }))
-      .filter(c => c.value && c.text);
-
-    // Safety check: these commonly missing countries must always exist.
-    const required = [
-      {value:'GB', text:'United Kingdom'},
-      {value:'US', text:'United States'},
-      {value:'IN', text:'India'},
-      {value:'CA', text:'Canada'},
-      {value:'AU', text:'Australia'},
-      {value:'SA', text:'Saudi Arabia'}
-    ];
-
-    const byCode = new Map(items.map(c => [c.value, c]));
-    required.forEach(c => {
-      if(!byCode.has(c.value)) byCode.set(c.value, c);
-    });
-
-    const finalItems = Array.from(byCode.values())
-      .sort((a,b) => a.text.localeCompare(b.text));
-
-    setSelectOptions(countrySelect, finalItems, 'দেশ নির্বাচন করুন');
+    const csc = await loadCountryStateCityLibrary();
+    const countries = await csc.getCountries();
+    const items = (countries || []).map(c=>({
+      value: c.iso2 || c.isoCode,
+      text: (c.emoji ? c.emoji + ' ' : '') + c.name
+    })).sort((a,b)=>a.text.localeCompare(b.text));
+    setSelectOptions(countrySelect, items, 'দেশ নির্বাচন করুন');
+    setupPhoneCountrySelector(countries || []);
     countrySelect.disabled = false;
-
-    // Bangladesh remains the default and its Division → District → Upazila
-    // logic remains exactly as before.
-    if(finalItems.some(c => c.value === 'BD')){
+    const countrySearchEl = document.getElementById('countrySearch');
+    if(countrySearchEl) countrySearchEl.disabled = false;
+    // বাংলাদেশের ব্যবহারকারীর আগের অভিজ্ঞতা বজায় রাখতে বাংলাদেশকে ডিফল্ট রাখা হচ্ছে।
+    if((countries || []).some(c => (c.iso2 || c.isoCode) === 'BD')){
       countrySelect.value = 'BD';
+      syncSearchFromSelect('country');
+      syncPhoneCountry('BD');
       await handleCountryChange();
     }
   }catch(err){
-    console.warn('Built-in country list load failed:', err);
     countrySelect.innerHTML = '<option value="">দেশের তালিকা লোড হয়নি — আবার চেষ্টা করুন</option>';
     countrySelect.disabled = true;
+    const countrySearchEl = document.getElementById('countrySearch');
+    if(countrySearchEl) countrySearchEl.disabled = true;
     divisionSelect.disabled = true;
     districtSelect.disabled = true;
     clearUpazilaSuggestions('দেশ নির্বাচন করার পর লিখুন');
+    console.warn('Country/State/City data load failed:', err);
   }
 }
 
 async function handleCountryChange(){
+  const requestToken = ++__locationChangeToken;
   const countryCode = countrySelect.value;
+  syncSearchFromSelect('country');
+  syncPhoneCountry(countryCode);
   __globalStates = [];
   __globalCities = [];
   divisionSelect.disabled = true;
@@ -560,9 +626,11 @@ async function handleCountryChange(){
   try{
     const csc = await loadCountryStateCityLibrary();
     const states = await csc.getStatesOfCountry(countryCode);
+    if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
     addGlobalStates(states || []);
     if(!(states || []).length){
       __globalCities = await csc.getCitiesOfCountry(countryCode);
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
       const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name), text:c.name}));
       setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
@@ -585,6 +653,7 @@ function loadDivisions(){
 afterFirstPaint(loadGlobalCountries, 1800);
 
 divisionSelect.addEventListener('change', async ()=>{
+  const requestToken = ++__locationChangeToken;
   const countryCode = countrySelect.value;
   const divCode = divisionSelect.value;
   districtSelect.disabled = true;
@@ -603,6 +672,7 @@ divisionSelect.addEventListener('change', async ()=>{
     try{
       const csc = await loadCountryStateCityLibrary();
       __globalCities = await csc.getCitiesOfCountry(countryCode);
+      if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
       setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
     }catch(err){ console.warn('Country cities load failed:', err); }
@@ -617,13 +687,24 @@ divisionSelect.addEventListener('change', async ()=>{
   }catch(err){ console.warn('State cities load failed:', err); }
 });
 
+const GLOBAL_LOCALITY_SUGGESTIONS = {
+  GB: {
+    'London': ['City of London','Westminster','Camden','Greenwich','Hackney','Hammersmith and Fulham','Haringey','Islington','Kensington and Chelsea','Lambeth','Lewisham','Newham','Southwark','Tower Hamlets','Waltham Forest','Wandsworth','Brent','Bromley','Croydon','Ealing','Enfield','Harrow','Havering','Hillingdon','Hounslow','Kingston upon Thames','Merton','Redbridge','Richmond upon Thames','Sutton','Barnet','Barking and Dagenham','Bexley','Hillingdon','Waltham Forest']
+  }
+};
+
 districtSelect.addEventListener('change', ()=>{
   const countryCode = countrySelect.value;
   const distName = districtSelect.options[districtSelect.selectedIndex]?.text || '';
   if(countryCode === 'BD'){
     fillUpazilaSuggestions(UPAZILAS[distName] || []);
   } else {
-    clearUpazilaSuggestions('থানা / Locality / County লিখুন');
+    const suggestions = GLOBAL_LOCALITY_SUGGESTIONS[countryCode]?.[distName] || [];
+    if(suggestions.length){
+      fillUpazilaSuggestions(suggestions);
+    } else {
+      clearUpazilaSuggestions('থানা / Locality / County লিখুন');
+    }
   }
 });
 
