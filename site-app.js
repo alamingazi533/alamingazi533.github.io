@@ -1,3 +1,4 @@
+/* COUNTRY-DROPDOWN-FIX-V5: foreign State -> City fallback; UK London guaranteed */
 /* COUNTRY-DROPDOWN-FIX-V4: UK London State -> City fallback */
 // ============ CONFIG ============
 // এখানে আপনার Google Apps Script Web App URL বসান (নতুন Deploy করে যেটা পাবেন)
@@ -674,42 +675,63 @@ divisionSelect.addEventListener('change', async ()=>{
       const csc = await loadCountryStateCityLibrary();
       __globalCities = await csc.getCitiesOfCountry(countryCode);
       if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
-      setSelectOptions(districtSelect, (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})), 'City / District নির্বাচন করুন');
+      const items = (__globalCities || []).map(c=>({value:String(c.id ?? c.name),text:c.name})).filter(x=>x.text);
+      setSelectOptions(districtSelect, items, 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
-    }catch(err){ console.warn('Country cities load failed:', err); }
+    }catch(err){
+      // Even if the external service fails, keep the next required field usable.
+      setSelectOptions(districtSelect, [{value:divCode,text:divCode}], 'City / District নির্বাচন করুন');
+      districtSelect.disabled = false;
+      console.warn('Country cities load failed:', err);
+    }
     return;
+  }
+
+  // Foreign countries: make the next required field usable immediately.
+  // This is important for cases such as UK -> London, where the API can
+  // return no city records for a State/Province that is itself a city/region.
+  const stateName = (divisionSelect.options[divisionSelect.selectedIndex]?.text || '')
+    .replace(/^[^\w\u0980-\u09FF]+/u, '')
+    .trim();
+  const knownFallback = GLOBAL_STATE_CITY_FALLBACK[countryCode]?.[stateName] || [];
+  const immediateFallback = knownFallback.length ? knownFallback : (stateName ? [stateName] : []);
+  if(immediateFallback.length){
+    setSelectOptions(districtSelect, immediateFallback.map(name=>({value:name,text:name})), 'City / District নির্বাচন করুন');
+    districtSelect.disabled = false;
   }
 
   try{
     const csc = await loadCountryStateCityLibrary();
-    __globalCities = await csc.getCitiesOfState(countryCode, divCode);
+    const cities = await csc.getCitiesOfState(countryCode, divCode);
+    if(requestToken !== __locationChangeToken || countrySelect.value !== countryCode) return;
+    __globalCities = cities || [];
 
-    // কিছু দেশের (বিশেষ করে UK/London) জন্য CSC API-তে State হিসেবে London
-    // থাকলেও সেই State-এর city endpoint খালি/অসম্পূর্ণ আসতে পারে।
-    // তাই API ফল খালি হলে স্থানীয় fallback ব্যবহার করা হচ্ছে।
-    let cityItems = (__globalCities || []).map(c=>({
+    const apiItems = __globalCities.map(c=>({
       value:String(c.id ?? c.name),
-      text:c.name
-    })).filter(x=>x.text);
+      text:String(c.name ?? '')
+    })).filter(x=>x.text.trim());
 
-    const stateName = divisionSelect.options[divisionSelect.selectedIndex]?.text?.trim() || '';
-    const fallback = GLOBAL_STATE_CITY_FALLBACK[countryCode]?.[stateName] || [];
-    if(!cityItems.length && fallback.length){
-      cityItems = fallback.map(name=>({value:name, text:name}));
+    // Prefer real API cities when available. Otherwise retain the fallback
+    // already placed above, so the select can never be left empty.
+    if(apiItems.length){
+      setSelectOptions(districtSelect, apiItems, 'City / District নির্বাচন করুন');
+    } else if(immediateFallback.length){
+      setSelectOptions(districtSelect, immediateFallback.map(name=>({value:name,text:name})), 'City / District নির্বাচন করুন');
+    } else {
+      setSelectOptions(districtSelect, [{value:stateName,text:stateName}], 'City / District নির্বাচন করুন');
     }
-
-    setSelectOptions(districtSelect, cityItems, 'City / District নির্বাচন করুন');
     districtSelect.disabled = false;
   }catch(err){
-    const stateName = divisionSelect.options[divisionSelect.selectedIndex]?.text?.trim() || '';
-    const fallback = GLOBAL_STATE_CITY_FALLBACK[countryCode]?.[stateName] || [];
-    if(fallback.length){
-      setSelectOptions(districtSelect, fallback.map(name=>({value:name,text:name})), 'City / District নির্বাচন করুন');
+    if(immediateFallback.length){
+      setSelectOptions(districtSelect, immediateFallback.map(name=>({value:name,text:name})), 'City / District নির্বাচন করুন');
       districtSelect.disabled = false;
-    } else {
-      console.warn('State cities load failed:', err);
+    } else if(stateName){
+      setSelectOptions(districtSelect, [{value:stateName,text:stateName}], 'City / District নির্বাচন করুন');
+      districtSelect.disabled = false;
     }
+    console.warn('State cities load failed:', err);
   }
+
 });
 
 // State -> City/District fallback. API ব্যর্থ হলেও নির্বাচিত State-এর পরের ঘর খালি থাকবে না।
