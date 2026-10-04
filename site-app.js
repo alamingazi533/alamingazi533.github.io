@@ -2023,7 +2023,7 @@ function loadPosts(){
       }
       initBlogRouter();
     });
-  }, 5000);
+  }, (new URLSearchParams(window.location.search).get('post') || new URLSearchParams(window.location.search).get('p') || new URLSearchParams(window.location.search).get('blog') || window.location.hash) ? 30000 : 5000);
 
   fetch(SCRIPT_URL + '?action=getPosts', {cache:'default', signal:controller.signal})
     .then(r=>{
@@ -2143,7 +2143,7 @@ function initBlogRouter(){
     if(archiveWrap) archiveWrap.style.display = 'none';
     if(detailWrap) detailWrap.style.display = '';
     if(contentEl && !__allPosts.length){
-      contentEl.innerHTML = '<p class="posts-empty">পোস্টটি লোড হচ্ছে…</p>';
+      contentEl.innerHTML = '<p class="posts-empty">পোস্টটি লোড হচ্ছে… একটু অপেক্ষা করুন (প্রথমবার ১০–২০ সেকেন্ড লাগতে পারে)।<br><button type="button" onclick="location.reload()" style="margin-top:10px;padding:8px 14px;border:1px solid #ccc;border-radius:8px;background:transparent;cursor:pointer;color:inherit">আবার চেষ্টা করুন</button></p>';
     }
   } else {
     showBlogArchive(blogParam);
