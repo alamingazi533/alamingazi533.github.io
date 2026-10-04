@@ -456,7 +456,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
   window.fetch = function(input, init){
     try{
       if(typeof input === 'string' && input.indexOf(SCRIPT_URL + '?') === 0 &&
-         /[?&]action=(login|resetPassword)(&|$)/.test(input) &&
+         /[?&]action=(login|resetPassword|editPost)(&|$)/.test(input) &&
          !(init && init.method && String(init.method).toUpperCase() !== 'GET')){
         const params = {};
         new URLSearchParams(input.slice(SCRIPT_URL.length + 1)).forEach(function(v, k){ params[k] = v; });
