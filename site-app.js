@@ -2323,6 +2323,7 @@ function showBlogDetail(postId){
   const safeTitle = blogEscape(post.title);
   const safeContent = blogEscape(post.content)
     .replace(/^## (.+)$/gm, '<h2 class="post-sub">$1</h2>')
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
     .replace(/!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)/g, (m, cap, src) => '<figure class="post-fig"><img src="' + src + '" alt="' + cap + '" loading="lazy">' + (cap ? '<figcaption>' + cap + '</figcaption>' : '') + '</figure>');
   const imageHtml = blogSafeUrl(post.imageUrl)
     ? '<img src="' + blogSafeUrl(post.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="width:100%; border-radius:10px; margin-bottom:14px; display:block;">'
