@@ -2366,7 +2366,8 @@ function showBlogDetail(postId){
       '</div>' +
     '</article>' +
     '<div class="blog-cta">' +
-      '<a class="whatsapp-btn" style="max-width:340px; margin:16px auto 0;" href="https://wa.me/8801764324313" target="_blank" rel="noopener">WhatsApp-এ যোগাযোগ করুন</a>' +
+      '<p style="text-align:center; margin:18px 0 0; font-weight:700;">আপনার সমস্যাও কি এমন? আমাদের জানান — সমাধানে সাহায্য করব।</p>' +
+      '<a class="whatsapp-btn" style="max-width:340px; margin:10px auto 0;" href="https://wa.me/8801764324313?text=' + encodeURIComponent('আসসালামু আলাইকুম, আপনাদের সাইটের "' + String(post.title || '').slice(0, 120) + '" পোস্টটি পড়ে যোগাযোগ করছি। আমার সমস্যা: ') + '" target="_blank" rel="noopener">WhatsApp-এ সমস্যা জানান</a>' +
     '</div>' +
     '<div class="blog-comments">' +
       '<h2>💬 কমেন্ট (<span id="commentCountLabel">' + (post.commentCount || 0) + '</span>)</h2>' +
