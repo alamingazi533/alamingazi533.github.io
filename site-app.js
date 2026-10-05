@@ -1938,7 +1938,7 @@ function renderBlogCard(p, featured, small){
   const href = '?post=' + encodeURIComponent(p.id);
   const clickAttr = ' onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
   const thumbHtml = p.imageUrl
-    ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:cover; border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
+    ? '<img src="' + blogSafeUrl(p.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="' + (featured ? '' : ('width:100%; object-fit:contain; background:rgba(0,0,0,0.04); border-radius:8px; margin-bottom:' + (small ? '8px; max-height:100px;' : '10px; max-height:170px;'))) + '">'
     : '';
   const mediaTag = (!p.imageUrl && p.videoUrl)
     ? '<span style="display:inline-block; font-size:11.5px; color:var(--forest); margin-bottom:6px;">🎬 ভিডিওসহ পোস্ট</span>'
