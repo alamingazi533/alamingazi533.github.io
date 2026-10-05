@@ -1854,6 +1854,46 @@ function renderPhotoGrid(){
   ).join('');
 }
 
+
+// ============ সাইডবারে "ডাউনলোড ও দরকারি লিংক" (অ্যাডমিনের Apps / Download Links থেকে) ============
+let __blogAppsLoaded = false;
+function renderBlogApps(apps){
+  const wrap = document.getElementById('blogAppsWidget');
+  const list = document.getElementById('blogAppsList');
+  if(!wrap || !list) return;
+  const safe = (Array.isArray(apps) ? apps : []).filter(a => a && a.title && blogSafeUrl(a.url));
+  if(!safe.length){ wrap.style.display = 'none'; return; }
+  list.innerHTML = safe.map(a => {
+    const icon = blogSafeUrl(a.icon)
+      ? '<img class="blog-app-icon" src="' + blogSafeUrl(a.icon) + '" alt="" loading="lazy">'
+      : '<span class="blog-app-icon ph">📄</span>';
+    return '<div class="blog-app-item">' + icon +
+      '<div class="blog-app-body">' +
+        '<div class="blog-app-title">' + blogEscape(a.title) + (a.version ? '<span class="blog-app-ver">v' + blogEscape(String(a.version).replace(/^v/i,'')) + '</span>' : '') + '</div>' +
+        (a.description ? '<div class="blog-app-desc">' + blogEscape(a.description) + '</div>' : '') +
+        '<a class="blog-app-btn" href="' + blogSafeUrl(a.url) + '" target="_blank" rel="noopener noreferrer nofollow">ডাউনলোড / খুলুন</a>' +
+      '</div></div>';
+  }).join('');
+  wrap.style.display = '';
+}
+function loadBlogApps(){
+  if(__blogAppsLoaded) return;
+  __blogAppsLoaded = true;
+  const key = 'publicBlogAppsCacheV1';
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw){ const obj = JSON.parse(raw); if(obj && Array.isArray(obj.apps)) renderBlogApps(obj.apps); }
+  }catch(e){}
+  fetch(SCRIPT_URL + '?action=getPublicApps')
+    .then(r => r.json())
+    .then(d => {
+      if(!d || d.success !== true) return;
+      try{ localStorage.setItem(key, JSON.stringify({time:Date.now(), apps:d.apps || []})); }catch(e){}
+      renderBlogApps(d.apps || []);
+    })
+    .catch(()=>{});
+}
+
 // ============ ডানপাশে সাইডবারের ক্যালেন্ডার উইজেট — যেসব দিনে পোস্ট আছে সেগুলো হাইলাইট করা ============
 function renderCalendarWidget(){
   const cap = document.getElementById('blogCalendarCap');
@@ -1991,6 +2031,7 @@ function loadPosts(){
     }
     renderRecentWidget();
     renderCalendarWidget();
+    loadBlogApps();
     initBlogRouter();
   };
 
