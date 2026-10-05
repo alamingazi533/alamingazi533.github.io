@@ -1,7 +1,7 @@
 // OneSignal v16 + performance-focused site cache worker
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = "alamin-ai-v4";
+const CACHE_NAME = "alamin-ai-v5";
 
 const APP_SHELL = [
   "./",
