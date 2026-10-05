@@ -1558,6 +1558,7 @@
   .howit-steps span.d{ color:var(--muted); font-size:13px; line-height:1.5; }
   [data-theme="dark"] .howit-num{ background:#3F7A57; }
 
+
   .services-section{
     max-width:560px;
     margin:16px auto 0;
@@ -2361,6 +2362,39 @@
   #receipt .r-foot .r-contact{
     color:#16301F; font-weight:600; font-size:12.5px;
   }
+
+  /* ============ বড় স্ক্রিনে (ট্যাবলেট/কম্পিউটার) হোমপেজ চওড়া করা — ফোনে কোনো পরিবর্তন নেই ============ */
+  @media (min-width:900px){
+    .site-nav, .stats-bar, .posts-section, .services-section, .howit-section, .cta-block{ max-width:960px; }
+    .pre-form-wrap{ max-width:760px; }
+    .posts-section .blog-grid{ grid-template-columns:1fr 1fr; align-items:start; }
+    .posts-section .blog-grid > *:first-child{ grid-column:1 / -1; }
+    .services-section .services-list{ columns:2; column-gap:28px; }
+    .services-section .services-list li{ break-inside:avoid; }
+  }
+
+  /* ============ খুব বড় স্ক্রিনে ডান পাশে সাইডবার (ফোন ও ছোট স্ক্রিনে লুকানো) ============ */
+  .home-side{ display:none; }
+  @media (min-width:1280px){
+    #landingTop{ display:grid; grid-template-columns:minmax(0,1fr) 900px 300px minmax(0,1fr); column-gap:22px; align-items:start; }
+    #landingTop > header#top{ grid-column:1 / -1; }
+    #landingTop > :not(header#top):not(.home-side){ grid-column:2; width:100%; max-width:900px; box-sizing:border-box; }
+    .site-nav{ max-width:1222px; }
+    .home-side{ display:block; grid-column:3; grid-row:2 / span 30; position:sticky; top:68px; align-self:start; margin-top:18px; }
+    .home-side-card{ background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+    .home-side-card h3{ margin:0 0 8px; font-size:15.5px; color:var(--forest); }
+    .home-side-card p{ margin:0 0 10px; font-size:13px; color:var(--muted); line-height:1.55; }
+    .home-side-wa, .home-side-apply{ display:block; width:100%; box-sizing:border-box; text-align:center; padding:10px; border-radius:9px; font-weight:700; font-size:14px; text-decoration:none; cursor:pointer; margin-top:8px; font-family:inherit; }
+    .home-side-wa{ background:#25D366; color:#fff; border:0; }
+    .home-side-apply{ background:var(--forest); color:#fff; border:0; }
+    .home-side-card ul{ list-style:none; margin:0; padding:0; }
+    .home-side-card li{ padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5; }
+    .home-side-card li:last-child{ border-bottom:0; }
+    .home-side-card li a, .home-side-link, .home-side-more{ color:var(--ink); text-decoration:none; }
+    .home-side-card li a:hover, .home-side-link:hover, .home-side-more:hover{ color:var(--forest); text-decoration:underline; }
+    .home-side-link{ display:block; padding:6px 0; font-size:13.5px; }
+    .home-side-more{ display:inline-block; margin-top:8px; font-size:13px; font-weight:700; color:var(--forest); }
+  }
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9446828545506016"
      crossorigin="anonymous"></script>
@@ -2474,6 +2508,26 @@
     <span class="bvc-label" data-i18n="hero.totalVisit">মোট ভিজিট</span>
   </div>
 </header>
+<aside class="home-side" aria-label="সাইডবার">
+  <div class="home-side-card">
+    <h3>📞 যোগাযোগ করুন</h3>
+    <p>আপনার সমস্যা নিয়ে সরাসরি কথা বলুন, আমি দেখে যোগাযোগ করব।</p>
+    <a class="home-side-wa" href="https://wa.me/8801764324313" target="_blank" rel="noopener">💬 WhatsApp-এ জানান</a>
+    <button type="button" class="home-side-apply" onclick="revealRegForm()">📝 আবেদন করুন</button>
+  </div>
+  <div class="home-side-card" id="homeSideRecentWrap" style="display:none;">
+    <h3>🕒 সাম্প্রতিক পোস্ট</h3>
+    <ul id="homeSideRecent"></ul>
+    <a class="home-side-more" href="?blog=all">সব পোস্ট দেখুন →</a>
+  </div>
+  <div class="home-side-card">
+    <h3>🔗 দ্রুত লিংক</h3>
+    <a class="home-side-link" href="#servicesSection">আমাদের সেবা</a>
+    <a class="home-side-link" href="#howItWorks">কীভাবে কাজ করি</a>
+    <a class="home-side-link" href="#reviewsSection">রিভিউ</a>
+    <a class="home-side-link" href="#faqSection">সাধারণ প্রশ্ন</a>
+  </div>
+</aside>
 
 <div class="stats-bar">
   <div class="stat-item">

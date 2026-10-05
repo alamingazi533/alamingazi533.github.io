@@ -1810,6 +1810,15 @@ function renderCategoryNav(activeCat){
 }
 
 function renderRecentWidget(){
+  try{
+    const sw = document.getElementById('homeSideRecentWrap'), sl = document.getElementById('homeSideRecent');
+    if(sw && sl){
+      if(__allPosts.length){
+        sl.innerHTML = __allPosts.slice(0, 5).map(p => '<li><a href="?post=' + encodeURIComponent(p.id) + '">' + blogEscape(p.title) + '</a></li>').join('');
+        sw.style.display = '';
+      } else { sw.style.display = 'none'; }
+    }
+  }catch(e){}
   const wrap = document.getElementById('blogRecentWidget');
   const list = document.getElementById('blogRecentList');
   if(!wrap || !list) return;
