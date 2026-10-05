@@ -1858,6 +1858,22 @@ function renderPhotoGrid(){
 // ============ সাইডবারে "ডাউনলোড ও দরকারি লিংক" (অ্যাডমিনের Apps / Download Links থেকে) ============
 let __blogAppsLoaded = false;
 let __blogAppsList = [];
+let __appParamDone = false;
+function blogAppSiteLink(a){
+  return window.location.origin + window.location.pathname.replace(/index\.html$/,'') + '?app=' + encodeURIComponent(a.id || '');
+}
+function maybeOpenAppFromUrl(){
+  if(__appParamDone) return;
+  let id = '';
+  try{ id = new URLSearchParams(window.location.search).get('app') || ''; }catch(e){}
+  if(!id) { __appParamDone = true; return; }
+  const idx = __blogAppsList.findIndex(a => String(a.id) === id);
+  if(idx < 0) return;
+  __appParamDone = true;
+  openBlogAppPopup(idx);
+  const w = document.getElementById('blogAppsWidget');
+  if(w && w.style.display !== 'none') try{ w.scrollIntoView({block:'center'}); }catch(e){}
+}
 function renderBlogApps(apps){
   const wrap = document.getElementById('blogAppsWidget');
   const list = document.getElementById('blogAppsList');
@@ -1865,6 +1881,7 @@ function renderBlogApps(apps){
   const safe = (Array.isArray(apps) ? apps : []).filter(a => a && a.title && blogSafeUrl(a.url));
   __blogAppsList = safe;
   if(!safe.length){ wrap.style.display = 'none'; return; }
+  setTimeout(maybeOpenAppFromUrl, 0);
   list.innerHTML = safe.map((a, i) => {
     const icon = blogSafeUrl(a.icon)
       ? '<img class="blog-app-icon" src="' + blogSafeUrl(a.icon) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=&quot;blog-app-icon ph&quot;>📄</span>\'">'
@@ -1887,6 +1904,7 @@ function openBlogAppPopup(i){
   if(!a) return;
   closeBlogAppPopup();
   const url = String(a.url);
+  const siteLink = blogAppSiteLink(a);
   const o = document.createElement('div');
   o.id = 'blogAppPopup';
   o.className = 'blog-app-popup';
@@ -1911,12 +1929,12 @@ function openBlogAppPopup(i){
   o.querySelector('#bapCopy').onclick = function(){
     const done = () => say('✅ লিংক কপি হয়েছে');
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(url).then(done).catch(fallback);
+      navigator.clipboard.writeText(siteLink).then(done).catch(fallback);
     } else fallback();
     function fallback(){
       try{
         const t = document.createElement('textarea');
-        t.value = url; t.style.position = 'fixed'; t.style.opacity = '0';
+        t.value = siteLink; t.style.position = 'fixed'; t.style.opacity = '0';
         document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
         done();
       }catch(e){ say('কপি করা যায়নি'); }
@@ -1924,9 +1942,9 @@ function openBlogAppPopup(i){
   };
   o.querySelector('#bapShare').onclick = function(){
     if(navigator.share){
-      navigator.share({title: a.title, text: a.title, url: url}).catch(()=>{});
+      navigator.share({title: a.title, text: a.title, url: siteLink}).catch(()=>{});
     } else {
-      window.open('https://wa.me/?text=' + encodeURIComponent(a.title + ' ' + url), '_blank', 'noopener');
+      window.open('https://wa.me/?text=' + encodeURIComponent(a.title + ' ' + siteLink), '_blank', 'noopener');
     }
   };
   o.querySelector('.blog-app-popup-x').onclick = closeBlogAppPopup;
