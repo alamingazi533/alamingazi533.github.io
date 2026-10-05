@@ -44,6 +44,22 @@ self.addEventListener("fetch", event => {
   // Never cache the admin panel; always get the current version.
   if (url.pathname.endsWith("/admin.html")) return;
 
+  // JS ও JSON: নেটওয়ার্ক-ফার্স্ট — সাইট আপডেট করলে ভিজিটর সাথে সাথে নতুন কোড পায়; অফলাইনে ক্যাশ থেকে চলে।
+  if (/\.(?:js|json)$/i.test(url.pathname) && !url.pathname.endsWith("/sw.js")) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   // Static files: cache-first for faster repeat visits, with network fallback.
   if (STATIC_EXTENSIONS.test(url.pathname)) {
     event.respondWith(
