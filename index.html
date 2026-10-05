@@ -2367,8 +2367,9 @@
   @media (min-width:900px){
     .site-nav, .stats-bar, .posts-section, .services-section, .howit-section, .cta-block{ max-width:960px; }
     .pre-form-wrap{ max-width:760px; }
-    .posts-section .blog-grid{ grid-template-columns:1fr 1fr; align-items:start; }
+    .posts-section .blog-grid{ grid-template-columns:1fr 1fr; align-items:stretch; }
     .posts-section .blog-grid > *:first-child{ grid-column:1 / -1; }
+    .posts-section .blog-grid > *:last-child:nth-child(even){ grid-column:1 / -1; }
     .services-section .services-list{ columns:2; column-gap:28px; }
     .services-section .services-list li{ break-inside:avoid; }
   }
