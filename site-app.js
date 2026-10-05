@@ -1857,25 +1857,82 @@ function renderPhotoGrid(){
 
 // ============ সাইডবারে "ডাউনলোড ও দরকারি লিংক" (অ্যাডমিনের Apps / Download Links থেকে) ============
 let __blogAppsLoaded = false;
+let __blogAppsList = [];
 function renderBlogApps(apps){
   const wrap = document.getElementById('blogAppsWidget');
   const list = document.getElementById('blogAppsList');
   if(!wrap || !list) return;
   const safe = (Array.isArray(apps) ? apps : []).filter(a => a && a.title && blogSafeUrl(a.url));
+  __blogAppsList = safe;
   if(!safe.length){ wrap.style.display = 'none'; return; }
-  list.innerHTML = safe.map(a => {
+  list.innerHTML = safe.map((a, i) => {
     const icon = blogSafeUrl(a.icon)
-      ? '<img class="blog-app-icon" src="' + blogSafeUrl(a.icon) + '" alt="" loading="lazy">'
+      ? '<img class="blog-app-icon" src="' + blogSafeUrl(a.icon) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=&quot;blog-app-icon ph&quot;>📄</span>\'">'
       : '<span class="blog-app-icon ph">📄</span>';
     return '<div class="blog-app-item">' + icon +
       '<div class="blog-app-body">' +
         '<div class="blog-app-title">' + blogEscape(a.title) + (a.version ? '<span class="blog-app-ver">v' + blogEscape(String(a.version).replace(/^v/i,'')) + '</span>' : '') + '</div>' +
         (a.description ? '<div class="blog-app-desc">' + blogEscape(a.description) + '</div>' : '') +
-        '<a class="blog-app-btn" href="' + blogSafeUrl(a.url) + '" target="_blank" rel="noopener noreferrer nofollow">ডাউনলোড / খুলুন</a>' +
+        '<button type="button" class="blog-app-btn" onclick="openBlogAppPopup(' + i + ')">ডাউনলোড করুন</button>' +
       '</div></div>';
   }).join('');
   wrap.style.display = '';
 }
+function closeBlogAppPopup(){
+  const o = document.getElementById('blogAppPopup');
+  if(o) o.remove();
+}
+function openBlogAppPopup(i){
+  const a = __blogAppsList[i];
+  if(!a) return;
+  closeBlogAppPopup();
+  const url = String(a.url);
+  const o = document.createElement('div');
+  o.id = 'blogAppPopup';
+  o.className = 'blog-app-popup';
+  o.innerHTML =
+    '<div class="blog-app-popup-box" role="dialog" aria-modal="true">' +
+      '<button type="button" class="blog-app-popup-x" aria-label="বন্ধ করুন">✕</button>' +
+      '<div class="blog-app-popup-title">' + blogEscape(a.title) + (a.version ? ' <span class="blog-app-ver">v' + blogEscape(String(a.version).replace(/^v/i,'')) + '</span>' : '') + '</div>' +
+      (a.description ? '<div class="blog-app-popup-desc">' + blogEscape(a.description) + '</div>' : '') +
+      '<a class="bap-btn primary" id="bapDownload" target="_blank" rel="noopener noreferrer nofollow">⬇️ ডাউনলোড করুন</a>' +
+      '<a class="bap-btn" id="bapOpen" target="_blank" rel="noopener noreferrer nofollow">🔗 লিংক খুলুন</a>' +
+      '<button type="button" class="bap-btn" id="bapCopy">📋 লিংক কপি করুন</button>' +
+      '<button type="button" class="bap-btn" id="bapShare">📤 শেয়ার করুন</button>' +
+      '<div class="bap-msg" id="bapMsg"></div>' +
+    '</div>';
+  document.body.appendChild(o);
+  const dl = o.querySelector('#bapDownload');
+  dl.href = url;
+  dl.setAttribute('download', '');
+  o.querySelector('#bapOpen').href = url;
+  const msg = o.querySelector('#bapMsg');
+  const say = t => { msg.textContent = t; };
+  o.querySelector('#bapCopy').onclick = function(){
+    const done = () => say('✅ লিংক কপি হয়েছে');
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(done).catch(fallback);
+    } else fallback();
+    function fallback(){
+      try{
+        const t = document.createElement('textarea');
+        t.value = url; t.style.position = 'fixed'; t.style.opacity = '0';
+        document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+        done();
+      }catch(e){ say('কপি করা যায়নি'); }
+    }
+  };
+  o.querySelector('#bapShare').onclick = function(){
+    if(navigator.share){
+      navigator.share({title: a.title, text: a.title, url: url}).catch(()=>{});
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(a.title + ' ' + url), '_blank', 'noopener');
+    }
+  };
+  o.querySelector('.blog-app-popup-x').onclick = closeBlogAppPopup;
+  o.addEventListener('click', e => { if(e.target === o) closeBlogAppPopup(); });
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeBlogAppPopup(); });
 function loadBlogApps(){
   if(__blogAppsLoaded) return;
   __blogAppsLoaded = true;
