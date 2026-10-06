@@ -2452,6 +2452,13 @@ function showBlogDetail(postId){
     return;
   }
   trackPostView(String(post.id));
+  try{
+    if(String(post.content||'').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/\s+/g,' ').trim().length < 300) throw 0;
+    const slug = String(post.id).replace(/[^a-zA-Z0-9]/g,'').slice(0,8).toLowerCase();
+    let cl = document.querySelector('link[rel="canonical"]');
+    if(!cl){ cl = document.createElement('link'); cl.rel = 'canonical'; document.head.appendChild(cl); }
+    cl.href = 'https://alamingazi533.github.io/p/' + slug + '.html';
+  }catch(e){}
 
   const safeTitle = blogEscape(post.title);
   const safeContent = blogEscape(post.content)

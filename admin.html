@@ -2520,7 +2520,7 @@ if(sessionStorage.getItem('adminPw')){
     document.getElementById('snapPublishBtn').onclick=function(){
       const btn=this, msg=document.getElementById('snapshotMsg'); btn.disabled=true; msg.textContent='GitHub-এ পাঠানো হচ্ছে… (১০–৩০ সেকেন্ড)';
       apiGet('publishSnapshot').then(function(d){
-        msg.textContent=d.success?'✅ snapshot.json GitHub-এ আপডেট হয়েছে। ১–২ মিনিটের মধ্যে সাইটে কার্যকর হবে।':(d.error||'আপডেট হয়নি।');
+        msg.textContent=d.success?('✅ snapshot ও পোস্ট পেজ GitHub-এ আপডেট হয়েছে। ১–২ মিনিটের মধ্যে সাইটে কার্যকর হবে।'+(d.pending?' আরও '+d.pending+'টি পেজ বাকি আছে — বোতামটা আবার চাপুন।':'')):(d.error||'আপডেট হয়নি।');
         btn.disabled=false; snapStatus();
       }).catch(function(){ msg.textContent='সংযোগে সমস্যা হয়েছে।'; btn.disabled=false; });
     };
