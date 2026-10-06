@@ -456,7 +456,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
   window.fetch = function(input, init){
     try{
       if(typeof input === 'string' && input.indexOf(SCRIPT_URL + '?') === 0 &&
-         /[?&]action=(login|resetPassword|editPost)(&|$)/.test(input) &&
+         /[?&]action=(login|resetPassword|editPost|saveGithubToken)(&|$)/.test(input) &&
          !(init && init.method && String(init.method).toUpperCase() !== 'GET')){
         const params = {};
         new URLSearchParams(input.slice(SCRIPT_URL.length + 1)).forEach(function(v, k){ params[k] = v; });
@@ -2496,6 +2496,34 @@ if(sessionStorage.getItem('adminPw')){
     card.style.cssText='margin:12px 0;background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;';
     card.innerHTML='<div class="collapseHead" style="font-weight:800;color:var(--forest);cursor:pointer;" onclick="toggleSection(\'monthlySummaryWrap\', this);if(document.getElementById(\'monthlySummaryWrap\').style.display===\'block\')window.loadMonthlySummary();"><span class="secArrow">▸</span> 📅 মাসভিত্তিক সারাংশ ও বারবার আবেদনকারী</div><div id="monthlySummaryWrap" style="display:none;margin-top:10px;"><div id="monthlySummaryBody" style="font-size:12.5px;color:var(--muted);">লোড হচ্ছে...</div></div>';
     anchor.after(card);
+    function snapStatus(){
+      apiGet('snapshotStatus').then(function(d){
+        const box=document.getElementById('snapAutoBox'); if(!box||!d||!d.success) return;
+        if(d.hasToken){
+          let t=''; if(d.last){ try{ t=' শেষ আপডেট: '+new Date(d.last).toLocaleString('bn-BD'); }catch(e){} }
+          box.innerHTML='✅ <b>স্বয়ংক্রিয় মোড চালু।</b> নতুন পোস্ট দিলে/এডিট করলে/ডিলিট করলে snapshot.json নিজে থেকে GitHub-এ আপডেট হবে।'+t;
+          document.getElementById('snapTokenBox').style.display='none';
+        } else {
+          box.innerHTML='⚠️ স্বয়ংক্রিয় মোড বন্ধ। নিচের <b>🔑 টোকেন</b> বোতাম চেপে একবার GitHub টোকেন সেভ করলে আর হাতে আপলোড করতে হবে না।';
+        }
+      }).catch(function(){});
+    }
+    snapStatus();
+    document.getElementById('snapTokenToggle').onclick=function(){ const b=document.getElementById('snapTokenBox'); b.style.display=b.style.display==='none'?'block':'none'; };
+    document.getElementById('snapTokenSave').onclick=function(){
+      const v=document.getElementById('snapToken').value.trim(), msg=document.getElementById('snapshotMsg');
+      apiGet('saveGithubToken',{token:v}).then(function(d){
+        if(d.success){ document.getElementById('snapToken').value=''; msg.textContent=d.hasToken?'✅ টোকেন সেভ হয়েছে।':'টোকেন মুছে ফেলা হয়েছে।'; snapStatus(); }
+        else msg.textContent=d.error||'সেভ হয়নি।';
+      }).catch(function(){ msg.textContent='সংযোগে সমস্যা হয়েছে।'; });
+    };
+    document.getElementById('snapPublishBtn').onclick=function(){
+      const btn=this, msg=document.getElementById('snapshotMsg'); btn.disabled=true; msg.textContent='GitHub-এ পাঠানো হচ্ছে… (১০–৩০ সেকেন্ড)';
+      apiGet('publishSnapshot').then(function(d){
+        msg.textContent=d.success?'✅ snapshot.json GitHub-এ আপডেট হয়েছে। ১–২ মিনিটের মধ্যে সাইটে কার্যকর হবে।':(d.error||'আপডেট হয়নি।');
+        btn.disabled=false; snapStatus();
+      }).catch(function(){ msg.textContent='সংযোগে সমস্যা হয়েছে।'; btn.disabled=false; });
+    };
   }
   window.loadMonthlySummary=function(){
     const box=document.getElementById('monthlySummaryBody'); if(!box) return;
@@ -2527,8 +2555,10 @@ if(sessionStorage.getItem('adminPw')){
     const card=document.createElement('div'); card.id='snapshotCard';
     card.style.cssText='margin:12px 0;background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;';
     card.innerHTML='<div style="font-weight:800;color:var(--forest);">📸 সাইট স্ন্যাপশট (নতুন ভিজিটরের জন্য দ্রুত লোড)</div>'+
-      '<div style="font-size:12.5px;color:var(--muted);margin:6px 0 10px;line-height:1.6;">নতুন পোস্ট দেওয়ার পর এই বোতাম চেপে <b>snapshot.json</b> ডাউনলোড করুন, তারপর GitHub রিপোতে (index.html যেখানে আছে) আপলোড করে Commit করুন। তাহলে নতুন ভিজিটর সাথে সাথে পোস্ট দেখবে।</div>'+
-      '<button type="button" id="snapshotBtn" style="padding:9px 14px;border:0;border-radius:8px;background:var(--forest);color:#fff;font-weight:700;cursor:pointer;">snapshot.json ডাউনলোড করুন</button>'+
+      '<div id="snapAutoBox" style="font-size:12.5px;color:var(--muted);margin:6px 0 8px;line-height:1.6;">স্ট্যাটাস লোড হচ্ছে…</div>'+
+      '<div id="snapTokenBox" style="display:none;margin-bottom:8px;"><div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:6px;">একবার সেটআপ: GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate। Repository: শুধু <b>alamingazi533.github.io</b>, Permissions → <b>Contents: Read and write</b>। তৈরি হওয়া টোকেন নিচে পেস্ট করে সেভ করুন।</div><input id="snapToken" type="password" autocomplete="off" placeholder="GitHub টোকেন পেস্ট করুন" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;margin-bottom:6px;"><button type="button" id="snapTokenSave" style="padding:8px 12px;border:0;border-radius:8px;background:var(--forest);color:#fff;font-weight:700;cursor:pointer;">টোকেন সেভ</button></div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;"><button type="button" id="snapPublishBtn" style="padding:9px 14px;border:0;border-radius:8px;background:var(--forest);color:#fff;font-weight:700;cursor:pointer;">🔄 এখনই snapshot আপডেট করুন</button>'+
+      '<button type="button" id="snapshotBtn" style="padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer;">snapshot.json ডাউনলোড (হাতে আপলোডের জন্য)</button><button type="button" id="snapTokenToggle" style="padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer;">🔑 টোকেন</button></div>'+
       '<div id="snapshotMsg" style="font-size:12.5px;margin-top:8px;color:var(--muted);"></div>';
     anchor.after(card);
     document.getElementById('snapshotBtn').onclick=function(){
@@ -2681,6 +2711,9 @@ if(sessionStorage.getItem('adminPw')){
     document.getElementById('appEditId').value=a.id;document.getElementById('appTitle').value=a.title||'';document.getElementById('appVersion').value=a.version||'';document.getElementById('appUrl').value=a.url||'';document.getElementById('appIcon').value=a.icon||'';document.getElementById('appDescription').value=a.description||'';
     document.getElementById('saveAppBtn').textContent='💾 পরিবর্তন সেভ';document.getElementById('cancelAppEditBtn').style.display='inline-block';scrollToId('appsManagerSection');
   };
+  window.toggleAppHidden=function(id,hide){
+    apiGet('setAppHidden',{id:id,hidden:hide}).then(d=>{if(d.success)loadAppsManager();else alert(d.error||'করা যায়নি।');}).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
+  };
   window.deleteAppManager=function(id,title){
     if(!confirm('“'+title+'”-কে Trash-এ পাঠাতে চান? পরে Restore করা যাবে।'))return;
     apiGet('deleteApp',{id:id}).then(d=>{if(d.success){loadAppsManager();if(typeof loadTrash==='function')loadTrash();}else alert(d.error||'Delete করা যায়নি।');}).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
@@ -2691,7 +2724,7 @@ if(sessionStorage.getItem('adminPw')){
       if(!d.success){box.textContent='✕ '+(d.error||'লোড করা যায়নি।');return;}
       window.__appsManagerData=d.apps||[];
       if(!window.__appsManagerData.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);padding:10px 0;">এখনো কোনো অ্যাপ/লিংক যোগ করা হয়নি।</div>';return;}
-      box.innerHTML=window.__appsManagerData.map(a=>'<div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0;"><div style="width:46px;height:46px;border-radius:10px;background:rgba(127,127,127,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:24px;flex:0 0 46px;">'+(a.icon?'<img src="'+esc(a.icon)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">':'📱')+'</div><div style="flex:1;min-width:0;"><div style="font-weight:800;word-break:break-word;">'+esc(a.title)+'</div><div style="font-size:11.5px;color:var(--muted);word-break:break-all;">'+esc(a.url)+(a.version?' · '+esc(a.version):'')+'</div></div><div style="display:flex;gap:5px;flex-wrap:wrap;"><button type="button" onclick="editAppManager(\''+String(a.id).replace(/'/g,"\\'")+'\')" style="padding:6px 9px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">✏️ Edit</button><button type="button" onclick="deleteAppManager(\''+String(a.id).replace(/'/g,"\\'")+'\',\''+String(a.title).replace(/'/g,"\\'")+'\')" style="padding:6px 9px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">🗑️ Trash</button></div></div>').join('');
+      box.innerHTML=window.__appsManagerData.map(a=>'<div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0;"><div style="width:46px;height:46px;border-radius:10px;background:rgba(127,127,127,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:24px;flex:0 0 46px;">'+(a.icon?'<img src="'+esc(a.icon)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">':'📱')+'</div><div style="flex:1;min-width:0;"><div style="font-weight:800;word-break:break-word;">'+esc(a.title)+'</div><div style="font-size:11.5px;color:var(--muted);word-break:break-all;">'+esc(a.url)+(a.version?' · '+esc(a.version):'')+'</div><div style="font-size:11.5px;margin-top:3px;color:var(--forest);font-weight:700;">⬇️ '+(a.clicks||0)+' বার ক্লিক · 📤 '+(a.shares||0)+' বার শেয়ার'+(a.hidden?' · <span style="color:var(--maroon);">🙈 সাইটে লুকানো</span>':'')+'</div></div><div style="display:flex;gap:5px;flex-wrap:wrap;"><button type="button" onclick="toggleAppHidden(\''+String(a.id).replace(/'/g,"\\'")+'\','+(a.hidden?0:1)+')" style="padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--card-bg);color:var(--ink);font-weight:700;">'+(a.hidden?'👁️ দেখান':'🙈 লুকান')+'</button><button type="button" onclick="editAppManager(\''+String(a.id).replace(/'/g,"\\'")+'\')" style="padding:6px 9px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">✏️ Edit</button><button type="button" onclick="deleteAppManager(\''+String(a.id).replace(/'/g,"\\'")+'\',\''+String(a.title).replace(/'/g,"\\'")+'\')" style="padding:6px 9px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">🗑️ Trash</button></div></div>').join('');
     }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
   };
   function readFileAsDataUrl(file){

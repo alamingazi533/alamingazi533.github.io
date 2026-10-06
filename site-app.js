@@ -1860,7 +1860,12 @@ let __blogAppsLoaded = false;
 let __blogAppsList = [];
 let __appParamDone = false;
 function blogAppSiteLink(a){
-  return window.location.origin + window.location.pathname.replace(/index\.html$/,'') + '?app=' + encodeURIComponent(a.id || '');
+  return SCRIPT_URL + '?action=appSEO&id=' + encodeURIComponent(a.id || '');
+}
+function trackBlogApp(a, kind){
+  try{
+    fetch(SCRIPT_URL + '?action=trackAppClick&t=' + kind + '&id=' + encodeURIComponent(a.id || ''), {mode:'no-cors', keepalive:true}).catch(()=>{});
+  }catch(e){}
 }
 function maybeOpenAppFromUrl(){
   if(__appParamDone) return;
@@ -1924,10 +1929,12 @@ function openBlogAppPopup(i){
   dl.href = url;
   dl.setAttribute('download', '');
   o.querySelector('#bapOpen').href = url;
+  dl.addEventListener('click', () => trackBlogApp(a, 'click'));
+  o.querySelector('#bapOpen').addEventListener('click', () => trackBlogApp(a, 'click'));
   const msg = o.querySelector('#bapMsg');
   const say = t => { msg.textContent = t; };
   o.querySelector('#bapCopy').onclick = function(){
-    const done = () => say('✅ লিংক কপি হয়েছে');
+    const done = () => { say('✅ লিংক কপি হয়েছে'); trackBlogApp(a, 'share'); };
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(siteLink).then(done).catch(fallback);
     } else fallback();
@@ -1941,6 +1948,7 @@ function openBlogAppPopup(i){
     }
   };
   o.querySelector('#bapShare').onclick = function(){
+    trackBlogApp(a, 'share');
     if(navigator.share){
       navigator.share({title: a.title, text: a.title, url: siteLink}).catch(()=>{});
     } else {
