@@ -1197,6 +1197,7 @@ function loadAdminPosts(){
             statsRow +
             '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
               '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">🔗 লিংক কপি</button>' +
+              '<button onclick="submitToGoogle(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">🔍 গুগলে জমা</button>' +
               '<button onclick="startEditPost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">এডিট</button>' +
               (isDraft ? '<button onclick="publishDraftNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">প্রকাশ করুন</button>' : '') +
               (isScheduled ? '<button onclick="publishPostNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #8a6100; border-radius:6px; background:var(--card-bg); color:#8a6100; font-size:12.5px;">এখনই প্রকাশ করুন</button>' : '') +
@@ -1316,6 +1317,17 @@ function __postShortKey(id){
   let bin = '';
   for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
   return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function submitToGoogle(id){
+  const cleanId = String(id || '').trim();
+  const slug = cleanId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase();
+  const url = 'https://alamingazi533.github.io/p/' + slug + '.html';
+  const go = () => { alert('লিংক কপি হয়েছে:\n' + url + '\n\nSearch Console খুলছে — উপরের সার্চ বক্সে পেস্ট করে Enter চাপুন, তারপর "Request indexing" দিন।'); window.open('https://search.google.com/search-console', '_blank'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(go).catch(() => { prompt('লিংকটি কপি করুন:', url); window.open('https://search.google.com/search-console', '_blank'); });
+  } else {
+    prompt('লিংকটি কপি করুন:', url); window.open('https://search.google.com/search-console', '_blank');
+  }
 }
 function copyPostLink(id){
   // একটি পোস্ট = একটি ছোট শেয়ার লিংক।
@@ -1460,6 +1472,17 @@ function addPost(isDraft){
     showPostMsg('শিরোনাম ও বিস্তারিত দুটোই লিখুন।', false);
     return;
   }
+
+  // একই শিরোনামের পোস্ট আগে থেকে থাকলে সতর্ক করা
+  try{
+    const norm = s => String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+    const nt = norm(title);
+    const dup = Object.values(window.__adminPostsData || {}).find(p => p && norm(p.title) === nt);
+    if(dup && !confirm('⚠️ এই শিরোনামে একটি পোস্ট আগে থেকেই আছে:\n"' + String(dup.title).slice(0,80) + '"\n\nতবুও কি আবার পোস্ট করবেন?')){
+      showPostMsg('একই শিরোনামের পোস্ট আগে থেকে আছে, তাই পোস্ট করা হয়নি।', false);
+      return;
+    }
+  }catch(_){}
 
   btn.disabled = true;
   draftBtn.disabled = true;
@@ -2615,12 +2638,19 @@ if(sessionStorage.getItem('adminPw')){
     apiGet('listTrash').then(d=>{
       if(!d.success){ if(d.error==='session expired'||d.error==='locked') __handleAuthIssue(d.error); box.textContent='✕ '+(d.error||'লোড করা যায়নি।'); return; }
       if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">Trash খালি।</div>';return;}
-      box.innerHTML=d.rows.slice(0,100).map(x=>{
+      box.innerHTML='<div style="text-align:right;margin-bottom:6px;"><button type="button" onclick="emptyTrashAll()" style="padding:6px 10px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">🗑️ সব মুছুন ('+d.rows.length+')</button></div>'+d.rows.slice(0,100).map(x=>{
         const name=x.type==='application'?(x.title||'আবেদন'):(x.title||'পোস্ট');
         const extra=x.appId?(' · '+esc(x.appId)):'';
         return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0;font-size:12.5px;"><span>🗑️ <b>'+esc(x.label||x.type)+'</b> · '+esc(name)+extra+'<br><small style="color:var(--muted);">'+esc(x.date||'')+'</small></span><button type="button" onclick="restoreTrash('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">Restore</button><button type="button" onclick="deleteTrashForever('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">মুছুন</button></div>';
       }).join('');
     }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
+  };
+  window.emptyTrashAll=function(){
+    if(!confirm('Trash-এর সব আইটেম চিরতরে মুছে ফেলবেন? এরপর আর Restore করা যাবে না।')) return;
+    if(!confirm('আবার নিশ্চিত করুন: সবকিছু মুছে যাবে।')) return;
+    apiGet('emptyTrash').then(d=>{
+      if(d.success) loadTrash(); else alert(d.error||'মোছা যায়নি।');
+    }).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
   };
   window.deleteTrashForever=function(row){
     if(!confirm('এই আইটেমটি চিরতরে মুছে ফেলবেন? এরপর আর Restore করা যাবে না।')) return;
