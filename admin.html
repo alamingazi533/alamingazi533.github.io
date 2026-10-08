@@ -1323,6 +1323,31 @@ function copyPostLink(id){
   const cleanId = String(id || '').trim();
   const previewUrl = SCRIPT_URL + '?action=postSEO&id=' + encodeURIComponent(cleanId);
 
+  // পোস্ট যথেষ্ট বড় (৩০০+ অক্ষর) হলে সাইটের নিজের স্ট্যাটিক পেজের লিংক কপি হবে:
+  // https://alamingazi533.github.io/p/xxxxxxxx.html — এতে পোস্টের নিজের ছবি/শিরোনামের প্রিভিউ আছে,
+  // আর Google Search Console-এও এই লিংকই দিতে হয়। ছোট পোস্টের জন্য আগের preview লিংক চলবে।
+  try{
+    const all = window.__adminPostsData || {};
+    let post = null;
+    Object.keys(all).forEach(k => { if(String(all[k].id) === cleanId) post = all[k]; });
+    if(post){
+      const plain = String(post.content || '')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ')
+        .replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+      if(plain.length >= 300){
+        const slug = cleanId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase();
+        const staticUrl = 'https://alamingazi533.github.io/p/' + slug + '.html';
+        const okMsg = () => alert('শেয়ার লিংক কপি হয়েছে:\n' + staticUrl);
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(staticUrl).then(okMsg).catch(() => prompt('লিংকটি কপি করুন:', staticUrl));
+        } else {
+          prompt('লিংকটি কপি করুন:', staticUrl);
+        }
+        return;
+      }
+    }
+  }catch(_){}
+
   const copy = (link) => {
     const done = () => alert('ছোট শেয়ার লিংক কপি হয়েছে:\n' + link);
     if(navigator.clipboard && navigator.clipboard.writeText){
