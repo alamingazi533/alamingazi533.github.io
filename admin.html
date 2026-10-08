@@ -2618,9 +2618,15 @@ if(sessionStorage.getItem('adminPw')){
       box.innerHTML=d.rows.slice(0,100).map(x=>{
         const name=x.type==='application'?(x.title||'আবেদন'):(x.title||'পোস্ট');
         const extra=x.appId?(' · '+esc(x.appId)):'';
-        return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0;font-size:12.5px;"><span>🗑️ <b>'+esc(x.label||x.type)+'</b> · '+esc(name)+extra+'<br><small style="color:var(--muted);">'+esc(x.date||'')+'</small></span><button type="button" onclick="restoreTrash('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">Restore</button></div>';
+        return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0;font-size:12.5px;"><span>🗑️ <b>'+esc(x.label||x.type)+'</b> · '+esc(name)+extra+'<br><small style="color:var(--muted);">'+esc(x.date||'')+'</small></span><button type="button" onclick="restoreTrash('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">Restore</button><button type="button" onclick="deleteTrashForever('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">মুছুন</button></div>';
       }).join('');
     }).catch(()=>{box.textContent='✕ সংযোগে সমস্যা হয়েছে।';});
+  };
+  window.deleteTrashForever=function(row){
+    if(!confirm('এই আইটেমটি চিরতরে মুছে ফেলবেন? এরপর আর Restore করা যাবে না।')) return;
+    apiGet('deleteTrash',{row:row}).then(d=>{
+      if(d.success) loadTrash(); else alert(d.error||'মোছা যায়নি।');
+    }).catch(()=>alert('সংযোগে সমস্যা হয়েছে।'));
   };
   window.restoreTrash=function(row){
     if(!confirm('এই আইটেমটি Restore করতে চান?')) return;
