@@ -2615,9 +2615,26 @@ document.addEventListener('click', e => {
   applyBlogFontSize();
 });
 
+// ============ পোস্টের শেয়ার লিংক: সব জায়গায় একই ============
+// যথেষ্ট বড় (৩০০+ অক্ষর) পোস্টের জন্য সাইটের নিজের স্ট্যাটিক পেজ (/p/xxxxxxxx.html) —
+// এতে পোস্টের নিজের ছবি/শিরোনামের প্রিভিউ আছে এবং Google-ও এটাই ইনডেক্স করে।
+// ছোট পোস্টের জন্য আগের ?post=ID লিংক।
+function blogPostShareUrl(post){
+  try{
+    const id = String((post && post.id) || '');
+    const plain = String((post && post.content) || '')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ')
+      .replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    if(id && plain.length >= 300){
+      return 'https://alamingazi533.github.io/p/' + id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase() + '.html';
+    }
+  }catch(_){}
+  return 'https://alamingazi533.github.io/?post=' + encodeURIComponent((post && post.id) || '');
+}
+
 // ============ নিউজ-স্টাইল রঙিন শেয়ার আইকন সারি ============
 function blogShareRowHtml(post){
-  const url = encodeURIComponent('https://alamingazi533.github.io/?post=' + post.id);
+  const url = encodeURIComponent(blogPostShareUrl(post));
   const t = encodeURIComponent(post.title || '');
   const b = (cls, href, label, svg) => '<a class="share-ic ' + cls + '" href="' + href + '" target="_blank" rel="noopener" aria-label="' + label + '">' + svg + '</a>';
   const svg = d => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>';
@@ -2716,10 +2733,11 @@ function likeCurrentPost(postId){
 
 // ============ পোস্ট শেয়ার (Web Share API, নাহলে লিংক কপি) ============
 async function sharePost(postId, title){
+  const _p = (__allPosts || []).find(x => String(x.id) === String(postId));
   const shareData = {
     title: title || 'ফেসবুক সমস্যা সমাধান — আপডেট',
     text: 'ফেসবুক সমস্যা সমাধান — এই আপডেটটি দেখুন:',
-    url: window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId)
+    url: _p ? blogPostShareUrl(_p) : (window.location.origin + window.location.pathname + '?post=' + encodeURIComponent(postId))
   };
   if(navigator.share){
     try{ await navigator.share(shareData); }
