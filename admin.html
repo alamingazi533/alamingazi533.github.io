@@ -1408,6 +1408,26 @@ function renderGoogleStatus(){
         sp.innerHTML = '<button type="button" onclick="submitToGoogle(\'' + String(id).replace(/'/g,'') + '\')" style="' + bs + 'border:1px solid var(--maroon); background:var(--card-bg); color:var(--maroon); font-weight:700;">🔍 গুগলে জমা দিন</button> <button type="button" onclick="markGoogle(\'' + slug + '\',\'indexed\')" style="padding:4px 8px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--muted); font-size:11px;">আছে</button>';
       }
     });
+    // যেগুলো এখনো গুগলে জমা দেওয়া হয়নি সেগুলো উপরে আনা
+    try{
+      const lst = document.getElementById('postsList');
+      if(lst){
+        const rank = card => {
+          const sp = card.querySelector('.gstat');
+          if(!sp) return 3;
+          const t = sp.textContent || '';
+          if(t.indexOf('জমা দিন') > -1) return 0;
+          if(t.indexOf('জমা দেওয়া হয়েছে') > -1) return 1;
+          if(t.indexOf('গুগলে আছে') > -1) return 2;
+          return 3;
+        };
+        const cards = Array.from(lst.children).filter(c => c.id && c.id.indexOf('postCard') === 0);
+        if(cards.length){
+          const sorted = cards.map((c,i) => ({c:c, i:i, r:rank(c)})).sort((x,y) => x.r - y.r || x.i - y.i);
+          sorted.forEach(o => lst.appendChild(o.c));
+        }
+      }
+    }catch(_){}
   };
   if(window.__googleStatus){ paint(); return; }
   const pw = sessionStorage.getItem('adminPw') || '';
