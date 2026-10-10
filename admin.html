@@ -1437,23 +1437,54 @@ function renderGoogleStatus(){
         sp.innerHTML = '<button type="button" onclick="submitToGoogle(\'' + String(id).replace(/'/g,'') + '\')" style="' + bs + 'border:1px solid var(--maroon); background:var(--card-bg); color:var(--maroon); font-weight:700;">🔍 গুগলে জমা দিন</button> <button type="button" onclick="markGoogle(\'' + slug + '\',\'indexed\')" style="padding:4px 8px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--muted); font-size:11px;">আছে</button>';
       }
     });
-    // যেগুলো এখনো গুগলে জমা দেওয়া হয়নি সেগুলো উপরে আনা
+    // গুগল স্ট্যাটাস অনুযায়ী পোস্টগুলো ৩টি ফোল্ডারে ভাগ করা: (১) জমা দিন, (২) জমা হয়েছে, (৩) অন্যান্য — ট্যাপ করলে খোলে/বন্ধ হয়
     try{
       const lst = document.getElementById('postsList');
       if(lst){
-        const rank = card => {
-          const sp = card.querySelector('.gstat');
-          if(!sp) return 3;
-          const t = sp.textContent || '';
-          if(t.indexOf('জমা দিন') > -1) return 0;
-          if(t.indexOf('জমা দেওয়া হয়েছে') > -1) return 1;
-          if(t.indexOf('গুগলে আছে') > -1) return 2;
-          return 3;
-        };
-        const cards = Array.from(lst.children).filter(c => c.id && c.id.indexOf('postCard') === 0);
+        const cards = Array.from(lst.querySelectorAll('div[id^="postCard"]')).filter(c => /^postCard\d+$/.test(c.id));
         if(cards.length){
-          const sorted = cards.map((c,i) => ({c:c, i:i, r:rank(c)})).sort((x,y) => x.r - y.r || x.i - y.i);
-          sorted.forEach(o => lst.appendChild(o.c));
+          cards.forEach((c,i) => { if(c.dataset.ord === undefined) c.dataset.ord = String(i); });
+          const sub = card => {
+            const sp = card.querySelector('.gstat');
+            const t = sp ? (sp.textContent || '') : '';
+            if(t.indexOf('জমা দিন') > -1) return [0,0];
+            if(t.indexOf('জমা দেওয়া হয়েছে') > -1) return [1,0];
+            if(t.indexOf('গুগলে আছে') > -1) return [1,1];
+            return [2,0];
+          };
+          const groups = [
+            {k:'a', t:'🔍 গুগলে জমা দিন', list:[]},
+            {k:'b', t:'✅ গুগলে জমা হয়েছে', list:[]},
+            {k:'c', t:'📄 অন্যান্য (ড্রাফট / শিডিউল / ছোট পোস্ট)', list:[]}
+          ];
+          cards.forEach(c => { const r = sub(c); groups[r[0]].list.push({c:c, s:r[1], o:Number(c.dataset.ord)}); });
+          window.__gGroupOpen = window.__gGroupOpen || {};
+          const old = Array.from(lst.querySelectorAll(':scope > .gGroup'));
+          const fresh = [];
+          groups.forEach(g => {
+            if(!g.list.length) return;
+            g.list.sort((x,y) => x.s - y.s || x.o - y.o);
+            const wrap = document.createElement('div');
+            wrap.className = 'gGroup';
+            wrap.style.cssText = 'border:1px solid var(--line); border-radius:10px; margin:10px 0; background:var(--card-bg);';
+            const open = !!window.__gGroupOpen[g.k];
+            const head = document.createElement('div');
+            head.style.cssText = 'display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:11px 12px; font-weight:800; color:var(--forest);';
+            head.innerHTML = '<span>' + g.t + ' (' + g.list.length + 'টি)</span><span class="gArrow">' + (open ? '▾' : '▸') + '</span>';
+            const body = document.createElement('div');
+            body.style.cssText = 'padding:0 12px 6px; display:' + (open ? 'block' : 'none') + ';';
+            head.addEventListener('click', () => {
+              const nowOpen = body.style.display === 'none';
+              body.style.display = nowOpen ? 'block' : 'none';
+              head.querySelector('.gArrow').textContent = nowOpen ? '▾' : '▸';
+              window.__gGroupOpen[g.k] = nowOpen;
+            });
+            g.list.forEach(o => body.appendChild(o.c));
+            wrap.appendChild(head); wrap.appendChild(body);
+            fresh.push(wrap);
+          });
+          old.forEach(w => w.remove());
+          fresh.forEach(w => lst.appendChild(w));
         }
       }
     }catch(_){}
@@ -2943,7 +2974,7 @@ if(sessionStorage.getItem('adminPw')){
     if(document.getElementById('appsManagerSection')) return;
     const anchor=document.getElementById('scheduledPostsStandalone') || document.getElementById('postFormBody')?.parentElement;
     if(!anchor || !anchor.parentElement) return;
-    const card=makeSection('📱 Apps / Download Links','appsManagerSection','<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">এখান থেকে App, Audio, Video, Image বা যেকোনো Download/Share Link যোগ, Edit ও Trash করতে পারবেন। বড় ফাইল (যেমন 500 MB–1 GB) সাইটে Upload না করে Google Drive/অন্যান্য storage-এর Link দিন। Delete করলে Trash থেকে Restore করা যাবে।</div><div id="appEditorBox" style="display:grid;gap:7px;margin-bottom:12px;"><input id="appEditId" type="hidden"><input id="appTitle" placeholder="অ্যাপ/লিংকের নাম" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appVersion" placeholder="Version (ঐচ্ছিক)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appUrl" placeholder="https://official-site.example/download" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appIcon" placeholder="Icon URL (ঐচ্ছিক)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><textarea id="appDescription" placeholder="সংক্ষিপ্ত বর্ণনা (ঐচ্ছিক)" style="width:100%;min-height:70px;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;resize:vertical;"></textarea><div style="padding:10px;border:1px dashed var(--line);border-radius:9px;background:rgba(127,127,127,.05);font-size:11.5px;color:var(--muted);">🔗 বড় ফাইলের জন্য শুধু Download/Share Link ব্যবহার করুন। 500 MB–1 GB বা তার বেশি ফাইল আপনার storage/server-এ রেখে এখানে Link দিন।</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;"><button type="button" id="saveAppBtn" style="padding:9px 13px;border:1px solid var(--forest);border-radius:8px;background:var(--forest);color:#fff;font-weight:800;">🔗 লিংক সেভ</button><button type="button" id="cancelAppEditBtn" style="display:none;padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">বাতিল</button><button type="button" onclick="loadAppsManager()" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">রিফ্রেশ</button></div><div id="appManagerMsg" style="font-size:12.5px;margin-top:3px;"></div></div><div id="appsManagerList">লোড হচ্ছে...</div>');
+    const card=makeSection('📱 Apps / Download Links','appsManagerSection','<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">এখান থেকে App, Audio, Video, Image বা যেকোনো Download/Share Link যোগ, Edit ও Trash করতে পারবেন। বড় ফাইল (যেমন 500 MB–1 GB) সাইটে Upload না করে Google Drive/অন্যান্য storage-এর Link দিন। Delete করলে Trash থেকে Restore করা যাবে।</div><div id="appEditorBox" style="display:grid;gap:7px;margin-bottom:12px;"><input id="appEditId" type="hidden"><input id="appTitle" placeholder="অ্যাপ/লিংকের নাম" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appVersion" placeholder="Version (ঐচ্ছিক)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appUrl" placeholder="https://official-site.example/download" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><input id="appIcon" placeholder="Icon URL (ঐচ্ছিক)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;"><textarea id="appDescription" placeholder="সংক্ষিপ্ত বর্ণনা (ঐচ্ছিক)" style="width:100%;min-height:70px;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;resize:vertical;"></textarea><div style="padding:10px;border:1px dashed var(--line);border-radius:9px;background:rgba(127,127,127,.05);font-size:11.5px;color:var(--muted);">🔗 বড় ফাইলের জন্য শুধু Download/Share Link ব্যবহার করুন। 500 MB–1 GB বা তার বেশি ফাইল আপনার storage/server-এ রেখে এখানে Link দিন।</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;"><button type="button" id="saveAppBtn" style="padding:9px 13px;border:1px solid var(--forest);border-radius:8px;background:var(--forest);color:#fff;font-weight:800;">🔗 লিংক সেভ</button><button type="button" id="cancelAppEditBtn" style="display:none;padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">বাতিল</button><button type="button" onclick="loadAppsManager()" style="padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;">রিফ্রেশ</button></div><div id="appManagerMsg" style="font-size:12.5px;margin-top:3px;"></div></div><div id="appsManagerList">লোড হচ্ছে...</div>',true);
     anchor.after(card);
     document.getElementById('saveAppBtn').onclick=saveAppManager;
     document.getElementById('cancelAppEditBtn').onclick=clearAppEditor;
