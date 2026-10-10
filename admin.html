@@ -1153,17 +1153,7 @@ function __fmtAdminDate(v){
   const pad = n => String(n).padStart(2,'0');
   return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
-function loadAdminPosts(){
-  const listEl = document.getElementById('postsList');
-  listEl.textContent = 'লোড হচ্ছে...';
-  const pw = sessionStorage.getItem('adminPw') || '';
-  fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pw))
-    .then(r => r.json())
-    .then(data => {
-      if(!data.success){
-        listEl.innerHTML = 'পোস্ট লোড করতে সমস্যা হয়েছে। <button type="button" onclick="loadAdminPosts()" style="margin-left:6px; padding:4px 10px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">আবার চেষ্টা করুন</button>';
-        return;
-      }
+function __renderAdminPostsData(data, listEl){
       renderPostsAnalyticsSummary(data.posts || []);
       if(!data.posts || data.posts.length === 0){
         listEl.textContent = 'এখনো কোনো পোস্ট নেই।';
@@ -1215,8 +1205,42 @@ function loadAdminPosts(){
         '</div>';
       }).join('');
       setTimeout(function(){ if(window.renderGoogleStatus) renderGoogleStatus(); }, 0);
+}
+
+function loadAdminPosts(){
+  const listEl = document.getElementById('postsList');
+  const pw = sessionStorage.getItem('adminPw') || '';
+  // আগের লোড করা তালিকা থাকলে সাথে সাথে দেখানো হয়, পিছনে নতুন ডেটা এসে বদলে দেয়
+  let usedCache = false, cacheSig = '';
+  try{
+    const raw = localStorage.getItem('adminPostsCacheV1');
+    if(raw){
+      const c = JSON.parse(raw);
+      if(c && Array.isArray(c.posts) && c.posts.length){
+        __renderAdminPostsData(c, listEl);
+        usedCache = true;
+        cacheSig = raw;
+      }
+    }
+  }catch(_){}
+  if(!usedCache) listEl.textContent = 'লোড হচ্ছে...';
+  fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pw))
+    .then(r => r.json())
+    .then(data => {
+      if(!data.success){
+        if(!usedCache) listEl.innerHTML = 'পোস্ট লোড করতে সমস্যা হয়েছে। <button type="button" onclick="loadAdminPosts()" style="margin-left:6px; padding:4px 10px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">আবার চেষ্টা করুন</button>';
+        return;
+      }
+      let sig = '';
+      try{
+        const txt = JSON.stringify({posts: data.posts || []});
+        sig = txt;
+        localStorage.setItem('adminPostsCacheV1', txt);
+      }catch(_){}
+      if(usedCache && sig && sig === cacheSig){ renderPostsAnalyticsSummary(data.posts || []); return; }
+      __renderAdminPostsData(data, listEl);
     })
-    .catch(()=>{ listEl.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
+    .catch(()=>{ if(!usedCache) listEl.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
 }
 
 function togglePostContent(rowIndex){
@@ -2130,6 +2154,16 @@ function loadEntries(){
     .then(r => r.json())
     .then(data => {
       if(data.success){
+        // কিছু বদলায়নি, বা আপনি লিখছেন/কার্ড খুলে দেখছেন — তখন তালিকা নতুন করে আঁকা হবে না
+        let sig = '';
+        try{ sig = JSON.stringify(data.rows); }catch(_){}
+        const ae = document.activeElement;
+        const typing = ae && ae.closest && ae.closest('#list') && /^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName);
+        if((sig && sig === window.__lastEntriesSig) || typing){
+          document.getElementById('lastUpdated').textContent = 'সবশেষ চেক: ' + new Date().toLocaleTimeString('bn-BD');
+          return;
+        }
+        window.__lastEntriesSig = sig;
         allRows = data.rows;
         applyCurrentFilter();
         fetchPersistentStats();
@@ -2151,6 +2185,7 @@ function manualRefresh(){
     .then(data => {
       document.getElementById('loadingMsg').style.display = 'none';
       if(data.success){
+        try{ window.__lastEntriesSig = JSON.stringify(data.rows); }catch(_){}
         allRows = data.rows;
         applyCurrentFilter();
         const now = new Date();
@@ -2166,6 +2201,8 @@ function manualRefresh(){
 function renderList(rows){
   const listEl = document.getElementById('list');
   const summaryEl = document.getElementById('summary');
+  const __scrollY = window.scrollY;
+  window.__cardOpen = window.__cardOpen || {};
   listEl.innerHTML = '';
   summaryEl.textContent = 'মোট ' + rows.length + 'টি আবেদন';
   document.getElementById('emptyMsg').style.display = rows.length ? 'none' : 'block';
@@ -2247,16 +2284,20 @@ function renderList(rows){
     topEl.addEventListener('click', (e) => {
       if(e.target.closest('.bulkCheck') || e.target.closest('.applicant-photo')) return;
       const isOpen = bodyEl.classList.toggle('open');
+      window.__cardOpen[row.rowIndex] = isOpen;
       if(arrowEl) arrowEl.textContent = isOpen ? '▾' : '▸';
     });
     // অপেক্ষমান আবেদন — মনোযোগ দরকার, তাই ডিফল্টে খোলা থাকবে
-    if(row.status === 'অপেক্ষমান'){
+    const __wasOpen = window.__cardOpen[row.rowIndex];
+    if(__wasOpen === true || (__wasOpen === undefined && row.status === 'অপেক্ষমান')){
       bodyEl.classList.add('open');
       if(arrowEl) arrowEl.textContent = '▾';
     }
 
     listEl.appendChild(card);
   });
+  // নতুন করে আঁকার পরও পাতা আগের জায়গাতেই থাকবে
+  if(__scrollY > 0) window.scrollTo(0, __scrollY);
 }
 
 function updateBulkBar(){
