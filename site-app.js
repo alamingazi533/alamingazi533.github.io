@@ -164,6 +164,8 @@ const I18N_EN = {
   'services.li14': 'Instagram account hack and disable solutions',
   'services.li15': 'TikTok account hack and ban solutions',
   'services.li16': 'YouTube channel hack, suspension, and monetization solutions',
+  'services.li17': 'Step-by-step guidance for Facebook Stars and payout setup (monetization setup, payout and tax info, finding why a payout is on hold)',
+  'services.note2': 'We never ask for your Facebook password, verification codes or private bank details. You do every step yourself on your own phone, we only guide you. We do not guarantee monetization or payouts, that decision is Facebook\'s.',
   'cta.text': 'Click the button below to apply in just 3 steps',
   'cta.btn': 'Fill in your information',
   'cta.trust': '✓ Completely safe &nbsp;·&nbsp; ✓ Quick response &nbsp;·&nbsp; ✓ Refund if unresolved',
