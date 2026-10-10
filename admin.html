@@ -913,16 +913,13 @@ function badgeClass(status){
 // ============ স্ট্যাটাস এখন ফ্রি-টেক্সট না — নির্দিষ্ট ড্রপডাউন থেকে বাছাই করতে হয়, যাতে টাইপো/অতিরিক্ত
 // স্পেসের কারণে ফিল্টার চিপে ভুল ফলাফল না আসে। পুরনো কোনো এন্ট্রিতে অস্বাভাবিক (ফ্রি-টেক্সট যুগের) স্ট্যাটাস
 // থেকে থাকলে সেটাও অপশন হিসেবে দেখানো হচ্ছে (একটা সতর্কীকরণ চিহ্নসহ), যাতে বাছাই করে ঠিক করে দেওয়া যায়। ============
-function buildStatusSelectHtml(currentStatus){
+function buildStatusSelectHtml(currentStatus, appId){
   const current = normStatus(currentStatus);
-  const isKnown = STATUS_OPTIONS.includes(current);
-  let options = STATUS_OPTIONS.map(s =>
-    '<option value="' + s + '"' + (s === current ? ' selected' : '') + '>' + s + '</option>'
-  ).join('');
-  if(current && !isKnown){
-    options = '<option value="' + esc(current) + '" selected>⚠️ ' + esc(current) + ' (অস্বাভাবিক)</option>' + options;
-  }
-  return '<select class="statusInput" style="flex:1; min-width:120px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit;">' + options + '</select>';
+  const msg = (appId && appId !== 'N/A') ? ((window.__statusMsgs || {})[appId] || '') : '';
+  const val = msg || current || '';
+  const opts = STATUS_OPTIONS.map(st => '<option value="' + st + '"></option>').join('');
+  return '<input type="text" class="statusInput" list="statusSuggest" maxlength="500" autocomplete="off" placeholder="স্ট্যাটাস বাছুন বা নিজে লিখুন..." value="' + esc(val) + '" data-status="' + esc(current) + '" style="flex:1; min-width:120px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit;">' +
+    '<datalist id="statusSuggest">' + opts + '</datalist>';
 }
 
 function showForgotBox(){
@@ -2249,19 +2246,13 @@ function renderList(rows){
           '</div>' : '') +
         '<hr class="card-divider">' +
         '<div class="card-actions">' +
-          buildStatusSelectHtml(row.status) +
+          buildStatusSelectHtml(row.status, row.appId) +
           '<button class="saveBtn">আপডেট</button>' +
           '<button class="deleteBtn">🗑️</button>' +
         '</div>' +
         '<div class="card-actions" style="margin-top:8px;">' +
           '<button class="waBtn">📱 WhatsApp পাঠান</button>' +
         '</div>' +
-        ((row.appId && row.appId !== 'N/A') ? '<div style="margin-top:10px;">' +
-          '<div style="font-size:12px; color:var(--forest); margin-bottom:4px;">📝 আবেদনকারীকে লিখে জানান (স্ট্যাটাস চেক করলে সে দেখবে — নিচের বাটনে সাজেশন, চাইলে নিজে লিখুন)</div>' +
-          '<div class="msgChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">' + ['অপেক্ষমান','কাজ চলছে','সম্পন্ন','বাতিল'].map(function(st){ return '<button type="button" class="msgChip" data-st="' + st + '" style="padding:4px 10px; font-size:12px; border:1px solid var(--forest); border-radius:14px; background:var(--card-bg); color:var(--forest);">' + st + '</button>'; }).join('') + '</div>' +
-          '<textarea class="msgInput" maxlength="500" placeholder="যেমন: আপনার সমস্যার সমাধান শুরু হয়েছে, ২ দিনের মধ্যে জানানো হবে..." style="width:100%; min-height:54px; padding:8px; border-radius:6px; border:1px solid var(--forest); font-family:inherit; font-size:13px; resize:vertical;">' + esc((window.__statusMsgs||{})[row.appId] || '') + '</textarea>' +
-          '<button class="msgSaveBtn" style="margin-top:6px; padding:6px 12px; font-size:12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff;">বার্তা সেভ করুন</button>' +
-        '</div>' : '') +
         '<div style="margin-top:10px;">' +
           '<textarea class="noteInput" placeholder="প্রাইভেট নোট (শুধু আপনি দেখবেন)..." style="width:100%; min-height:44px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit; font-size:13px; resize:vertical;">' + esc(row.note || '') + '</textarea>' +
           '<button class="noteSaveBtn" style="margin-top:6px; padding:6px 12px; font-size:12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">নোট সেভ করুন</button>' +
@@ -2275,13 +2266,12 @@ function renderList(rows){
     const bulkCheck = card.querySelector('.bulkCheck');
     const noteInput = card.querySelector('.noteInput');
     const noteSaveBtn = card.querySelector('.noteSaveBtn');
-    saveBtn.addEventListener('click', () => {
-      updateStatus(row.rowIndex, select.value, saveBtn, card);
-      const mi = card.querySelector('.msgInput'), mb = card.querySelector('.msgSaveBtn');
-      if(mi && mb && mi.value.trim() !== (((window.__statusMsgs||{})[row.appId]) || '')) saveStatusMessage(row.appId, mi.value, mb);
-    });
+    saveBtn.addEventListener('click', () => updateStatus(row.rowIndex, select.value, saveBtn, card, row.appId));
+    // ট্যাপ করলে ঘর খালি হয়ে ৪টি সাজেশন দেখায়; কিছু না লিখে বের হলে আগের লেখা ফিরে আসে
+    select.addEventListener('focus', () => { select.dataset.old = select.value; select.value = ''; });
+    select.addEventListener('blur', () => { if(!select.value.trim()) select.value = select.dataset.old || ''; });
     deleteBtn.addEventListener('click', () => deleteEntry(row.rowIndex, row.fullName, card));
-    waBtn.addEventListener('click', () => { const mi = card.querySelector('.msgInput'); sendWhatsApp(row.phone, row.fullName, row.appId, select.value, mi ? mi.value.trim() : ''); });
+    waBtn.addEventListener('click', () => { sendWhatsApp(row.phone, row.fullName, row.appId, (STATUS_OPTIONS.includes(select.value.trim()) ? select.value.trim() : (select.dataset.status || row.status)), (STATUS_OPTIONS.includes(select.value.trim()) ? '' : select.value.trim())); });
     bulkCheck.checked = selectedRowIndexes.has(row.rowIndex);
     bulkCheck.addEventListener('change', () => {
       if(bulkCheck.checked) selectedRowIndexes.add(row.rowIndex);
@@ -2289,20 +2279,6 @@ function renderList(rows){
       updateBulkBar();
     });
     noteSaveBtn.addEventListener('click', () => saveNote(row.rowIndex, noteInput.value, noteSaveBtn));
-    const msgInput = card.querySelector('.msgInput');
-    const msgSaveBtn = card.querySelector('.msgSaveBtn');
-    if(msgInput && msgSaveBtn) msgSaveBtn.addEventListener('click', () => saveStatusMessage(row.appId, msgInput.value, msgSaveBtn));
-    const MSG_TEMPLATES = {
-      'অপেক্ষমান': 'আপনার আবেদনটি জমা হয়েছে। শীঘ্রই কাজ শুরু করা হবে, একটু অপেক্ষা করুন।',
-      'কাজ চলছে': 'আপনার সমস্যাটি নিয়ে কাজ চলছে। সমাধান হলে এখানেই জানানো হবে।',
-      'সম্পন্ন': 'আপনার আবেদনের কাজ সম্পন্ন হয়েছে। ধন্যবাদ।',
-      'বাতিল': 'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।'
-    };
-    card.querySelectorAll('.msgChip').forEach(ch => ch.addEventListener('click', () => {
-      const st = ch.getAttribute('data-st');
-      if(msgInput) msgInput.value = MSG_TEMPLATES[st] || '';
-      if(select) select.value = st;
-    }));
 
     // ============ কার্ড ট্যাপ করলে বিস্তারিত খোলা/বন্ধ হয় (পেজ ছোট রাখতে ডিফল্টে বন্ধ থাকে) ============
     const topEl = card.querySelector('.card-top');
@@ -2362,23 +2338,6 @@ function applyBulkStatus(){
     .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
 }
 
-function saveStatusMessage(appId, msg, btn){
-  const pw = sessionStorage.getItem('adminPw');
-  btn.disabled = true;
-  btn.textContent = 'সেভ হচ্ছে...';
-  fetch(SCRIPT_URL + '?action=setStatusMessage&password=' + encodeURIComponent(pw) + '&id=' + encodeURIComponent(appId) + '&message=' + encodeURIComponent(msg))
-    .then(r => r.json())
-    .then(data => {
-      if(data.success){
-        window.__statusMsgs = window.__statusMsgs || {};
-        if(msg.trim()) window.__statusMsgs[appId] = msg.trim(); else delete window.__statusMsgs[appId];
-      }
-      btn.textContent = data.success ? '✓ সেভ হয়েছে' : 'ব্যর্থ হয়েছে';
-      setTimeout(()=>{ btn.textContent = 'বার্তা সেভ করুন'; btn.disabled = false; }, 1500);
-    })
-    .catch(()=>{ btn.textContent = 'ব্যর্থ হয়েছে'; btn.disabled = false; });
-}
-
 function saveNote(rowIndex, note, btn){
   const pw = sessionStorage.getItem('adminPw');
   btn.disabled = true;
@@ -2395,28 +2354,41 @@ function saveNote(rowIndex, note, btn){
     });
 }
 
-function updateStatus(rowIndex, newStatus, btn, card){
+function updateStatus(rowIndex, typed, btn, card, appId){
   const pw = sessionStorage.getItem('adminPw');
+  typed = String(typed || '').trim();
+  if(!typed){ alert('স্ট্যাটাস বাছুন বা কিছু লিখুন।'); return; }
+  const input = card.querySelector('.statusInput');
+  const isKnown = STATUS_OPTIONS.includes(typed);
+  const hasId = appId && appId !== 'N/A';
+  if(!isKnown && !hasId){ alert('এই পুরনো আবেদনে নিজে লিখে জানানো যাবে না, ৪টির একটি বাছুন।'); return; }
+  // ৪টির একটি লিখলে স্ট্যাটাস বদলায় (লেখা বার্তা মুছে যায়); অন্য কিছু লিখলে স্ট্যাটাস আগেরটাই থাকে, লেখাটা আবেদনকারী দেখে
+  const statusToSave = isKnown ? typed : (input.dataset.status || 'অপেক্ষমান');
+  const msgToSave = isKnown ? '' : typed;
   btn.disabled = true;
   btn.textContent = 'সেভ হচ্ছে...';
-  fetch(SCRIPT_URL + '?action=updateStatus&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex) + '&status=' + encodeURIComponent(newStatus))
+  const done = () => { btn.disabled = false; btn.textContent = 'আপডেট'; };
+  fetch(SCRIPT_URL + '?action=updateStatus&password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rowIndex) + '&status=' + encodeURIComponent(statusToSave))
     .then(r => r.json())
     .then(data => {
-      btn.disabled = false;
-      btn.textContent = 'আপডেট';
-      if(data.success){
-        const badge = card.querySelector('.badge');
-        badge.textContent = newStatus;
-        badge.className = badgeClass(newStatus);
-      } else {
-        alert('আপডেট করতে সমস্যা হয়েছে।');
-      }
+      if(!data.success){ done(); alert('আপডেট করতে সমস্যা হয়েছে।'); return; }
+      const badge = card.querySelector('.badge');
+      badge.textContent = statusToSave;
+      badge.className = badgeClass(statusToSave);
+      input.dataset.status = statusToSave;
+      if(!hasId){ done(); return; }
+      window.__statusMsgs = window.__statusMsgs || {};
+      const had = !!window.__statusMsgs[appId];
+      if(!msgToSave && !had){ done(); return; }
+      return fetch(SCRIPT_URL + '?action=setStatusMessage&password=' + encodeURIComponent(pw) + '&id=' + encodeURIComponent(appId) + '&message=' + encodeURIComponent(msgToSave))
+        .then(r => r.json())
+        .then(m => {
+          done();
+          if(m.success){ if(msgToSave) window.__statusMsgs[appId] = msgToSave; else delete window.__statusMsgs[appId]; input.value = msgToSave || statusToSave; }
+          else alert('লেখা বার্তা সেভ হয়নি।');
+        });
     })
-    .catch(() => {
-      btn.disabled = false;
-      btn.textContent = 'আপডেট';
-      alert('সংযোগে সমস্যা হয়েছে।');
-    });
+    .catch(() => { done(); alert('সংযোগে সমস্যা হয়েছে।'); });
 }
 
 function normalizePhone(phone){
