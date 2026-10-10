@@ -2165,7 +2165,10 @@ function loadEntries(){
         }
         window.__lastEntriesSig = sig;
         allRows = data.rows;
-        applyCurrentFilter();
+        fetch(SCRIPT_URL + '?action=getStatusMessages&password=' + encodeURIComponent(pw))
+          .then(r => r.json()).then(m => { if(m && m.success) window.__statusMsgs = m.messages || {}; })
+          .catch(()=>{})
+          .then(() => { applyCurrentFilter(); });
         fetchPersistentStats();
         const now = new Date();
         document.getElementById('lastUpdated').textContent = 'সবশেষ আপডেট: ' + now.toLocaleTimeString('bn-BD');
@@ -2253,6 +2256,11 @@ function renderList(rows){
         '<div class="card-actions" style="margin-top:8px;">' +
           '<button class="waBtn">📱 WhatsApp পাঠান</button>' +
         '</div>' +
+        ((row.appId && row.appId !== 'N/A') ? '<div style="margin-top:10px;">' +
+          '<div style="font-size:12px; color:var(--forest); margin-bottom:4px;">📝 আবেদনকারীকে লিখে জানান (স্ট্যাটাস চেক করলে সে দেখবে)</div>' +
+          '<textarea class="msgInput" maxlength="500" placeholder="যেমন: আপনার সমস্যার সমাধান শুরু হয়েছে, ২ দিনের মধ্যে জানানো হবে..." style="width:100%; min-height:54px; padding:8px; border-radius:6px; border:1px solid var(--forest); font-family:inherit; font-size:13px; resize:vertical;">' + esc((window.__statusMsgs||{})[row.appId] || '') + '</textarea>' +
+          '<button class="msgSaveBtn" style="margin-top:6px; padding:6px 12px; font-size:12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff;">বার্তা সেভ করুন</button>' +
+        '</div>' : '') +
         '<div style="margin-top:10px;">' +
           '<textarea class="noteInput" placeholder="প্রাইভেট নোট (শুধু আপনি দেখবেন)..." style="width:100%; min-height:44px; padding:8px; border-radius:6px; border:1px solid var(--line); font-family:inherit; font-size:13px; resize:vertical;">' + esc(row.note || '') + '</textarea>' +
           '<button class="noteSaveBtn" style="margin-top:6px; padding:6px 12px; font-size:12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest);">নোট সেভ করুন</button>' +
@@ -2276,6 +2284,9 @@ function renderList(rows){
       updateBulkBar();
     });
     noteSaveBtn.addEventListener('click', () => saveNote(row.rowIndex, noteInput.value, noteSaveBtn));
+    const msgInput = card.querySelector('.msgInput');
+    const msgSaveBtn = card.querySelector('.msgSaveBtn');
+    if(msgInput && msgSaveBtn) msgSaveBtn.addEventListener('click', () => saveStatusMessage(row.appId, msgInput.value, msgSaveBtn));
 
     // ============ কার্ড ট্যাপ করলে বিস্তারিত খোলা/বন্ধ হয় (পেজ ছোট রাখতে ডিফল্টে বন্ধ থাকে) ============
     const topEl = card.querySelector('.card-top');
@@ -2333,6 +2344,23 @@ function applyBulkStatus(){
       }
     })
     .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
+}
+
+function saveStatusMessage(appId, msg, btn){
+  const pw = sessionStorage.getItem('adminPw');
+  btn.disabled = true;
+  btn.textContent = 'সেভ হচ্ছে...';
+  fetch(SCRIPT_URL + '?action=setStatusMessage&password=' + encodeURIComponent(pw) + '&id=' + encodeURIComponent(appId) + '&message=' + encodeURIComponent(msg))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){
+        window.__statusMsgs = window.__statusMsgs || {};
+        if(msg.trim()) window.__statusMsgs[appId] = msg.trim(); else delete window.__statusMsgs[appId];
+      }
+      btn.textContent = data.success ? '✓ সেভ হয়েছে' : 'ব্যর্থ হয়েছে';
+      setTimeout(()=>{ btn.textContent = 'বার্তা সেভ করুন'; btn.disabled = false; }, 1500);
+    })
+    .catch(()=>{ btn.textContent = 'ব্যর্থ হয়েছে'; btn.disabled = false; });
 }
 
 function saveNote(rowIndex, note, btn){

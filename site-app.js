@@ -954,6 +954,7 @@ checkBtn.addEventListener('click', async ()=>{
         'আবেদনের তারিখ: ' + blogEscape(data.date) + '<br>' +
         'বর্তমান অবস্থা: <span class="cr-status-badge">' + blogEscape(data.status) + '</span>' +
         renderStatusSteps(data.status) +
+        (data.message ? '<div style="margin-top:12px; padding:10px 12px; border-left:4px solid var(--forest); background:rgba(0,0,0,.04); border-radius:6px; font-size:14px; line-height:1.6;"><strong>📝 আমাদের বার্তা:</strong><br>' + blogEscape(data.message).replace(/\n/g,'<br>') + (data.messageDate ? '<br><small style="opacity:.7;">' + blogEscape(data.messageDate) + '</small>' : '') + '</div>' : '') +
         '<button onclick="printStatusResult()" style="margin-top:12px; padding:8px 14px; border:1px solid var(--forest); border-radius:6px; background:transparent; color:var(--forest); font-size:13px; cursor:pointer;">🖨️ প্রিন্ট / সংরক্ষণ করুন</button>' +
         '</div>';
     }else{
