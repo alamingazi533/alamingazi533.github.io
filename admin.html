@@ -2257,7 +2257,8 @@ function renderList(rows){
           '<button class="waBtn">📱 WhatsApp পাঠান</button>' +
         '</div>' +
         ((row.appId && row.appId !== 'N/A') ? '<div style="margin-top:10px;">' +
-          '<div style="font-size:12px; color:var(--forest); margin-bottom:4px;">📝 আবেদনকারীকে লিখে জানান (স্ট্যাটাস চেক করলে সে দেখবে)</div>' +
+          '<div style="font-size:12px; color:var(--forest); margin-bottom:4px;">📝 আবেদনকারীকে লিখে জানান (স্ট্যাটাস চেক করলে সে দেখবে — নিচের বাটনে সাজেশন, চাইলে নিজে লিখুন)</div>' +
+          '<div class="msgChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;">' + ['অপেক্ষমান','কাজ চলছে','সম্পন্ন','বাতিল'].map(function(st){ return '<button type="button" class="msgChip" data-st="' + st + '" style="padding:4px 10px; font-size:12px; border:1px solid var(--forest); border-radius:14px; background:var(--card-bg); color:var(--forest);">' + st + '</button>'; }).join('') + '</div>' +
           '<textarea class="msgInput" maxlength="500" placeholder="যেমন: আপনার সমস্যার সমাধান শুরু হয়েছে, ২ দিনের মধ্যে জানানো হবে..." style="width:100%; min-height:54px; padding:8px; border-radius:6px; border:1px solid var(--forest); font-family:inherit; font-size:13px; resize:vertical;">' + esc((window.__statusMsgs||{})[row.appId] || '') + '</textarea>' +
           '<button class="msgSaveBtn" style="margin-top:6px; padding:6px 12px; font-size:12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff;">বার্তা সেভ করুন</button>' +
         '</div>' : '') +
@@ -2274,9 +2275,13 @@ function renderList(rows){
     const bulkCheck = card.querySelector('.bulkCheck');
     const noteInput = card.querySelector('.noteInput');
     const noteSaveBtn = card.querySelector('.noteSaveBtn');
-    saveBtn.addEventListener('click', () => updateStatus(row.rowIndex, select.value, saveBtn, card));
+    saveBtn.addEventListener('click', () => {
+      updateStatus(row.rowIndex, select.value, saveBtn, card);
+      const mi = card.querySelector('.msgInput'), mb = card.querySelector('.msgSaveBtn');
+      if(mi && mb && mi.value.trim() !== (((window.__statusMsgs||{})[row.appId]) || '')) saveStatusMessage(row.appId, mi.value, mb);
+    });
     deleteBtn.addEventListener('click', () => deleteEntry(row.rowIndex, row.fullName, card));
-    waBtn.addEventListener('click', () => sendWhatsApp(row.phone, row.fullName, row.appId, select.value));
+    waBtn.addEventListener('click', () => { const mi = card.querySelector('.msgInput'); sendWhatsApp(row.phone, row.fullName, row.appId, select.value, mi ? mi.value.trim() : ''); });
     bulkCheck.checked = selectedRowIndexes.has(row.rowIndex);
     bulkCheck.addEventListener('change', () => {
       if(bulkCheck.checked) selectedRowIndexes.add(row.rowIndex);
@@ -2287,6 +2292,17 @@ function renderList(rows){
     const msgInput = card.querySelector('.msgInput');
     const msgSaveBtn = card.querySelector('.msgSaveBtn');
     if(msgInput && msgSaveBtn) msgSaveBtn.addEventListener('click', () => saveStatusMessage(row.appId, msgInput.value, msgSaveBtn));
+    const MSG_TEMPLATES = {
+      'অপেক্ষমান': 'আপনার আবেদনটি জমা হয়েছে। শীঘ্রই কাজ শুরু করা হবে, একটু অপেক্ষা করুন।',
+      'কাজ চলছে': 'আপনার সমস্যাটি নিয়ে কাজ চলছে। সমাধান হলে এখানেই জানানো হবে।',
+      'সম্পন্ন': 'আপনার আবেদনের কাজ সম্পন্ন হয়েছে। ধন্যবাদ।',
+      'বাতিল': 'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।'
+    };
+    card.querySelectorAll('.msgChip').forEach(ch => ch.addEventListener('click', () => {
+      const st = ch.getAttribute('data-st');
+      if(msgInput) msgInput.value = MSG_TEMPLATES[st] || '';
+      if(select) select.value = st;
+    }));
 
     // ============ কার্ড ট্যাপ করলে বিস্তারিত খোলা/বন্ধ হয় (পেজ ছোট রাখতে ডিফল্টে বন্ধ থাকে) ============
     const topEl = card.querySelector('.card-top');
@@ -2433,20 +2449,21 @@ function normalizePhone(phone){
   return '880' + digits;
 }
 
-function statusMessage(fullName, appId, status){
+function statusMessage(fullName, appId, status, custom){
   const idLine = (appId && appId !== 'N/A') ? ('আবেদন নম্বর: ' + appId + '\n') : '';
   let line;
   if(status === 'সম্পন্ন') line = 'আপনার আবেদনটির কাজ সম্পন্ন হয়েছে। ধন্যবাদ।\n\nআপনার অভিজ্ঞতা কেমন ছিল আমাদের জানাতে একটা ছোট্ট রিভিউ দিতে পারেন:\nhttps://alamingazi533.github.io/';
   else if(status === 'কাজ চলছে') line = 'আপনার আবেদনটি নিয়ে কাজ চলছে। একটু অপেক্ষা করুন।';
   else if(status === 'বাতিল') line = 'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে যোগাযোগ করুন।';
   else line = 'আপনার আবেদনটি জমা হয়েছে, বর্তমানে অপেক্ষমান আছে।';
+  if(custom) line = custom;
   return 'প্রিয় ' + fullName + ',\n' + idLine + 'স্ট্যাটাস: ' + status + '\n' + line;
 }
 
-function sendWhatsApp(phone, fullName, appId, status){
+function sendWhatsApp(phone, fullName, appId, status, custom){
   if(!phone){ alert('এই আবেদনকারীর ফোন নম্বর পাওয়া যায়নি।'); return; }
   const number = normalizePhone(phone);
-  const message = statusMessage(fullName, appId, status);
+  const message = statusMessage(fullName, appId, status, custom);
   const url = 'https://wa.me/' + number + '?text=' + encodeURIComponent(message);
   window.open(url, '_blank');
 }
