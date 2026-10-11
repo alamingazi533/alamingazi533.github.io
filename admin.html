@@ -590,7 +590,7 @@ function __clearAdminCache(){
             const text = await resp.text();
             const d = JSON.parse(text);
             last = text;
-            if(d && d.success === false && /internal|timed? ?out|busy|lock|try again|service/i.test(String(d.error||'')) && attempt < 3){
+            if(d && d.success === false && /internal|timed? ?out|busy|lock|try again|service|unreachable/i.test(String(d.error||'')) && attempt < 3){
               await sleep(2000 * (attempt + 1)); continue;
             }
             return jsonResp(text);
@@ -1417,7 +1417,7 @@ function checkGoogleAll(auto){
   if(!need.length) return;
   if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (0/' + need.length + ')';
   let done = 0, lastErr = '';
-  const chunks = []; for(let i = 0; i < need.length; i += 8) chunks.push(need.slice(i, i + 8));
+  const chunks = []; for(let i = 0; i < need.length; i += 5) chunks.push(need.slice(i, i + 5));
   chunks.reduce((pr, ch) => pr.then(() => new Promise(r => setTimeout(r, 400))).then(() => fetch(SCRIPT_URL + '?action=checkGoogleIndex&password=' + encodeURIComponent(pw) + '&slugs=' + encodeURIComponent(ch.join(',')) + '&_=' + Date.now(), {cache:'no-store'}).then(r => r.json()).then(d => {
     if(!d.success){ lastErr = d.error === 'network' ? 'সার্ভার ধীর, একটু পরে আবার চেষ্টা করুন' : (d.error || 'ব্যর্থ'); return; }
     window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; renderGoogleStatus();
@@ -2034,10 +2034,10 @@ function loadTrash(){
   const box=document.getElementById('trashPanel'); box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
   const pw=sessionStorage.getItem('adminPw')||'';
   fetch(SCRIPT_URL+'?action=listTrash&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
-    if(!d.success){box.innerHTML='✕ '+(d.error==='network'?'সার্ভার ধীর আছে।':esc(d.error||'লোড করা যায়নি।'))+' <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';return;}
+    if(!d.success){box.innerHTML='✕ '+(d.error==='network'?'সার্ভার ধীর আছে।':esc(d.error||'লোড করা যায়নি।'))+' <button type="button" onclick="loadTrash()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';return;}
     if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">Trash খালি।</div>';return;}
     box.innerHTML=d.rows.slice(0,50).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0;font-size:12.5px;"><span>🗑️ '+x.type+' · '+x.date+'</span><button onclick="restoreTrash('+x.rowIndex+')" style="padding:5px 9px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);">Restore</button></div>').join('');
-  }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
+  }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadTrash()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
 }
 function restoreTrash(row){
   if(!confirm('এই আইটেমটি আবার পোস্ট তালিকায় ফিরিয়ে আনবেন?')) return;
@@ -2050,10 +2050,10 @@ function loadAdminActivity(){
   const box=document.getElementById('activityPanel'); box.style.display='block'; box.innerHTML='লোড হচ্ছে...';
   const pw=sessionStorage.getItem('adminPw')||'';
   fetch(SCRIPT_URL+'?action=listAdminActivity&password='+encodeURIComponent(pw)).then(r=>r.json()).then(d=>{
-    if(!d.success){box.innerHTML='✕ '+(d.error==='network'?'সার্ভার ধীর আছে।':esc(d.error||'লোড করা যায়নি।'))+' <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';return;}
+    if(!d.success){box.innerHTML='✕ '+(d.error==='network'?'সার্ভার ধীর আছে।':esc(d.error||'লোড করা যায়নি।'))+' <button type="button" onclick="loadAdminActivity()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';return;}
     if(!d.rows||!d.rows.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">এখনো কোনো activity log নেই।</div>';return;}
     box.innerHTML='<div style="max-height:280px;overflow:auto;">'+d.rows.map(x=>'<div style="border-bottom:1px solid var(--line);padding:7px 0;font-size:12px;"><b>'+String(x.action||'').replace(/</g,'&lt;')+'</b> · '+String(x.date||'').replace(/</g,'&lt;')+'<div style="color:var(--muted);">'+String(x.details||'').replace(/</g,'&lt;')+'</div></div>').join('')+'</div>';
-  }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
+  }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadAdminActivity()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
 }
 
 function login(){
@@ -2886,7 +2886,7 @@ if(sessionStorage.getItem('adminPw')){
         const extra=x.appId?(' · '+esc(x.appId)):'';
         return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0;font-size:12.5px;"><span>🗑️ <b>'+esc(x.label||x.type)+'</b> · '+esc(name)+extra+'<br><small style="color:var(--muted);">'+esc(x.date||'')+'</small></span><button type="button" onclick="restoreTrash('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">Restore</button><button type="button" onclick="deleteTrashForever('+Number(x.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);font-weight:700;">মুছুন</button></div>';
       }).join('');
-    }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
+    }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadTrash()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
   };
   window.emptyTrashAll=function(){
     if(!confirm('Trash-এর সব আইটেম চিরতরে মুছে ফেলবেন? এরপর আর Restore করা যাবে না।')) return;
@@ -2944,7 +2944,7 @@ if(sessionStorage.getItem('adminPw')){
     const formCard=formBody.parentElement;
     const oldAnalytics=document.getElementById('postsAnalyticsSummary');
     const oldList=document.getElementById('postsList');
-    const postListCard=makeSection('📝 পোস্টের লিস্ট আলাদা','postsListStandalone','<div id="postsAnalyticsSummaryStandalone"></div><div id="postsListStandaloneBody">লোড হচ্ছে...</div>',true);
+    const postListCard=makeSection('📝 পোস্টের লিস্ট আলাদা','postsListStandalone','<div id="postsAnalyticsSummaryStandalone"></div><div id="postsListStandaloneBody"></div>',true);
     const listBody=postListCard.querySelector('#postsListStandaloneBody');
     if(oldAnalytics) listBody.appendChild(oldAnalytics);
     if(oldList){ listBody.appendChild(oldList); }
@@ -2972,10 +2972,10 @@ if(sessionStorage.getItem('adminPw')){
     const box=document.getElementById('scheduledPostsList'); if(!box) return;
     box.textContent='লোড হচ্ছে...';
     apiGet('listScheduledPosts').then(d=>{
-      if(!d.success){box.innerHTML='✕ '+(d.error==='network'?'সার্ভার ধীর আছে।':esc(d.error||'লোড করা যায়নি।'))+' <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';return;}
+      if(!d.success){box.innerHTML='✕ '+(d.error==='network'?'সার্ভার ধীর আছে।':esc(d.error||'লোড করা যায়নি।'))+' <button type="button" onclick="loadScheduledPosts()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';return;}
       if(!d.posts||!d.posts.length){box.innerHTML='<div style="font-size:12.5px;color:var(--muted);">এখন কোনো future scheduled post নেই।</div>';return;}
       box.innerHTML=d.posts.map(p=>'<div style="border-bottom:1px solid var(--line);padding:10px 0;display:flex;gap:10px;align-items:flex-start;">'+(p.imageUrl?'<img src="'+esc(thumbSmall(p.imageUrl,180))+'" style="width:72px;height:52px;object-fit:cover;border-radius:7px;">':'<div style="width:72px;height:52px;border-radius:7px;background:rgba(127,127,127,.08);display:flex;align-items:center;justify-content:center;">📝</div>')+'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:13.5px;">'+esc(p.title)+'</div><div style="font-size:11.5px;color:var(--muted);margin-top:3px;">'+esc(formatScheduleDisplay(p.publishAt))+' · '+esc(p.category||'সাধারণ আপডেট')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;"><button type="button" onclick="editScheduledPost('+Number(p.rowIndex)+')" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-weight:700;">✏️ Edit</button><button type="button" onclick="publishPostNow('+Number(p.rowIndex)+');setTimeout(loadScheduledPosts,800);" style="padding:6px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--forest);color:#fff;font-weight:700;">এখনই প্রকাশ</button><button type="button" onclick="deletePost('+Number(p.rowIndex)+');setTimeout(loadScheduledPosts,800);" style="padding:6px 10px;border:1px solid var(--maroon);border-radius:6px;background:var(--card-bg);color:var(--maroon);">Trash</button></div></div></div>').join('');
-    }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadAppsManager()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
+    }).catch(()=>{box.innerHTML='✕ সংযোগে সমস্যা হয়েছে। <button type="button" onclick="loadScheduledPosts()" style="margin-left:6px;padding:4px 10px;border:1px solid var(--forest);border-radius:6px;background:var(--card-bg);color:var(--forest);font-size:12.5px;">আবার চেষ্টা করুন</button>';});
   };
   window.editScheduledPost=function(rowIndex){
     if((window.__adminPostsData||{})[rowIndex]){startEditPost(rowIndex);scrollToId('postsListStandalone');return;}
