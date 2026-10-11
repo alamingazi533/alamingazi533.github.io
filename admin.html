@@ -1424,7 +1424,7 @@ function checkGoogleAll(auto){
     if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (' + done + '/' + need.length + ')';
   })), Promise.resolve()).then(() => {
     try{ localStorage.setItem('gLastCheck', String(Date.now())); }catch(_){}
-    if(bar) bar.textContent = lastErr ? ('⚠️ ' + (lastErr === 'checker not configured' ? 'Checker এখনো সেট করা হয়নি।' : lastErr)) : ('✓ চেক শেষ (' + done + 'টি)');
+    if(bar) bar.textContent = lastErr ? ('⚠️ ' + (lastErr === 'checker not configured' ? 'Checker এখনো সেট করা হয়নি।' : (/internal error/i.test(lastErr) ? 'কিছু পোস্ট এবার Google চেক করতে পারেনি (Google-এর সাময়িক সমস্যা)। একটু পরে আবার চাপুন।' : lastErr))) : ('✓ চেক শেষ (' + done + 'টি)');
   }).catch(() => { if(bar) bar.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
 }
 function renderGoogleStatus(){
