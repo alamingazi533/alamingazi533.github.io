@@ -1765,6 +1765,12 @@ setInterval(()=>{ if(document.visibilityState === 'visible') loadHomeData(true);
 
 // ============ ব্লগ/পোস্ট: লোড, কার্ড রেন্ডার ও রাউটিং (?post=ID / ?blog=all) ============
 let __allPosts = [];
+// বাংলা পোস্ট আগে, ইংরেজি পোস্ট (শিরোনামে বাংলা অক্ষর নেই) পরে — হোমের তালিকায় ভাষা মিশে যাওয়া আটকাতে
+function langOrderPosts(list){
+  const arr = Array.isArray(list) ? list : [];
+  const isEn = p => !/[\u0980-\u09FF]/.test(String((p && p.title) || ''));
+  return arr.filter(p => !isEn(p)).concat(arr.filter(isEn));
+}
 
 function blogEscape(s){
   return String(s || '')
@@ -2107,7 +2113,7 @@ function loadPosts(){
   };
 
   const render = (posts)=>{
-    __allPosts = Array.isArray(posts) ? posts : [];
+    __allPosts = langOrderPosts(posts);
     if(container){
       if(!__allPosts.length){
         container.innerHTML = '<p class="posts-empty">এখনো কোনো আপডেট নেই।</p>';
@@ -2808,7 +2814,7 @@ function refreshBlogDataSilently(){
     .then(r => r.json())
     .then(data => {
       if(!data.success || !data.posts) return;
-      __allPosts = data.posts;
+      __allPosts = langOrderPosts(data.posts);
 
       const blogView = document.getElementById('blogView');
       const archiveWrap = document.getElementById('blogArchiveWrap');
