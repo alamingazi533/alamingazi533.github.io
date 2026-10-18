@@ -2114,6 +2114,30 @@ function renderHomeMagazine(posts){
     '</div>' +
     (grid.length ? '<div class="mag-sub">আরও সাম্প্রতিক পোস্ট</div><div class="mag-grid">' + grid.map(renderMagCard).join('') + '</div>' : '') + '</div>';
 }
+
+// ব্লগ আর্কাইভের "সব" ভিউ: ম্যাগাজিন লেআউট (বড় পোস্ট, ছোট দুটো, সর্বশেষ গ্রিড, প্রতি বিভাগের ৪টা করে কার্ড)
+function renderMagArchive(){
+  const wrap = document.getElementById('blogCatSections');
+  if(!wrap) return;
+  const posts = __allPosts;
+  if(!posts.length){ wrap.innerHTML = ''; return; }
+  const side = posts.slice(1, 3);
+  const latest = posts.slice(3, 7);
+  let html = '<div class="mag arch"><div class="mag-hero">' + renderMagLead(posts[0]) +
+    (side.length ? '<div class="mag-side">' + side.map(renderMagMini).join('') + '</div>' : '') + '</div>';
+  if(latest.length){
+    html += '<div class="mag-subhead"><h2>সর্বশেষ পোস্ট</h2></div><div class="mag-grid">' + latest.map(renderMagCard).join('') + '</div>';
+  }
+  BLOG_CATEGORIES.forEach(cat => {
+    const list = posts.filter(p => (p.category || 'সাধারণ আপডেট') === cat).slice(0, 4);
+    if(!list.length) return;
+    html += '<div class="mag-subhead"><h2>' + blogEscape(cat) + '</h2>' +
+      '<a href="?blog=' + encodeURIComponent(cat) + '">সব দেখুন →</a></div>' +
+      '<div class="mag-grid">' + list.map(renderMagCard).join('') + '</div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
 // ক্যাটাগরি/সার্চ তালিকা: ১০টা করে দেখায়, "আরও পড়ুন" চাপলে আরও ১০টা
 let __magList = [], __magShown = 10, __magEmptyMsg = '';
 function renderMagList(list, emptyMsg){
@@ -2460,9 +2484,9 @@ function renderBlogArchiveGrid(query, cat){
 
   // ============ "সব" ভিউ, সার্চ নেই: এইমাত্র পাওয়া (টেক্সট তালিকা) + ছবির সারি + প্রতি ক্যাটাগরির আলাদা সেকশন ============
   grid.innerHTML = '';
-  renderTickerList();
-  renderPhotoGrid();
-  renderCategorySections();
+  if(tickerWrap) tickerWrap.style.display = 'none';
+  if(photoGrid) photoGrid.innerHTML = '';
+  renderMagArchive();
 }
 
 function renderFeatureHero(p){

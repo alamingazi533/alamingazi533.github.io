@@ -2448,6 +2448,17 @@
   .mag-mini .mag-img{ width:112px; }
   .mag{ min-width:0; max-width:100%; }
   @media (max-width:899px){ .posts-section .blog-grid{ grid-template-columns:minmax(0,1fr); } }
+  .mag-subhead{ display:flex; align-items:center; justify-content:space-between; gap:10px; border-bottom:2px solid var(--forest); margin:26px 0 12px; }
+  .mag-subhead h2{ font-family:'Noto Serif Bengali',serif; font-size:17px; margin:0; padding:4px 14px; background:var(--forest); color:#fff; border-radius:6px 6px 0 0; }
+  [data-theme="dark"] .mag-subhead h2{ color:#0e1a13; }
+  .mag-subhead a{ font-size:13.5px; font-weight:700; color:var(--forest); text-decoration:none; white-space:nowrap; }
+  .mag.arch .mag-hero{ grid-template-columns:minmax(0,1fr); }
+  @media (min-width:640px){
+    .mag.arch .mag-side{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .mag.arch .mag-mini{ grid-template-columns:96px minmax(0,1fr); }
+    .mag.arch .mag-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (min-width:1000px){ .mag.arch .mag-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
   .mag-sub{ font-family:'Noto Serif Bengali',serif; font-size:16px; font-weight:700; color:var(--forest); border-bottom:2px solid var(--forest); margin:22px 0 12px; padding-bottom:4px; }
   .mag-row{ display:grid; grid-template-columns:104px minmax(0,1fr); gap:12px; padding:12px 0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit; }
   .mag-row .mag-img, .mag-row .mag-ph{ aspect-ratio:4/3; border-radius:8px; font-size:22px; }
