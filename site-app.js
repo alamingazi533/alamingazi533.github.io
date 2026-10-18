@@ -2064,6 +2064,75 @@ function renderCategorySections(){
   wrap.innerHTML = html;
 }
 
+
+// ============ ম্যাগাজিন-স্টাইল কার্ড/সারি (হোম ও ক্যাটাগরি তালিকা) ============
+function magMedia(p){
+  const u = blogSafeUrl(p.imageUrl);
+  if(u) return '<img class="mag-img" src="' + u + '" alt="' + blogEscape(p.title) + '" loading="lazy" onerror="this.onerror=null;this.removeAttribute(\'src\');this.classList.add(\'mag-broken\')">';
+  const ch = String(p.category || 'সাধারণ আপডেট').charAt(0);
+  return '<div class="mag-ph" aria-hidden="true">' + blogEscape(ch) + '</div>';
+}
+function magLink(p){
+  return 'href="?post=' + encodeURIComponent(p.id) + '" onclick="trackPostClick(\'' + String(p.id).replace(/'/g, "\\'") + '\')"';
+}
+function magCat(p){ return blogEscape(p.category || 'সাধারণ আপডেট'); }
+function renderMagLead(p){
+  return '<a class="mag-lead" ' + magLink(p) + '>' + magMedia(p) +
+    '<div class="mag-body"><span class="mag-chip">' + magCat(p) + '</span>' +
+    '<h3 class="mag-title">' + blogEscape(p.title) + '</h3>' +
+    '<p class="mag-excerpt">' + blogEscape(blogExcerpt(p.content, 130)) + '</p>' +
+    '<span class="mag-date">' + cleanPostDate(p.date) + '</span></div></a>';
+}
+function renderMagMini(p){
+  return '<a class="mag-mini" ' + magLink(p) + '>' + magMedia(p) +
+    '<div class="mag-body"><span class="mag-date">' + magCat(p) + ' · ' + cleanPostDate(p.date) + '</span>' +
+    '<h3 class="mag-title">' + blogEscape(p.title) + '</h3></div></a>';
+}
+function renderMagCard(p){
+  return '<a class="mag-card" ' + magLink(p) + '>' + magMedia(p) +
+    '<div class="mag-body"><span class="mag-chip">' + magCat(p) + '</span>' +
+    '<h3 class="mag-title">' + blogEscape(p.title) + '</h3>' +
+    '<span class="mag-date">' + cleanPostDate(p.date) + '</span></div></a>';
+}
+function renderMagRow(p){
+  return '<a class="mag-row" ' + magLink(p) + '>' + magMedia(p) +
+    '<div><span class="mag-chip">' + magCat(p) + '</span>' +
+    '<h3 class="mag-title">' + blogEscape(p.title) + '</h3>' +
+    '<p class="mag-excerpt">' + blogEscape(blogExcerpt(p.content, 120)) + '</p>' +
+    '<span class="mag-date">' + cleanPostDate(p.date) + '</span></div></a>';
+}
+function renderHomeMagazine(posts){
+  const cats = '<nav class="mag-cats" aria-label="বিভাগ">' +
+    '<a href="?blog=all">সব পোস্ট</a>' +
+    BLOG_CATEGORIES.map(c => '<a href="?blog=' + encodeURIComponent(c) + '">' + c + '</a>').join('') + '</nav>';
+  const lead = posts[0];
+  const side = posts.slice(1, 3);
+  const grid = posts.slice(3, 7);
+  return '<div class="mag">' + cats +
+    '<div class="mag-hero">' + renderMagLead(lead) +
+      (side.length ? '<div class="mag-side">' + side.map(renderMagMini).join('') + '</div>' : '') +
+    '</div>' +
+    (grid.length ? '<div class="mag-sub">আরও সাম্প্রতিক পোস্ট</div><div class="mag-grid">' + grid.map(renderMagCard).join('') + '</div>' : '') + '</div>';
+}
+// ক্যাটাগরি/সার্চ তালিকা: ১০টা করে দেখায়, "আরও পড়ুন" চাপলে আরও ১০টা
+let __magList = [], __magShown = 10, __magEmptyMsg = '';
+function renderMagList(list, emptyMsg){
+  __magList = list; __magShown = 10; __magEmptyMsg = emptyMsg || '';
+  drawMagList();
+}
+function drawMagList(){
+  const grid = document.getElementById('blogArchiveGrid');
+  if(!grid) return;
+  if(!__magList.length){ grid.innerHTML = '<p class="posts-empty">' + __magEmptyMsg + '</p>'; return; }
+  const shown = __magList.slice(0, __magShown);
+  grid.innerHTML = shown.map(renderMagRow).join('') +
+    (__magList.length > __magShown
+      ? '<button type="button" class="mag-more" onclick="magShowMore()">আরও পড়ুন</button>'
+      : '') +
+    '<div class="mag-count">' + toBnDigits(shown.length) + ' / ' + toBnDigits(__magList.length) + ' টি পোস্ট</div>';
+}
+function magShowMore(){ __magShown += 10; drawMagList(); }
+
 function renderBlogCard(p, featured, small){
   const safeTitle = blogEscape(p.title);
   const excerpt = blogEscape(blogExcerpt(p.content, featured ? 150 : (small ? 60 : 110)));
@@ -2118,7 +2187,7 @@ function loadPosts(){
       if(!__allPosts.length){
         container.innerHTML = '<p class="posts-empty">এখনো কোনো আপডেট নেই।</p>';
       } else {
-        container.innerHTML = __allPosts.slice(0,4).map((p,i)=>renderBlogCard(p,i===0)).join('');
+        container.innerHTML = renderHomeMagazine(__allPosts);
       }
     }
     renderRecentWidget();
@@ -2371,9 +2440,7 @@ function renderBlogArchiveGrid(query, cat){
         String(p.content).toLowerCase().includes(q)
       );
     }
-    grid.innerHTML = list.length === 0
-      ? '<p class="posts-empty">এই বিভাগে কোনো পোস্ট পাওয়া যায়নি।</p>'
-      : list.map(p => renderBlogCard(p, false, false)).join('');
+    renderMagList(list, 'এই বিভাগে কোনো পোস্ট পাওয়া যায়নি।');
     return;
   }
 
@@ -2387,9 +2454,7 @@ function renderBlogArchiveGrid(query, cat){
       String(p.content).toLowerCase().includes(q) ||
       String(p.category || '').toLowerCase().includes(q)
     );
-    grid.innerHTML = list.length === 0
-      ? '<p class="posts-empty">এই বিষয়ে কোনো পোস্ট পাওয়া যায়নি।</p>'
-      : list.map(p => renderBlogCard(p, false, false)).join('');
+    renderMagList(list, 'এই বিষয়ে কোনো পোস্ট পাওয়া যায়নি।');
     return;
   }
 
