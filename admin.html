@@ -1507,7 +1507,7 @@ function renderGoogleStatus(){
             const wrap = document.createElement('div');
             wrap.className = 'gGroup';
             wrap.style.cssText = 'border:1px solid var(--line); border-radius:10px; margin:10px 0; background:var(--card-bg);';
-            const open = !!window.__gGroupOpen[g.k];
+            const open = !!window.__gGroupOpen[g.k] || !!String((document.getElementById('postSearchBox') || {}).value || '').trim();
             const head = document.createElement('div');
             head.style.cssText = 'display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:11px 12px; font-weight:800; color:var(--forest);';
             head.innerHTML = '<span>' + g.t + ' (' + g.list.length + 'টি)</span><span class="gArrow">' + (open ? '▾' : '▸') + '</span>';
@@ -2968,6 +2968,9 @@ if(sessionStorage.getItem('adminPw')){
     const postListCard=makeSection('📝 পোস্টের লিস্ট আলাদা','postsListStandalone','<div id="postsAnalyticsSummaryStandalone"></div><div id="postsListStandaloneBody"></div>',true);
     const listBody=postListCard.querySelector('#postsListStandaloneBody');
     if(oldAnalytics) listBody.appendChild(oldAnalytics);
+    const oldSearch=document.getElementById('postSearchBox'), oldSearchInfo=document.getElementById('postSearchInfo');
+    if(oldSearch) listBody.appendChild(oldSearch);
+    if(oldSearchInfo) listBody.appendChild(oldSearchInfo);
     if(oldList){ listBody.appendChild(oldList); }
     formCard.after(postListCard);
 
