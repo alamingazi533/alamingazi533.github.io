@@ -3047,6 +3047,10 @@ if(sessionStorage.getItem('adminPw')){
     postListCard.after(scheduledCard);
     const privateCard=makeSection('🔒 আনপাবলিক (শুধু আমি দেখব)','privatePostsStandalone','<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">এই পোস্টগুলো সাইটে, সার্চে বা সাইটম্যাপে দেখা যায় না।</div><div id="privatePostsList">লোড হচ্ছে...</div>',true);
     scheduledCard.after(privateCard);
+    try{
+      if(window.__adminPostsLast && typeof __renderAdminPostsData==='function'){ __renderAdminPostsData(window.__adminPostsLast, document.getElementById('postsList')); }
+      else if(typeof loadAdminPosts==='function' && sessionStorage.getItem('adminPw')){ loadAdminPosts(); }
+    }catch(_){}
 
     // The existing loader still writes to #postsList, which was moved above.
     // Give the moved list a stable ID and keep the analytics container intact.
