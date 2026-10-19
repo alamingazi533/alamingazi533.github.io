@@ -382,6 +382,12 @@
         <button type="button" onclick="clearNewPostVideo()" style="margin-top:4px; padding:4px 10px; font-size:12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon);">ভিডিও বাদ দিন</button>
       </div>
 
+      <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px;">কে দেখতে পাবে?</label>
+      <select id="newPostVisibility" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:10px; background:var(--card-bg); color:var(--ink);">
+        <option value="public">🌐 পাবলিক — সবাই দেখবে</option>
+        <option value="private">🔒 শুধু আমি — আনপাবলিক</option>
+      </select>
+
       <button id="addPostBtn" onclick="addPost(false)" style="width:100%; padding:11px; border:none; border-radius:9px; background:var(--forest); color:var(--paper); font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer;">পোস্ট করুন</button>
       <button id="draftPostBtn" onclick="addPost(true)" style="width:100%; padding:10px; margin-top:8px; border:1.5px solid var(--muted); border-radius:9px; background:var(--card-bg); color:var(--muted); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer;">📝 খসড়া হিসেবে সেভ করুন</button>
       <div id="postMsg" style="display:none; margin-top:10px; padding:9px 11px; border-radius:7px; font-size:13px;"></div>
@@ -1139,7 +1145,8 @@ function renderPostsAnalyticsSummary(posts){
   }, { views: 0, clicks: 0, likes: 0, comments: 0 });
 
   const scheduledCount = posts.filter(p => p.publishAt && p.published === false && !p.draft).length;
-  const draftCount = posts.filter(p => p.draft).length;
+  const draftCount = posts.filter(p => p.draft && !p.private).length;
+  const privCount = posts.filter(p => p.private).length;
 
   const top3 = posts.filter(p => !p.draft).sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0)).slice(0, 3);
   const topHtml = top3.length
@@ -1155,7 +1162,7 @@ function renderPostsAnalyticsSummary(posts){
 
   wrap.innerHTML =
     '<div style="background:var(--card-bg-alt, #f6f4ee); border:1px solid var(--line); border-radius:10px; padding:12px;">' +
-      '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">📊 মোট (' + posts.length + 'টা পোস্ট' + (scheduledCount ? ', ' + scheduledCount + 'টা সিডিউল করা' : '') + (draftCount ? ', ' + draftCount + 'টা খসড়া' : '') + ')</div>' +
+      '<div style="font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:8px;">📊 মোট (' + posts.length + 'টা পোস্ট' + (scheduledCount ? ', ' + scheduledCount + 'টা সিডিউল করা' : '') + (draftCount ? ', ' + draftCount + 'টা খসড়া' : '') + (privCount ? ', ' + privCount + 'টা আনপাবলিক' : '') + ')</div>' +
       '<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center; margin-bottom:10px;">' +
         '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.views + '</div><div style="font-size:11px; color:var(--muted);">👁 ভিউ</div></div>' +
         '<div><div style="font-size:16px; font-weight:700; color:var(--ink);">' + totals.clicks + '</div><div style="font-size:11px; color:var(--muted);">🖱 ক্লিক</div></div>' +
@@ -1180,6 +1187,7 @@ function __renderAdminPostsData(data, listEl){
       renderPostsAnalyticsSummary(data.posts || []);
       if(!data.posts || data.posts.length === 0){
         listEl.textContent = 'এখনো কোনো পোস্ট নেই।';
+        const __pl0 = document.getElementById('privatePostsList'); if(__pl0) __pl0.innerHTML = '<div style="font-size:12.5px; color:var(--muted);">কোনো আনপাবলিক পোস্ট নেই।</div>';
         return;
       }
       window.__adminPostsData = {};
@@ -1191,7 +1199,7 @@ function __renderAdminPostsData(data, listEl){
       const __info = document.getElementById('postSearchInfo');
       if(__info) __info.textContent = __q ? (__shown.length + 'টি পোস্ট পাওয়া গেছে (মোট ' + data.posts.length + 'টির মধ্যে)') : '';
       if(__q && __shown.length === 0){ listEl.textContent = 'এই লেখা দিয়ে কোনো পোস্ট পাওয়া যায়নি।'; return; }
-      listEl.innerHTML = __shown.map(p => {
+      const __cardHtml = p => {
         const rawContent = String(p.content || '');
         const safeTitle = String(p.title || '').replace(/</g,'&lt;');
         const isLongContent = rawContent.length > 220;
@@ -1202,8 +1210,11 @@ function __renderAdminPostsData(data, listEl){
           (p.imageUrl ? '<img loading="lazy" decoding="async" src="' + thumbSmall(p.imageUrl, 400) + '" style="max-width:100%; max-height:140px; border-radius:8px; margin:6px 0; display:block;">' : '') +
           (p.videoUrl ? '<div style="font-size:12px; color:var(--forest); margin:4px 0;">🎬 ভিডিও যুক্ত আছে</div>' : '');
         const isScheduled = p.publishAt && p.published === false;
-        const isDraft = !!p.draft;
-        const scheduleBadge = isDraft
+        const isDraft = !!p.draft && !p.private;
+        const isPriv = !!p.private;
+        const scheduleBadge = isPriv
+          ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#ece3f7; color:#4a2b7a; font-size:11.5px; font-weight:700; margin-left:6px;">🔒 আনপাবলিক</span>'
+          : isDraft
           ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#e6e6e6; color:#555; font-size:11.5px; font-weight:700; margin-left:6px;">📝 খসড়া</span>'
           : (isScheduled
             ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#fff3cd; color:#8a6100; font-size:11.5px; font-weight:700; margin-left:6px;">⏰ সিডিউল করা: ' + formatScheduleDisplay(p.publishAt) + '</span>'
@@ -1225,16 +1236,23 @@ function __renderAdminPostsData(data, listEl){
             statsRow +
             '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' +
               '<button onclick="copyPostLink(\'' + safeId + '\')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">🔗 লিংক কপি</button>' +
-              '<span class="gstat" data-id="' + safeId + '"></span>' +
+              (isPriv ? '' : '<span class="gstat" data-id="' + safeId + '"></span>') +
               '<button onclick="startEditPost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">এডিট</button>' +
               (p.imageUrl ? '<button onclick="quickEditPostImage(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12.5px;">🖼️ ছবি Edit</button>' : '') +
+              (isPriv ? '<button onclick="makePostPublic(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">🌐 পাবলিক করুন</button>' : '') +
+              (!isPriv && !isDraft && !isScheduled ? '<button onclick="makePostPrivate(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #4a2b7a; border-radius:6px; background:var(--card-bg); color:#4a2b7a; font-size:12.5px;">🔒 আনপাবলিক করুন</button>' : '') +
               (isDraft ? '<button onclick="publishDraftNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--forest); color:#fff; font-size:12.5px; font-weight:700;">প্রকাশ করুন</button>' : '') +
               (isScheduled ? '<button onclick="publishPostNow(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid #8a6100; border-radius:6px; background:var(--card-bg); color:#8a6100; font-size:12.5px;">এখনই প্রকাশ করুন</button>' : '') +
               '<button onclick="deletePost(' + p.rowIndex + ')" style="padding:6px 12px; border:1px solid var(--maroon); border-radius:6px; background:var(--card-bg); color:var(--maroon); font-size:12.5px;">মুছুন</button>' +
             '</div>' +
           '</div>' +
         '</div>';
-      }).join('');
+      };
+      const __pubShown = __shown.filter(p => !p.private);
+      listEl.innerHTML = __pubShown.length ? __pubShown.map(__cardHtml).join('') : '<div style="font-size:13px; color:var(--muted);">কোনো পাবলিক পোস্ট নেই।</div>';
+      const __privShown = __shown.filter(p => p.private);
+      const __pl = document.getElementById('privatePostsList');
+      if(__pl) __pl.innerHTML = __privShown.length ? __privShown.map(__cardHtml).join('') : '<div style="font-size:12.5px; color:var(--muted);">কোনো আনপাবলিক পোস্ট নেই। নতুন পোস্টে "🔒 শুধু আমি" বেছে নিলে এখানে আসবে।</div>';
       setTimeout(function(){ if(window.renderGoogleStatus) renderGoogleStatus(); }, 0);
 }
 
@@ -1695,6 +1713,8 @@ function addPost(isDraft){
   const btn = document.getElementById('addPostBtn');
   const draftBtn = document.getElementById('draftPostBtn');
   const msgBox = document.getElementById('postMsg');
+  const visEl = document.getElementById('newPostVisibility');
+  const isPrivate = !!(visEl && visEl.value === 'private');
   const title = titleEl.value.trim();
   const content = contentEl.value.trim();
   const category = categoryEl ? categoryEl.value : 'সাধারণ আপডেট';
@@ -1734,7 +1754,7 @@ function addPost(isDraft){
   activeBtn.textContent = isDraft ? 'সেভ হচ্ছে...' : 'পোস্ট হচ্ছে...';
   __adminToast(isDraft ? '⏳ খসড়া সেভ হচ্ছে…' : '⏳ পোস্ট হচ্ছে… একটু অপেক্ষা করুন','work');
 
-  const payload = { action: 'addPost', password: pw, title: title, content: content, category: category, publishAt: publishAtIso, status: isDraft ? 'draft' : '' };
+  const payload = { action: 'addPost', password: pw, title: title, content: content, category: category, publishAt: publishAtIso, status: isDraft ? 'draft' : (isPrivate ? 'private' : '') };
   const imageFile = imgInput && imgInput.files[0];
   const videoFile = vidInput && vidInput.files[0];
 
@@ -1779,7 +1799,9 @@ function addPost(isDraft){
       btn.textContent = 'পোস্ট করুন';
       draftBtn.textContent = '📝 খসড়া হিসেবে সেভ করুন';
       if(data.success){
-        const msg = data.draft
+        const msg = (isPrivate && !isDraft)
+          ? '🔒 আনপাবলিক পোস্ট সেভ হয়েছে — শুধু আপনি দেখবেন। "🔒 আনপাবলিক" অংশে পাবেন।'
+          : data.draft
           ? '✓ খসড়া হিসেবে সেভ হয়েছে — এটা সাইটে দেখাবে না, পরে "প্রকাশ করুন" চাপলে লাইভ হবে।'
           : (data.scheduled ? '✓ পোস্ট সিডিউল করা হয়েছে, নির্ধারিত সময়ে প্রকাশ পাবে।' : '✓ পোস্ট যোগ হয়েছে।');
         showPostMsg(msg, true);
@@ -1787,6 +1809,7 @@ function addPost(isDraft){
         titleEl.value = '';
         contentEl.value = '';
         if(scheduleEl) scheduleEl.value = '';
+        if(visEl) visEl.value = 'public';
         clearNewPostImage();
         clearNewPostVideo();
         loadAdminPosts();
@@ -1803,6 +1826,27 @@ function addPost(isDraft){
       showPostMsg('সংযোগে সমস্যা হয়েছে।', false);
       __adminToast('❌ সংযোগে সমস্যা, পোস্ট হয়েছে কিনা নিশ্চিত নয়। তালিকা রিফ্রেশ করে দেখুন।','err');
     });
+}
+
+function __setPostStatus(rowIndex, status, workMsg, okMsg){
+  const pw = sessionStorage.getItem('adminPw') || '';
+  __adminToast(workMsg, 'work');
+  fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
+    '&row=' + encodeURIComponent(rowIndex) + '&status=' + encodeURIComponent(status))
+    .then(r => r.json())
+    .then(data => {
+      if(data.success){ __adminToast(okMsg, 'ok'); loadAdminPosts(); }
+      else __adminToast('❌ হয়নি: ' + (data.error || 'সমস্যা হয়েছে'), 'err');
+    })
+    .catch(() => __adminToast('❌ সংযোগে সমস্যা, আবার চেষ্টা করুন।', 'err'));
+}
+function makePostPrivate(rowIndex){
+  if(!confirm('🔒 এই পোস্টটি আনপাবলিক করবেন? সাইট থেকে সরে যাবে, শুধু আপনি এখানে দেখবেন।')) return;
+  __setPostStatus(rowIndex, 'private', '⏳ আনপাবলিক করা হচ্ছে…', '🔒 আনপাবলিক হয়েছে। সাইট থেকে সরতে ১–২ মিনিট লাগতে পারে।');
+}
+function makePostPublic(rowIndex){
+  if(!confirm('🌐 এই পোস্টটি পাবলিক করবেন? সাইটে সবাই দেখতে পাবে (নোটিফিকেশনও যেতে পারে)।')) return;
+  __setPostStatus(rowIndex, '', '⏳ পাবলিক করা হচ্ছে…', '🌐 পাবলিক হয়েছে। সাইটে আসতে ১–২ মিনিট লাগতে পারে।');
 }
 
 function publishDraftNow(rowIndex){
@@ -3001,6 +3045,8 @@ if(sessionStorage.getItem('adminPw')){
 
     const scheduledCard=makeSection('⏰ Scheduled Posts','scheduledPostsStandalone','<div id="scheduledPostsList">লোড হচ্ছে...</div>',true);
     postListCard.after(scheduledCard);
+    const privateCard=makeSection('🔒 আনপাবলিক (শুধু আমি দেখব)','privatePostsStandalone','<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">এই পোস্টগুলো সাইটে, সার্চে বা সাইটম্যাপে দেখা যায় না।</div><div id="privatePostsList">লোড হচ্ছে...</div>',true);
+    scheduledCard.after(privateCard);
 
     // The existing loader still writes to #postsList, which was moved above.
     // Give the moved list a stable ID and keep the analytics container intact.
