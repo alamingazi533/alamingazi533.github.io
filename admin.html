@@ -1370,6 +1370,25 @@ function formatScheduleDisplay(iso){
   }catch(e){ return ''; }
 }
 
+window.__adminToast = function(text, kind){
+  try{
+    var el = document.getElementById('adminToast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'adminToast';
+      el.setAttribute('role','status');
+      el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:99999;max-width:min(92vw,460px);padding:12px 18px;border-radius:12px;font-size:14.5px;font-weight:700;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.35);text-align:center;display:none;';
+      document.body.appendChild(el);
+    }
+    var st = {work:['#fff3cd','#6b4e00'],ok:['#d9f2e0','#14532d'],err:['#fde2e2','#8b1a1a']}[kind||'work'];
+    el.style.background = st[0]; el.style.color = st[1];
+    el.textContent = text; el.style.display = 'block';
+    clearTimeout(window.__adminToastTimer);
+    if(kind==='ok') window.__adminToastTimer = setTimeout(function(){ el.style.display='none'; }, 4500);
+    else if(kind==='err') window.__adminToastTimer = setTimeout(function(){ el.style.display='none'; }, 9000);
+  }catch(_){}
+};
+
 function saveEditPost(rowIndex){
   const pw = sessionStorage.getItem('adminPw') || '';
   const title = document.getElementById('editTitle' + rowIndex).value.trim();
@@ -1379,9 +1398,10 @@ function saveEditPost(rowIndex){
   const scheduleRaw = scheduleEl ? scheduleEl.value : '';
   const publishAtIso = scheduleRaw ? new Date(scheduleRaw).toISOString() : '';
   if(!title || !content){
-    alert('শিরোনাম ও বিস্তারিত খালি রাখা যাবে না।');
+    __adminToast('শিরোনাম ও বিস্তারিত খালি রাখা যাবে না।','err');
     return;
   }
+  __adminToast('⏳ সেভ হচ্ছে… একটু অপেক্ষা করুন','work');
   fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pw) +
     '&row=' + encodeURIComponent(rowIndex) +
     '&title=' + encodeURIComponent(title) +
@@ -1390,21 +1410,22 @@ function saveEditPost(rowIndex){
     '&publishAt=' + encodeURIComponent(publishAtIso))
     .then(r => r.json())
     .then(data => {
-      if(!data.success){ alert('সেভ করতে সমস্যা হয়েছে।'); return; }
+      if(!data.success){ __adminToast('❌ সেভ হয়নি: ' + (data.error || 'সমস্যা হয়েছে'),'err'); return; }
       const fileEl = document.getElementById('editImage' + rowIndex);
       const rmEl = document.getElementById('editRemoveImg' + rowIndex);
       const file = fileEl && fileEl.files[0];
       const remove = rmEl && rmEl.checked;
       const edited = (window.__editImgData || {})[rowIndex] || '';
-      if(!file && !remove && !edited){ loadAdminPosts(); return; }
+      if(!file && !remove && !edited){ __adminToast('✅ সেভ হয়েছে। সাইটে আসতে ১–২ মিনিট লাগতে পারে।','ok'); loadAdminPosts(); return; }
+      __adminToast('⏳ লেখা সেভ হয়েছে, ছবি আপলোড হচ্ছে…','work');
       const body = { action: 'updatePostImage', password: pw, row: rowIndex };
       return Promise.resolve()
         .then(() => edited ? (body.imageBase64 = edited, body.imageName = 'edited-' + Date.now() + '.jpg', body.imageType = 'image/jpeg') : file ? fileToBase64(file).then(d => { body.imageBase64 = d; body.imageName = file.name; body.imageType = file.type || 'image/jpeg'; }) : (body.removeImage = true))
         .then(() => fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body) }))
         .then(r => r.json())
-        .then(d2 => { if(window.__editImgData) delete window.__editImgData[rowIndex]; if(!d2.success) alert('লেখা সেভ হয়েছে, কিন্তু ছবি বদলানো যায়নি: ' + (d2.error || '')); loadAdminPosts(); });
+        .then(d2 => { if(window.__editImgData) delete window.__editImgData[rowIndex]; if(!d2.success) __adminToast('⚠️ লেখা সেভ হয়েছে, কিন্তু ছবি বদলানো যায়নি: ' + (d2.error || ''),'err'); else __adminToast('✅ লেখা ও ছবি সেভ হয়েছে। সাইটে আসতে ১–২ মিনিট লাগতে পারে।','ok'); loadAdminPosts(); });
     })
-    .catch(()=> alert('সংযোগে সমস্যা হয়েছে।'));
+    .catch(()=> __adminToast('❌ সংযোগে সমস্যা, সেভ হয়েছে কিনা নিশ্চিত নয়। পোস্ট তালিকা রিফ্রেশ করে দেখুন।','err'));
 }
 
 function __postShortKey(id){
@@ -1711,6 +1732,7 @@ function addPost(isDraft){
   const activeBtn = isDraft ? draftBtn : btn;
   const activeBtnDefaultText = isDraft ? '📝 খসড়া হিসেবে সেভ করুন' : 'পোস্ট করুন';
   activeBtn.textContent = isDraft ? 'সেভ হচ্ছে...' : 'পোস্ট হচ্ছে...';
+  __adminToast(isDraft ? '⏳ খসড়া সেভ হচ্ছে…' : '⏳ পোস্ট হচ্ছে… একটু অপেক্ষা করুন','work');
 
   const payload = { action: 'addPost', password: pw, title: title, content: content, category: category, publishAt: publishAtIso, status: isDraft ? 'draft' : '' };
   const imageFile = imgInput && imgInput.files[0];
@@ -1761,6 +1783,7 @@ function addPost(isDraft){
           ? '✓ খসড়া হিসেবে সেভ হয়েছে — এটা সাইটে দেখাবে না, পরে "প্রকাশ করুন" চাপলে লাইভ হবে।'
           : (data.scheduled ? '✓ পোস্ট সিডিউল করা হয়েছে, নির্ধারিত সময়ে প্রকাশ পাবে।' : '✓ পোস্ট যোগ হয়েছে।');
         showPostMsg(msg, true);
+        __adminToast(msg + ' সাইটে আসতে ১–২ মিনিট লাগতে পারে।','ok');
         titleEl.value = '';
         contentEl.value = '';
         if(scheduleEl) scheduleEl.value = '';
@@ -1768,6 +1791,7 @@ function addPost(isDraft){
         clearNewPostVideo();
         loadAdminPosts();
       } else {
+        __adminToast(data.error === 'duplicate' ? '⚠️ একই পোস্ট আগে থেকেই আছে, আবার পোস্ট হয়নি।' : ('❌ পোস্ট হয়নি: ' + (data.error || 'সমস্যা')),'err');
         showPostMsg(data.error === 'duplicate' ? '⚠️ একই শিরোনাম ও লেখার পোস্ট আগে থেকেই আছে, তাই আবার পোস্ট হয়নি।' : ('পোস্ট করতে সমস্যা হয়েছে: ' + (data.error || '')), false);
       }
     })
@@ -1777,6 +1801,7 @@ function addPost(isDraft){
       btn.textContent = 'পোস্ট করুন';
       draftBtn.textContent = '📝 খসড়া হিসেবে সেভ করুন';
       showPostMsg('সংযোগে সমস্যা হয়েছে।', false);
+      __adminToast('❌ সংযোগে সমস্যা, পোস্ট হয়েছে কিনা নিশ্চিত নয়। তালিকা রিফ্রেশ করে দেখুন।','err');
     });
 }
 
