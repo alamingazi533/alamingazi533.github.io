@@ -2263,14 +2263,11 @@
   }
   #receipt .r-watermark{
     position:absolute;
-    top:52%; left:50%;
-    transform:translate(-50%,-50%) rotate(-28deg);
-    font-family:'Noto Serif Bengali', serif;
-    font-size:64px;
-    font-weight:700;
-    color:#1F3B2C;
-    opacity:0.045;
-    white-space:nowrap;
+    top:56%; left:50%;
+    width:400px; height:400px;
+    transform:translate(-50%,-50%);
+    object-fit:contain;
+    opacity:0.18;
     pointer-events:none;
     z-index:0;
   }
@@ -3105,7 +3102,7 @@
 <button type="button" class="back-to-top" id="backToTopBtn" aria-label="উপরে ফিরুন">↑</button>
 
 <div id="receipt">
-  <div class="r-watermark">✓ যাচাইকৃত</div>
+  <img class="r-watermark" src="logo-watermark.png" alt="" width="400" height="400">
   <div class="r-stamp">অনুমোদিত<br>✓</div>
   <div class="r-header">
     <img src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
@@ -3155,7 +3152,7 @@
   </div>
 </div>
 
-<script src="site-app.js?v=3" defer></script>
+<script src="site-app.js?v=4" defer></script>
 
 <!-- ============ Tawk.to লাইভ চ্যাট উইজেট ============
      নিচের YOUR_PROPERTY_ID এবং YOUR_WIDGET_ID বদলে আপনার নিজের ভ্যালু বসান।

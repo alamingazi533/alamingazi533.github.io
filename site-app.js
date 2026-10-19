@@ -872,6 +872,7 @@ downloadBtn.addEventListener('click', async ()=>{
   try{
     await ensureReceiptLibraries();
     const receiptEl = document.getElementById('receipt');
+    try{ const wm = receiptEl.querySelector('.r-watermark'); if(wm && wm.decode) await wm.decode(); }catch(_){}
     const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: '#ffffff' });
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
