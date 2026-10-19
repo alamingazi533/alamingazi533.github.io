@@ -7,7 +7,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2FzjW0j1KP9rGUtiRO
 // Level 3: heavy receipt/PDF libraries load only when the visitor requests a receipt.
 const __lazyScriptCache={};
 function loadExternalScriptOnce(src,id){if(window[id])return Promise.resolve();if(__lazyScriptCache[src])return __lazyScriptCache[src];__lazyScriptCache[src]=new Promise((resolve,reject)=>{const x=document.createElement('script');if(id)x.id=id;x.src=src;x.async=true;x.onload=()=>resolve();x.onerror=reject;document.head.appendChild(x);});return __lazyScriptCache[src];}
-async function ensureReceiptLibraries(){await loadExternalScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','html2canvas-sdk');await loadExternalScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','jspdf-sdk');}
+async function ensureReceiptLibraries(){await loadExternalScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','html2canvas-sdk');await loadExternalScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','jspdf-sdk');try{await loadExternalScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js','qrcode-sdk');}catch(_){}}
 // First-paint performance: আগে HTML/মূল UI paint হবে, তারপর non-critical network কাজ শুরু হবে।
 function afterFirstPaint(fn, timeout){
   const run=()=>{
@@ -873,6 +873,17 @@ downloadBtn.addEventListener('click', async ()=>{
     await ensureReceiptLibraries();
     const receiptEl = document.getElementById('receipt');
     try{ const wm = receiptEl.querySelector('.r-watermark'); if(wm && wm.decode) await wm.decode(); }catch(_){}
+    // রশিদে QR কোড: স্ক্যান করলে আবেদনের অবস্থা দেখার পেজ খুলবে
+    try{
+      const qrBox = document.getElementById('r-qr');
+      const rid = (document.getElementById('r-id').textContent || '').trim();
+      if(qrBox && rid && window.QRCode){
+        qrBox.innerHTML = '';
+        new QRCode(qrBox, { text: 'https://alamingazi533.github.io/?check=' + encodeURIComponent(rid), width: 96, height: 96, colorDark: '#1F3B2C', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        qrBox.parentElement.style.display = 'block';
+        await new Promise(r => setTimeout(r, 120));
+      }
+    }catch(_){}
     const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: '#ffffff' });
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
@@ -973,6 +984,21 @@ checkBtn.addEventListener('click', async ()=>{
     checkBtn.textContent = 'যাচাই করুন';
   }
 });
+
+// ============ QR/লিংক থেকে সরাসরি অবস্থা দেখা: ?check=আবেদন-নম্বর ============
+(function(){
+  try{
+    const q = new URLSearchParams(location.search).get('check');
+    if(!q) return;
+    const idEl = document.getElementById('checkId');
+    if(!idEl) return;
+    idEl.value = String(q).trim().slice(0, 40);
+    setTimeout(function(){
+      try{ idEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }catch(_){}
+      checkBtn.click();
+    }, 600);
+  }catch(_){}
+})();
 
 // ============ আবেদনের অবস্থা প্রিন্ট/PDF হিসেবে সংরক্ষণের জন্য রিসিট তৈরি ============
 let lastCheckedData = null;
