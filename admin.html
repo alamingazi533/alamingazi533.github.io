@@ -426,6 +426,12 @@
       </div>
     </div>
     <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
+      <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">🖼️ একই ছবি খুঁজুন</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 9px;">আগের সব পোস্টের ছবি মিলিয়ে দেখবে কোন ছবি একাধিকবার ব্যবহার হয়েছে। (পোস্ট বেশি হলে একটু সময় লাগে, পেজ বন্ধ করবেন না।)</p>
+      <button type="button" id="imgDupBtn" onclick="scanDuplicateImages()" style="width:100%;padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">🔍 চেক শুরু করুন</button>
+      <div id="imgDupOut" style="margin-top:10px;font-size:13px;line-height:1.6;"></div>
+    </div>
+    <div style="background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:14px; margin:14px 0;">
       <div style="font-weight:700; color:var(--forest); margin-bottom:8px;">💾 ডেটা ব্যাকআপ</div><p style="font-size:12.5px;color:var(--muted);margin:0 0 9px;">Google Drive-এ Main, Posts, Reviews, Comments, Subscribers ও Visits-এর CSV ব্যাকআপ তৈরি হবে।</p>
       <button onclick="backupNow()" id="backupNowBtn" style="width:100%;padding:10px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;">☁️ এখনই ব্যাকআপ নিন</button><div id="backupNowMsg" style="margin-top:8px;font-size:12.5px;"></div><div class="admin-tools-extra"><button type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆️ উপরে যান</button><button type="button" onclick="clearAdminLocalCache()">🧹 লোকাল ক্যাশ পরিষ্কার</button></div><div id="adminLocalMsg" style="font-size:12px;margin-top:6px;color:var(--muted)"></div>
     </div>
@@ -1441,7 +1447,14 @@ function saveEditPost(rowIndex){
         .then(() => edited ? (body.imageBase64 = edited, body.imageName = 'edited-' + Date.now() + '.jpg', body.imageType = 'image/jpeg') : file ? fileToBase64(file).then(d => { body.imageBase64 = d; body.imageName = file.name; body.imageType = file.type || 'image/jpeg'; }) : (body.removeImage = true))
         .then(() => fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body) }))
         .then(r => r.json())
-        .then(d2 => { if(window.__editImgData) delete window.__editImgData[rowIndex]; if(!d2.success) __adminToast('⚠️ লেখা সেভ হয়েছে, কিন্তু ছবি বদলানো যায়নি: ' + (d2.error || ''),'err'); else __adminToast('✅ লেখা ও ছবি সেভ হয়েছে। সাইটে আসতে ১–২ মিনিট লাগতে পারে।','ok'); loadAdminPosts(); });
+        .then(d2 => {
+          if(d2 && d2.error === 'duplicate_image' && confirm('⚠️ এই ছবিটা আগে "' + String(d2.usedIn || 'অন্য একটি পোস্টে').slice(0,70) + '" পোস্টে ব্যবহার হয়েছে।\n\nতবুও কি একই ছবি বসাবেন?')){
+            body.allowDupImage = true;
+            return fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body) }).then(r2 => r2.json());
+          }
+          return d2;
+        })
+        .then(d2 => { if(window.__editImgData) delete window.__editImgData[rowIndex]; if(!d2.success) __adminToast('⚠️ লেখা সেভ হয়েছে, কিন্তু ছবি বদলানো যায়নি: ' + (d2.error === 'duplicate_image' ? 'একই ছবি আগে ব্যবহার হয়েছে' : (d2.error || '')),'err'); else __adminToast('✅ লেখা ও ছবি সেভ হয়েছে। সাইটে আসতে ১–২ মিনিট লাগতে পারে।','ok'); loadAdminPosts(); });
     })
     .catch(()=> __adminToast('❌ সংযোগে সমস্যা, সেভ হয়েছে কিনা নিশ্চিত নয়। পোস্ট তালিকা রিফ্রেশ করে দেখুন।','err'));
 }
@@ -1794,6 +1807,13 @@ function addPost(isDraft){
     })
     .then(r => r.json())
     .then(data => {
+      if(data && data.error === 'duplicate_image' && confirm('⚠️ এই ছবিটা আগে "' + String(data.usedIn || 'অন্য একটি পোস্টে').slice(0,70) + '" পোস্টে ব্যবহার হয়েছে।\n\nতবুও কি একই ছবি দিয়ে পোস্ট করবেন?')){
+        payload.allowDupImage = true;
+        return fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) }).then(r2 => r2.json());
+      }
+      return data;
+    })
+    .then(data => {
       btn.disabled = false;
       draftBtn.disabled = false;
       btn.textContent = 'পোস্ট করুন';
@@ -1814,8 +1834,8 @@ function addPost(isDraft){
         clearNewPostVideo();
         loadAdminPosts();
       } else {
-        __adminToast(data.error === 'duplicate' ? '⚠️ একই পোস্ট আগে থেকেই আছে, আবার পোস্ট হয়নি।' : ('❌ পোস্ট হয়নি: ' + (data.error || 'সমস্যা')),'err');
-        showPostMsg(data.error === 'duplicate' ? '⚠️ একই শিরোনাম ও লেখার পোস্ট আগে থেকেই আছে, তাই আবার পোস্ট হয়নি।' : ('পোস্ট করতে সমস্যা হয়েছে: ' + (data.error || '')), false);
+        __adminToast(data.error === 'duplicate' ? '⚠️ একই পোস্ট আগে থেকেই আছে, আবার পোস্ট হয়নি।' : (data.error === 'duplicate_image' ? '⚠️ একই ছবি আগে ব্যবহার হয়েছে, তাই পোস্ট হয়নি।' : ('❌ পোস্ট হয়নি: ' + (data.error || 'সমস্যা'))),'err');
+        showPostMsg(data.error === 'duplicate' ? '⚠️ একই শিরোনাম ও লেখার পোস্ট আগে থেকেই আছে, তাই আবার পোস্ট হয়নি।' : (data.error === 'duplicate_image' ? '⚠️ একই ছবি আগে ব্যবহার হয়েছে, তাই পোস্ট হয়নি। অন্য ছবি দিন বা ছবি ছাড়া পোস্ট করুন।' : ('পোস্ট করতে সমস্যা হয়েছে: ' + (data.error || ''))), false);
       }
     })
     .catch(() => {
@@ -1826,6 +1846,44 @@ function addPost(isDraft){
       showPostMsg('সংযোগে সমস্যা হয়েছে।', false);
       __adminToast('❌ সংযোগে সমস্যা, পোস্ট হয়েছে কিনা নিশ্চিত নয়। তালিকা রিফ্রেশ করে দেখুন।','err');
     });
+}
+
+function scanDuplicateImages(){
+  const btn = document.getElementById('imgDupBtn'), out = document.getElementById('imgDupOut');
+  const pw = sessionStorage.getItem('adminPw') || '';
+  const all = [];
+  let failed = 0;
+  btn.disabled = true;
+  out.textContent = '⏳ চেক শুরু হচ্ছে…';
+  const esc = s => String(s || '').replace(/</g, '&lt;');
+  function step(start){
+    return fetch(SCRIPT_URL + '?action=scanPostImages&password=' + encodeURIComponent(pw) + '&start=' + start + '&limit=10&_=' + Date.now(), {cache:'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        if(!d || !d.success) throw new Error((d && d.error) || 'failed');
+        d.items.forEach(it => { if(!it.hash) failed++; all.push(it); });
+        out.textContent = '⏳ চেক হচ্ছে… (' + Math.min(d.next - 2, d.total - 1) + '/' + (d.total - 1) + ' পোস্ট)';
+        if(!d.done) return step(d.next);
+      });
+  }
+  step(2).then(() => {
+    const groups = {};
+    all.forEach(it => { if(it.hash){ (groups[it.hash] = groups[it.hash] || []).push(it); } });
+    const dups = Object.keys(groups).map(k => groups[k]).filter(g => g.length > 1);
+    let html = '<div>ছবিসহ পোস্ট: <b>' + all.length + 'টা</b>' + (failed ? ' (' + failed + 'টার ছবি পড়া যায়নি)' : '') + '</div>';
+    if(!dups.length){
+      html += '<div style="color:var(--ok);font-weight:700;margin-top:6px;">✅ কোনো একই ছবি পাওয়া যায়নি।</div>';
+    } else {
+      html += '<div style="color:var(--maroon);font-weight:700;margin:6px 0;">⚠️ ' + dups.length + 'টা ছবি একাধিক পোস্টে আছে:</div>';
+      html += dups.map((g, i) => '<div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;"><div style="font-weight:700;margin-bottom:4px;">ছবি ' + (i + 1) + ' — ' + g.length + 'বার ব্যবহার</div>' + g.map(it => '<div>• ' + esc(it.title) + ' <span style="color:var(--muted);">(' + esc(it.date) + ')</span></div>').join('') + '</div>').join('');
+      html += '<div style="font-size:12.5px;color:var(--muted);">সমাধান: "📝 পোস্টের লিস্ট" থেকে ওই পোস্ট এডিট করে ছবি বদলে দিন বা বাদ দিন।</div>';
+    }
+    out.innerHTML = html;
+    btn.disabled = false;
+  }).catch(e => {
+    out.textContent = '❌ চেক শেষ করা যায়নি (' + (e && e.message ? e.message : '') + '). আবার চেষ্টা করুন।';
+    btn.disabled = false;
+  });
 }
 
 function __setPostStatus(rowIndex, status, workMsg, okMsg){
