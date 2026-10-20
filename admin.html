@@ -1236,7 +1236,7 @@ function __renderAdminPostsData(data, listEl){
           '<div style="font-size:12px; color:var(--muted);">' + __fmtAdminDate(p.date) + ' &nbsp;·&nbsp; <span style="color:var(--forest); font-weight:600;">' + String(p.category || 'সাধারণ আপডেট').replace(/</g,'&lt;') + '</span>' + scheduleBadge + '</div>' +
           '<div class="postView' + p.rowIndex + '">' +
             '<div style="font-size:14.5px; font-weight:700; margin:4px 0;">' + safeTitle + '</div>' +
-            '<div class="postContentText' + p.rowIndex + '" data-full="' + encodeURIComponent(rawContent) + '" data-short="' + encodeURIComponent(shortRaw) + '" data-expanded="0" style="font-size:13.5px; line-height:1.5; white-space:pre-wrap;">' + safeShortContent + '</div>' +
+            '<div class="postContentText' + p.rowIndex + '" data-short="' + encodeURIComponent(shortRaw) + '" data-expanded="0" style="font-size:13.5px; line-height:1.5; white-space:pre-wrap;">' + safeShortContent + '</div>' +
             (isLongContent ? '<button type="button" class="postExpandBtn" onclick="togglePostContent(' + p.rowIndex + ')">আরও দেখুন ▾</button>' : '') +
             mediaHtml +
             statsRow +
@@ -1264,7 +1264,12 @@ function __renderAdminPostsData(data, listEl){
 
 document.addEventListener('input', function(e){
   if(e.target && e.target.id === 'postSearchBox' && window.__adminPostsLast){
-    __renderAdminPostsData(window.__adminPostsLast, document.getElementById('postsList'));
+    const info = document.getElementById('postSearchInfo');
+    if(info) info.textContent = '🔎 খুঁজছি…';
+    clearTimeout(window.__postSearchTimer);
+    window.__postSearchTimer = setTimeout(function(){
+      __renderAdminPostsData(window.__adminPostsLast, document.getElementById('postsList'));
+    }, 350);
   }
 });
 
@@ -1314,7 +1319,7 @@ function togglePostContent(rowIndex){
     el.dataset.expanded = '0';
     if(btn && btn.classList.contains('postExpandBtn')) btn.textContent = 'আরও দেখুন ▾';
   } else {
-    el.textContent = decodeURIComponent(el.dataset.full);
+    el.textContent = String(((window.__adminPostsData || {})[rowIndex] || {}).content || '');
     el.dataset.expanded = '1';
     if(btn && btn.classList.contains('postExpandBtn')) btn.textContent = 'সংক্ষিপ্ত করুন ▴';
   }
@@ -1476,16 +1481,16 @@ function __gSetStatus(slug,state){
   return fetch(SCRIPT_URL + '?action=setGoogleStatus&password=' + encodeURIComponent(pw) + '&slug=' + encodeURIComponent(slug) + '&state=' + encodeURIComponent(state) + '&_=' + Date.now(), {cache:'no-store'})
     .then(r => r.json()).then(d => { if(d && d.success){ window.__googleStatus = d.status || {}; renderGoogleStatus(); } return d; });
 }
-function checkGoogleAll(auto){
+function checkGoogleAll(auto, force){
   const bar = document.getElementById('gCheckMsg');
   const pw = sessionStorage.getItem('adminPw') || '';
   const slugs = Array.from(document.querySelectorAll('.gstat')).map(s => __gSlug(s.getAttribute('data-id'))).filter((v,i,arr) => v && arr.indexOf(v) === i);
   const posts = Object.values(window.__adminPostsData || {});
-  const need = slugs.filter(sl => { const p = posts.find(x => __gSlug(x.id) === sl); if(p && (p.draft || (p.publishAt && p.published === false))) return false; const t = String((p && p.content) || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); return t.length >= 300; });
-  if(!need.length) return;
-  if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (0/' + need.length + ')';
+  const need = slugs.filter(sl => { const p = posts.find(x => __gSlug(x.id) === sl); if(p && (p.draft || (p.publishAt && p.published === false))) return false; const t = String((p && p.content) || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); return t.length >= 300 && (force || (window.__googleStatus || {})[sl] !== 'indexed'); });
+  if(!need.length){ if(bar) bar.textContent = '✅ সব পোস্টই গুগলে আছে বলে চিহ্নিত। চেক করার মতো নতুন কিছু নেই।'; return; }
+  if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (0/' + need.length + ')' + (force ? '' : ' — যেগুলো এখনো গুগলে নেই শুধু সেগুলো');
   let done = 0, lastErr = '';
-  const chunks = []; for(let i = 0; i < need.length; i += 5) chunks.push(need.slice(i, i + 5));
+  const chunks = []; for(let i = 0; i < need.length; i += 8) chunks.push(need.slice(i, i + 8));
   chunks.reduce((pr, ch) => pr.then(() => new Promise(r => setTimeout(r, 400))).then(() => fetch(SCRIPT_URL + '?action=checkGoogleIndex&password=' + encodeURIComponent(pw) + '&slugs=' + encodeURIComponent(ch.join(',')) + '&_=' + Date.now(), {cache:'no-store'}).then(r => r.json()).then(d => {
     if(!d.success){ lastErr = d.error === 'network' ? 'সার্ভার ধীর, একটু পরে আবার চেষ্টা করুন' : (d.error || 'ব্যর্থ'); return; }
     window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; renderGoogleStatus();
@@ -1504,18 +1509,20 @@ function renderGoogleStatus(){
       const bar = document.createElement('div');
       bar.id = 'gCheckBar';
       bar.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;';
-      bar.innerHTML = '<button type="button" onclick="checkGoogleAll()" style="padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;">🔄 গুগল স্ট্যাটাস চেক করুন</button><span id="gCheckMsg" style="font-size:12px; color:var(--muted);"></span>';
+      bar.innerHTML = '<button type="button" onclick="checkGoogleAll()" style="padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;">🔄 গুগল স্ট্যাটাস চেক করুন</button><button type="button" onclick="if(confirm(\'সবগুলো পোস্ট আবার চেক হবে, অনেক সময় লাগবে। করবেন?\'))checkGoogleAll(false,true)" style="padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--muted); font-size:12px;">সব আবার চেক</button><span id="gCheckMsg" style="font-size:12px; color:var(--muted);"></span>';
       lst.parentNode.insertBefore(bar, lst);
     }
   }
   const paint = () => {
     const st = window.__googleStatus || {};
-    const posts = Object.values(window.__adminPostsData || {});
+    const __byId = {};
+    Object.values(window.__adminPostsData || {}).forEach(p => { __byId[String(p.id)] = p; });
     spans.forEach(sp => {
       const id = sp.getAttribute('data-id');
       const slug = __gSlug(id);
-      const post = posts.find(p => String(p.id) === String(id));
-      const plain = String((post && post.content) || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
+      const post = __byId[String(id)];
+      if(post && post.__plain === undefined){ post.__plain = String(post.content || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\*\*/g,'').replace(/\s+/g,' ').trim(); }
+      const plain = post ? post.__plain : '';
       const bs = 'padding:6px 12px; border-radius:6px; font-size:12.5px; ';
       if(post && (post.draft || (post.publishAt && post.published === false))){
         sp.innerHTML = '<span style="' + bs + 'color:var(--muted); border:1px dashed var(--line);">প্রকাশের পর গুগলে জমা দেওয়া যাবে</span>';
