@@ -1857,7 +1857,7 @@ function scanDuplicateImages(){
   out.textContent = '⏳ চেক শুরু হচ্ছে…';
   const esc = s => String(s || '').replace(/</g, '&lt;');
   function step(start){
-    return fetch(SCRIPT_URL + '?action=scanPostImages&password=' + encodeURIComponent(pw) + '&start=' + start + '&limit=10&_=' + Date.now(), {cache:'no-store'})
+    return fetch(SCRIPT_URL + '?action=scanPostImages&password=' + encodeURIComponent(pw) + '&start=' + start + '&limit=40&_=' + Date.now(), {cache:'no-store'})
       .then(r => r.json())
       .then(d => {
         if(!d || !d.success) throw new Error((d && d.error) || 'failed');
