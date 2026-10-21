@@ -2633,7 +2633,9 @@ function showBlogDetail(postId){
     '</article>' +
     '<div class="blog-cta">' +
       '<p style="text-align:center; margin:18px 0 0; font-weight:700;">আপনার সমস্যাও কি এমন? আমাদের জানান — সমাধানে সাহায্য করব।</p>' +
+      '<a class="whatsapp-btn" style="max-width:340px; margin:10px auto 0; background:#B8863B;" href="?form=1">📝 আবেদন করুন</a>' +
       '<a class="whatsapp-btn" style="max-width:340px; margin:10px auto 0;" href="https://wa.me/8801764324313?text=' + encodeURIComponent('আসসালামু আলাইকুম, আপনাদের সাইটের "' + String(post.title || '').slice(0, 120) + '" পোস্টটি পড়ে যোগাযোগ করছি। আমার সমস্যা: ') + '" target="_blank" rel="noopener">WhatsApp-এ সমস্যা জানান</a>' +
+      '<div style="display:flex;gap:12px;align-items:center;background:#fff;color:#22281F;border:1px solid #DED0AE;border-radius:12px;padding:12px 14px;margin:14px auto 0;max-width:420px;text-align:left"><img src="profile.jpg" alt="" width="52" height="52" loading="lazy" style="border-radius:50%;object-fit:cover;flex:none"><div><b>মোঃ আলামিন ইসলাম</b><br><small style="color:#6B6752;line-height:1.5">কেশবপুর, যশোর থেকে ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব অ্যাকাউন্টের সমস্যায় মানুষকে সাহায্য করছি।</small></div></div>' +
     '</div>' +
     '<div class="blog-comments">' +
       '<h2>💬 কমেন্ট (<span id="commentCountLabel">' + (post.commentCount || 0) + '</span>)</h2>' +
