@@ -394,6 +394,7 @@
       <hr class="card-divider" style="margin:16px 0 12px;">
       <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
       <input type="search" id="postSearchBox" placeholder="🔍 পোস্ট খুঁজুন (শিরোনাম বা লেখার অংশ)" autocomplete="off" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:10px; background:var(--card-bg); color:var(--ink);">
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="postSortShort"> 📏 ছোট লেখা আগে দেখান (কম অক্ষরের পোস্ট উপরে)</label>
       <div id="postSearchInfo" style="font-size:12.5px; color:var(--muted); margin-bottom:6px;"></div>
       <div id="postsList">লোড হচ্ছে...</div>
       </div>
@@ -1199,12 +1200,21 @@ function __renderAdminPostsData(data, listEl){
       window.__adminPostsData = {};
       data.posts.forEach(p => { window.__adminPostsData[p.rowIndex] = p; });
       window.__adminPostsLast = data;
+      const __plain = t => String(t || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ').replace(/\*\*/g, '').replace(/^##\s+/gm, '');
       const __sbox = document.getElementById('postSearchBox');
       const __q = __sbox ? String(__sbox.value || '').trim().toLowerCase() : '';
-      const __shown = __q ? data.posts.filter(p => (String(p.title || '') + ' ' + String(p.content || '') + ' ' + String(p.category || '')).toLowerCase().indexOf(__q) > -1) : data.posts;
+      let __shown = __q ? data.posts.filter(p => (String(p.title || '') + ' ' + String(p.content || '') + ' ' + String(p.category || '')).toLowerCase().indexOf(__q) > -1) : data.posts;
+      const __sortEl = document.getElementById('postSortShort');
+      if(__sortEl && __sortEl.checked){ __shown = __shown.slice().sort((a, b) => __plain(a.content).length - __plain(b.content).length); }
       const __info = document.getElementById('postSearchInfo');
       if(__info) __info.textContent = __q ? (__shown.length + 'টি পোস্ট পাওয়া গেছে (মোট ' + data.posts.length + 'টির মধ্যে)') : '';
       if(__q && __shown.length === 0){ listEl.textContent = 'এই লেখা দিয়ে কোনো পোস্ট পাওয়া যায়নি।'; return; }
+      const __lenInfo = p => {
+        const c = __plain(p.content).replace(/\s+/g, ' ').trim();
+        const chars = c.length, words = c ? c.split(' ').length : 0, tl = String(p.title || '').length;
+        const lvl = words < 250 ? ['#fdeaea', '#b3261e', 'খুব ছোট'] : words < 400 ? ['#fff3cd', '#8a6100', 'আরও বাড়ান'] : ['#e6f4ea', '#1e6b34', 'ভালো'];
+        return {chars: chars, words: words, tl: tl, lvl: lvl};
+      };
       const __cardHtml = p => {
         const rawContent = String(p.content || '');
         const safeTitle = String(p.title || '').replace(/</g,'&lt;');
@@ -1225,13 +1235,18 @@ function __renderAdminPostsData(data, listEl){
           : (isScheduled
             ? '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:#fff3cd; color:#8a6100; font-size:11.5px; font-weight:700; margin-left:6px;">⏰ সিডিউল করা: ' + formatScheduleDisplay(p.publishAt) + '</span>'
             : '<span style="display:inline-block; padding:2px 8px; border-radius:5px; background:var(--badge-done-bg); color:var(--ok); font-size:11.5px; font-weight:700; margin-left:6px;">প্রকাশিত</span>');
+        const __li = __lenInfo(p);
+        const lenRow = '<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px; font-size:12.5px; color:var(--muted);">' +
+          '<span>🔤 শিরোনাম: <b style="color:var(--ink);">' + __li.tl + '</b> অক্ষর</span>' +
+          '<span>📄 লেখা: <b style="color:var(--ink);">' + __li.chars + '</b> অক্ষর · <b style="color:var(--ink);">' + __li.words + '</b> শব্দ</span>' +
+          '<span style="padding:2px 8px; border-radius:5px; font-weight:700; background:' + __li.lvl[0] + '; color:' + __li.lvl[1] + ';">' + __li.lvl[2] + '</span></div>';
         const statsRow =
           '<div style="display:flex; gap:14px; margin-top:6px; font-size:12.5px; color:var(--muted);">' +
             '<span>👁 দেখেছেন: <b style="color:var(--ink);">' + (p.views || 0) + '</b></span>' +
             '<span>🖱 ক্লিক: <b style="color:var(--ink);">' + (p.clicks || 0) + '</b></span>' +
             '<span>❤️ লাইক: <b style="color:var(--ink);">' + (p.likes || 0) + '</b></span>' +
             '<span>💬 কমেন্ট: <b style="color:var(--ink);">' + (p.commentCount || 0) + '</b></span>' +
-          '</div>';
+          '</div>' + lenRow;
         return '<div style="border-bottom:1px solid var(--line); padding:10px 0;" id="postCard' + p.rowIndex + '">' +
           '<div style="font-size:12px; color:var(--muted);">' + __fmtAdminDate(p.date) + ' &nbsp;·&nbsp; <span style="color:var(--forest); font-weight:600;">' + String(p.category || 'সাধারণ আপডেট').replace(/</g,'&lt;') + '</span>' + scheduleBadge + '</div>' +
           '<div class="postView' + p.rowIndex + '">' +
@@ -1262,6 +1277,11 @@ function __renderAdminPostsData(data, listEl){
       setTimeout(function(){ if(window.renderGoogleStatus) renderGoogleStatus(); }, 0);
 }
 
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id === 'postSortShort' && window.__adminPostsLast){
+    __renderAdminPostsData(window.__adminPostsLast, document.getElementById('postsList'));
+  }
+});
 document.addEventListener('input', function(e){
   if(e.target && e.target.id === 'postSearchBox' && window.__adminPostsLast){
     const info = document.getElementById('postSearchInfo');
