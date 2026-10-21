@@ -1490,12 +1490,22 @@ function checkGoogleAll(auto, force){
   if(!need.length){ if(bar) bar.textContent = '✅ সব পোস্টই গুগলে আছে বলে চিহ্নিত। চেক করার মতো নতুন কিছু নেই।'; return; }
   if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (0/' + need.length + ')' + (force ? '' : ' — যেগুলো এখনো গুগলে নেই শুধু সেগুলো');
   let done = 0, lastErr = '';
-  const chunks = []; for(let i = 0; i < need.length; i += 8) chunks.push(need.slice(i, i + 8));
-  chunks.reduce((pr, ch) => pr.then(() => new Promise(r => setTimeout(r, 400))).then(() => fetch(SCRIPT_URL + '?action=checkGoogleIndex&password=' + encodeURIComponent(pw) + '&slugs=' + encodeURIComponent(ch.join(',')) + '&_=' + Date.now(), {cache:'no-store'}).then(r => r.json()).then(d => {
-    if(!d.success){ lastErr = d.error === 'network' ? 'সার্ভার ধীর, একটু পরে আবার চেষ্টা করুন' : (d.error || 'ব্যর্থ'); return; }
-    window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; renderGoogleStatus();
-    if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (' + done + '/' + need.length + ')';
-  })), Promise.resolve()).then(() => {
+  const chunks = []; for(let i = 0; i < need.length; i += 25) chunks.push(need.slice(i, i + 25));
+  let ci = 0;
+  const worker = () => {
+    if(ci >= chunks.length) return Promise.resolve();
+    const ch = chunks[ci++];
+    return fetch(SCRIPT_URL + '?action=checkGoogleIndex&password=' + encodeURIComponent(pw) + '&slugs=' + encodeURIComponent(ch.join(',')) + '&_=' + Date.now(), {cache:'no-store'})
+      .then(r => r.json())
+      .then(d => {
+        if(!d.success){ lastErr = d.error === 'network' ? 'সার্ভার ধীর, একটু পরে আবার চেষ্টা করুন' : (d.error || 'ব্যর্থ'); return; }
+        window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; renderGoogleStatus();
+        if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (' + done + '/' + need.length + ')';
+      })
+      .catch(() => { lastErr = 'সংযোগে সমস্যা হয়েছে'; })
+      .then(worker);
+  };
+  Promise.all([worker(), worker(), worker()]).then(() => {
     try{ localStorage.setItem('gLastCheck', String(Date.now())); }catch(_){}
     if(bar) bar.textContent = lastErr ? ('⚠️ ' + (lastErr === 'checker not configured' ? 'Checker এখনো সেট করা হয়নি।' : (/internal error/i.test(lastErr) ? 'কিছু পোস্ট এবার Google চেক করতে পারেনি (Google-এর সাময়িক সমস্যা)। একটু পরে আবার চাপুন।' : lastErr))) : ('✓ চেক শেষ (' + done + 'টি)');
   }).catch(() => { if(bar) bar.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
