@@ -3134,6 +3134,7 @@ if(sessionStorage.getItem('adminPw')){
     if(oldAnalytics) listBody.appendChild(oldAnalytics);
     const oldSearch=document.getElementById('postSearchBox'), oldSearchInfo=document.getElementById('postSearchInfo');
     if(oldSearch) listBody.appendChild(oldSearch);
+    const oldSort=document.getElementById('postSortShort'); if(oldSort && oldSort.closest('label')) listBody.appendChild(oldSort.closest('label'));
     if(oldSearchInfo) listBody.appendChild(oldSearchInfo);
     if(oldList){ listBody.appendChild(oldList); }
     formCard.after(postListCard);
