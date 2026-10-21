@@ -2243,6 +2243,7 @@ function loadPosts(){
     }
     renderRecentWidget();
     renderCalendarWidget();
+    renderHelpGuide();
     loadBlogApps();
     initBlogRouter();
   };
@@ -2794,6 +2795,71 @@ function renderRelatedPosts(post){
   moreLinkWrap.insertAdjacentHTML('beforebegin', html);
 }
 
+
+// ============ হোমপেজ: "আপনার সমস্যা কী?" গাইড + জনপ্রিয় পোস্ট ============
+const HELP_GUIDE_TOPICS = [
+  {label:'🔓 হ্যাক হয়েছে', re:/হ্যাক|hack|recover|রিকভার|পুনরুদ্ধার/i},
+  {label:'🚫 আইডি/পেজ বন্ধ', re:/ডিজেবল|বন্ধ|সাসপেন্ড|disabled|suspend|restrict|রিস্ট্রিক্ট|সীমাবদ্ধ|banned|ব্যান/i},
+  {label:'💰 মনিটাইজেশন', re:/monetiz|মনিটাইজ|আয়|appeal|রিজেক্ট|payout|পেআউট/i},
+  {label:'💬 মেসেজ/লগইন', re:/মেসেজ|message|লগইন|login|কোড|code|পাসওয়ার্ড|password|পরিচয়|identity/i},
+  {label:'📄 পেজ ও রিচ', re:/পেজ|page|রিচ|reach|ভিউ|views|reels|রিলস/i}
+];
+function helpGuideCss(){
+  if(document.getElementById('helpGuideCss')) return;
+  const st = document.createElement('style'); st.id = 'helpGuideCss';
+  st.textContent =
+    '.help-guide,.pop-posts{max-width:760px;margin:18px auto;padding:16px;background:#fff;border:1px solid #DED0AE;border-radius:16px;box-sizing:border-box}' +
+    '.help-guide h2,.pop-posts h2{margin:0 0 10px;font-size:20px;color:#1F3B2C}' +
+    '.hg-chips{display:flex;flex-wrap:wrap;gap:8px}.hg-chip{border:1px solid #DED0AE;background:#F2EBDA;color:#1F3B2C;border-radius:20px;padding:8px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}' +
+    '.hg-chip.on{background:#1F3B2C;color:#fff}.hg-res{margin-top:12px}.hg-res a,.pop-posts a{display:block;padding:9px 0;border-top:1px solid #DED0AE;color:#22281F;text-decoration:none;font-weight:600}' +
+    '.hg-cta{display:inline-block;margin-top:10px;background:#25D366;color:#fff!important;padding:10px 18px!important;border:0!important;border-radius:10px;font-weight:700}' +
+    '.pop-posts ol{margin:0;padding:0;list-style:none}.pop-posts small{color:#6B6752;font-weight:400}';
+  document.head.appendChild(st);
+}
+function renderHelpGuide(){
+  try{
+    const posts = (__allPosts || []).filter(p => p && p.title);
+    if(posts.length < 5) return;
+    const anchor = document.getElementById('servicesSection');
+    if(!anchor || !anchor.parentNode) return;
+    helpGuideCss();
+    let g = document.getElementById('helpGuide');
+    if(!g){
+      g = document.createElement('section'); g.id = 'helpGuide'; g.className = 'help-guide';
+      g.setAttribute('aria-label', 'সমস্যা বাছাই গাইড');
+      anchor.parentNode.insertBefore(g, anchor);
+      g.innerHTML = '<h2>আপনার সমস্যা কী?</h2><div class="hg-chips">' +
+        HELP_GUIDE_TOPICS.map((t, i) => '<button type="button" class="hg-chip" data-i="' + i + '">' + t.label + '</button>').join('') +
+        '</div><div class="hg-res" id="hgRes"></div>';
+      g.addEventListener('click', e => {
+        const b = e.target.closest ? e.target.closest('.hg-chip') : null;
+        if(!b) return;
+        g.querySelectorAll('.hg-chip').forEach(x => x.classList.toggle('on', x === b));
+        const t = HELP_GUIDE_TOPICS[Number(b.dataset.i)];
+        const list = (__allPosts || []).filter(p => t.re.test(String(p.title || ''))).slice(0, 5);
+        const res = document.getElementById('hgRes');
+        res.innerHTML = (list.length
+          ? list.map(p => '<a href="' + blogEscape(blogPostShareUrl(p)) + '">' + blogEscape(String(p.title).replace(/<[^>]*>/g, '')) + '</a>').join('')
+          : '<p>এই বিষয়ে এখনো লেখা নেই।</p>') +
+          '<a class="hg-cta" href="#contactSection">সমাধান না পেলে আমাদের জানান</a>';
+      });
+    }
+    // জনপ্রিয় পোস্ট (ভিউ/লাইক অনুযায়ী)
+    const pop = posts.filter(p => (Number(p.views) || 0) > 0)
+      .sort((a, b) => ((Number(b.views) || 0) + 3 * (Number(b.likes) || 0)) - ((Number(a.views) || 0) + 3 * (Number(a.likes) || 0))).slice(0, 5);
+    let pp = document.getElementById('popPosts');
+    if(pop.length >= 3){
+      if(!pp){
+        pp = document.createElement('section'); pp.id = 'popPosts'; pp.className = 'pop-posts';
+        g.parentNode.insertBefore(pp, anchor);
+      }
+      pp.innerHTML = '<h2>🔥 সবচেয়ে বেশি পড়া</h2><ol>' + pop.map(p =>
+        '<li><a href="' + blogEscape(blogPostShareUrl(p)) + '">' + blogEscape(String(p.title).replace(/<[^>]*>/g, '')) +
+        ' <small>(' + (Number(p.views) || 0) + ' বার পড়া)</small></a></li>').join('') + '</ol>';
+    }
+  }catch(_){}
+}
+
 // ============ পোস্টের ভিউ/ক্লিক ট্র্যাকিং (অ্যাডমিন প্যানেলে দেখা যায়) ============
 // View: পোস্ট ডিটেইল পেজ যতবার খোলা হয়েছে (সরাসরি লিংক, সার্চ, শেয়ার — যেকোনো উৎস থেকে)
 // Click: তালিকা/কার্ড থেকে সাইটের ভেতরেই কতবার ক্লিক করে পোস্টে ঢোকা হয়েছে
@@ -2931,6 +2997,7 @@ function refreshBlogDataSilently(){
     .then(data => {
       if(!data.success || !data.posts) return;
       __allPosts = langOrderPosts(data.posts);
+      renderHelpGuide();
 
       const blogView = document.getElementById('blogView');
       const archiveWrap = document.getElementById('blogArchiveWrap');
