@@ -1247,7 +1247,9 @@ function __renderAdminPostsData(data, listEl){
             '<span>❤️ লাইক: <b style="color:var(--ink);">' + (p.likes || 0) + '</b></span>' +
             '<span>💬 কমেন্ট: <b style="color:var(--ink);">' + (p.commentCount || 0) + '</b></span>' +
           '</div>' + lenRow;
+        const __ck = (window.__bulkSel && window.__bulkSel.has(Number(p.rowIndex))) ? ' checked' : '';
         return '<div style="border-bottom:1px solid var(--line); padding:10px 0;" id="postCard' + p.rowIndex + '">' +
+          '<label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--forest); margin-bottom:4px; cursor:pointer;"><input type="checkbox" class="bulkCb" data-row="' + p.rowIndex + '" style="width:18px; height:18px;"' + __ck + '> সিলেক্ট</label>' +
           '<div style="font-size:12px; color:var(--muted);">' + __fmtAdminDate(p.date) + ' &nbsp;·&nbsp; <span style="color:var(--forest); font-weight:600;">' + String(p.category || 'সাধারণ আপডেট').replace(/</g,'&lt;') + '</span>' + scheduleBadge + '</div>' +
           '<div class="postView' + p.rowIndex + '">' +
             '<div style="font-size:14.5px; font-weight:700; margin:4px 0;">' + safeTitle + '</div>' +
@@ -1274,7 +1276,7 @@ function __renderAdminPostsData(data, listEl){
       const __privShown = __shown.filter(p => p.private);
       const __pl = document.getElementById('privatePostsList');
       if(__pl) __pl.innerHTML = __privShown.length ? __privShown.map(__cardHtml).join('') : '<div style="font-size:12.5px; color:var(--muted);">কোনো আনপাবলিক পোস্ট নেই। নতুন পোস্টে "🔒 শুধু আমি" বেছে নিলে এখানে আসবে।</div>';
-      setTimeout(function(){ if(window.renderGoogleStatus) renderGoogleStatus(); }, 0);
+      setTimeout(function(){ if(window.renderGoogleStatus) renderGoogleStatus(); __ensureBulkTools(); __bulkBarUpdate(); }, 0);
 }
 
 
@@ -1313,6 +1315,78 @@ setTimeout(__wcInit, 1200);
     window.startEditPost = function(){ const r = __origEdit.apply(this, arguments); setTimeout(__wcInit, 60); return r; };
   }
 })();
+
+
+// ============ একসাথে অনেক পোস্ট সিলেক্ট: আনপাবলিক / পাবলিক / মুছুন ============
+window.__bulkSel = window.__bulkSel || new Set();
+function __bulkSync(){
+  document.querySelectorAll('.bulkCb').forEach(c => {
+    const r = Number(c.getAttribute('data-row'));
+    if(c.checked) window.__bulkSel.add(r); else window.__bulkSel.delete(r);
+  });
+  __bulkBarUpdate();
+}
+function __bulkBarUpdate(){
+  let bar = document.getElementById('bulkBar');
+  const n = window.__bulkSel.size;
+  if(!bar){
+    bar = document.createElement('div'); bar.id = 'bulkBar';
+    bar.style.cssText = 'position:fixed; left:0; right:0; bottom:0; z-index:9998; background:var(--forest); color:#fff; padding:10px 12px; display:none; gap:8px; align-items:center; flex-wrap:wrap; box-shadow:0 -2px 10px rgba(0,0,0,.25);';
+    const b = (id, label, bg) => '<button type="button" id="' + id + '" style="padding:8px 12px; border:0; border-radius:8px; font-weight:700; font-size:13px; background:' + bg + '; color:#fff;">' + label + '</button>';
+    bar.innerHTML = '<b id="bulkCount" style="margin-right:4px;"></b>' + b('bulkPriv', '🔒 আনপাবলিক', '#4a2b7a') + b('bulkPub', '🌐 পাবলিক', '#1e6b34') + b('bulkDel', '🗑️ মুছুন', '#b3261e') + b('bulkClear', '✖ বাতিল', '#555');
+    document.body.appendChild(bar);
+    document.getElementById('bulkPriv').onclick = () => __bulkRun('private');
+    document.getElementById('bulkPub').onclick = () => __bulkRun('public');
+    document.getElementById('bulkDel').onclick = () => __bulkRun('delete');
+    document.getElementById('bulkClear').onclick = () => { window.__bulkSel.clear(); document.querySelectorAll('.bulkCb').forEach(c => { c.checked = false; }); __bulkBarUpdate(); };
+  }
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  const cn = document.getElementById('bulkCount'); if(cn) cn.textContent = n + 'টি সিলেক্ট';
+}
+function __ensureBulkTools(){
+  if(document.getElementById('bulkTools')) return;
+  const lst = document.getElementById('postsList'); if(!lst || !lst.parentNode) return;
+  const d = document.createElement('div'); d.id = 'bulkTools';
+  d.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 8px;';
+  const st = 'padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;';
+  d.innerHTML = '<button type="button" id="bulkAll" style="' + st + '">☑ সব সিলেক্ট (এখন যা দেখা যাচ্ছে)</button><button type="button" id="bulkNone" style="' + st + '">☐ কোনোটি নয়</button>';
+  lst.parentNode.insertBefore(d, lst);
+  document.getElementById('bulkAll').onclick = () => { document.querySelectorAll('.bulkCb').forEach(c => { c.checked = true; }); __bulkSync(); };
+  document.getElementById('bulkNone').onclick = () => { document.querySelectorAll('.bulkCb').forEach(c => { c.checked = false; }); __bulkSync(); };
+}
+document.addEventListener('change', function(e){
+  if(e.target && e.target.classList && e.target.classList.contains('bulkCb')) __bulkSync();
+});
+async function __bulkRun(kind){
+  const rows = Array.from(window.__bulkSel);
+  if(!rows.length) return;
+  const n = rows.length;
+  const msg = kind === 'delete'
+    ? ('🗑️ ' + n + 'টি পোস্ট মুছে ফেলবেন?\n(Trash-এ জমা থাকবে, দরকার হলে সেখান থেকে ফেরত আনা যায়।)')
+    : kind === 'private'
+    ? ('🔒 ' + n + 'টি পোস্ট আনপাবলিক করবেন?\n(সাইট থেকে সরে যাবে, শুধু আপনি দেখবেন।)')
+    : ('🌐 ' + n + 'টি পোস্ট পাবলিক করবেন?\n(সাইটে সবাই দেখবে। নোটিফিকেশন/ইমেইল যাবে না।)');
+  if(!confirm(msg)) return;
+  const pw = sessionStorage.getItem('adminPw') || '';
+  // মুছতে হলে নিচের সারি থেকে উপরে: নইলে একটা মুছলে নিচের সারির নম্বর সরে যায়
+  rows.sort((a, b) => kind === 'delete' ? b - a : a - b);
+  let ok = 0, bad = 0;
+  ['bulkPriv', 'bulkPub', 'bulkDel', 'bulkClear'].forEach(id => { const el = document.getElementById(id); if(el) el.disabled = true; });
+  for(let i = 0; i < rows.length; i++){
+    __adminToast('⏳ চলছে… ' + (i + 1) + '/' + n + ' (পাতা বন্ধ করবেন না)', 'work');
+    let url = SCRIPT_URL + '?password=' + encodeURIComponent(pw) + '&row=' + encodeURIComponent(rows[i]) + '&_=' + Date.now();
+    url += kind === 'delete' ? '&action=deletePost' : ('&action=editPost&silent=1&status=' + (kind === 'private' ? 'private' : ''));
+    try{
+      const r = await fetch(url, {cache: 'no-store'});
+      const d = await r.json();
+      if(d && d.success) ok++; else bad++;
+    }catch(_){ bad++; }
+  }
+  ['bulkPriv', 'bulkPub', 'bulkDel', 'bulkClear'].forEach(id => { const el = document.getElementById(id); if(el) el.disabled = false; });
+  window.__bulkSel.clear(); __bulkBarUpdate();
+  __adminToast((bad ? '⚠️ ' : '✅ ') + ok + 'টি সফল' + (bad ? ', ' + bad + 'টি হয়নি (আবার চেষ্টা করুন)' : '') + '। সাইটে আসতে ১–২ মিনিট লাগতে পারে।', bad ? 'err' : 'ok');
+  loadAdminPosts();
+}
 
 document.addEventListener('change', function(e){
   if(e.target && e.target.id === 'postSortShort' && window.__adminPostsLast){
@@ -1649,7 +1723,7 @@ function renderGoogleStatus(){
             const open = !!window.__gGroupOpen[g.k] || !!String((document.getElementById('postSearchBox') || {}).value || '').trim();
             const head = document.createElement('div');
             head.style.cssText = 'display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:11px 12px; font-weight:800; color:var(--forest);';
-            head.innerHTML = '<span>' + g.t + ' (' + g.list.length + 'টি)</span><span class="gArrow">' + (open ? '▾' : '▸') + '</span>';
+            head.innerHTML = '<span>' + g.t + ' (' + g.list.length + 'টি)</span><span style="display:flex; gap:8px; align-items:center;"><button type="button" class="gSelBtn" style="padding:4px 9px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12px; font-weight:700;">☑ ফোল্ডার সিলেক্ট</button><span class="gArrow">' + (open ? '▾' : '▸') + '</span></span>';
             const body = document.createElement('div');
             body.style.cssText = 'padding:0 12px 6px; display:' + (open ? 'block' : 'none') + ';';
             head.addEventListener('click', () => {
@@ -1657,6 +1731,13 @@ function renderGoogleStatus(){
               body.style.display = nowOpen ? 'block' : 'none';
               head.querySelector('.gArrow').textContent = nowOpen ? '▾' : '▸';
               window.__gGroupOpen[g.k] = nowOpen;
+            });
+            head.querySelector('.gSelBtn').addEventListener('click', ev => {
+              ev.stopPropagation();
+              const cbs = Array.from(body.querySelectorAll('.bulkCb'));
+              const all = cbs.length > 0 && cbs.every(c => c.checked);
+              cbs.forEach(c => { c.checked = !all; });
+              __bulkSync();
             });
             g.list.forEach(o => body.appendChild(o.c));
             wrap.appendChild(head); wrap.appendChild(body);
