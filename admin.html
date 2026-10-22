@@ -1277,6 +1277,43 @@ function __renderAdminPostsData(data, listEl){
       setTimeout(function(){ if(window.renderGoogleStatus) renderGoogleStatus(); }, 0);
 }
 
+
+// ============ পোস্ট লেখার বক্সের নিচে লাইভ অক্ষর/শব্দ গণনা ============
+function __wcUpdate(ta){
+  try{
+    if(!ta) return;
+    let box = ta.nextElementSibling;
+    if(!box || !box.classList || !box.classList.contains('wcBox')){
+      box = document.createElement('div'); box.className = 'wcBox';
+      box.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0 10px; font-size:13px; color:var(--muted);';
+      ta.parentNode.insertBefore(box, ta.nextSibling);
+    }
+    const t = String(ta.value || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ').replace(/\*\*/g, '').replace(/^##\s+/gm, '').replace(/\s+/g, ' ').trim();
+    const chars = t.length, words = t ? t.split(' ').length : 0;
+    const lvl = words < 250 ? ['#fdeaea', '#b3261e', '🔴 খুব ছোট — ' + Math.max(0, 400 - words) + ' শব্দ আরও লিখুন'] : words < 400 ? ['#fff3cd', '#8a6100', '🟡 আরও বাড়ান — ' + (400 - words) + ' শব্দ বাকি (লক্ষ্য ৪০০+)'] : ['#e6f4ea', '#1e6b34', '🟢 ভালো ✓ (৪০০+ শব্দ)'];
+    box.innerHTML = '<span>📄 অক্ষর: <b style="color:var(--ink);">' + chars + '</b></span><span>শব্দ: <b style="color:var(--ink);">' + words + '</b></span>' +
+      '<span style="padding:3px 9px; border-radius:6px; font-weight:700; background:' + lvl[0] + '; color:' + lvl[1] + ';">' + lvl[2] + '</span>';
+  }catch(_){}
+}
+function __wcInit(){
+  document.querySelectorAll('#newPostContent, textarea[id^="editContent"]').forEach(__wcUpdate);
+}
+document.addEventListener('input', function(e){
+  const t = e.target;
+  if(t && t.tagName === 'TEXTAREA' && (t.id === 'newPostContent' || String(t.id || '').indexOf('editContent') === 0)) __wcUpdate(t);
+});
+document.addEventListener('focusin', function(e){
+  const t = e.target;
+  if(t && t.tagName === 'TEXTAREA' && (t.id === 'newPostContent' || String(t.id || '').indexOf('editContent') === 0)) __wcUpdate(t);
+});
+setTimeout(__wcInit, 1200);
+(function(){
+  const __origEdit = window.startEditPost;
+  if(typeof __origEdit === 'function'){
+    window.startEditPost = function(){ const r = __origEdit.apply(this, arguments); setTimeout(__wcInit, 60); return r; };
+  }
+})();
+
 document.addEventListener('change', function(e){
   if(e.target && e.target.id === 'postSortShort' && window.__adminPostsLast){
     __renderAdminPostsData(window.__adminPostsLast, document.getElementById('postsList'));
@@ -1584,13 +1621,26 @@ function renderGoogleStatus(){
           const groups = [
             {k:'a', t:'🔍 গুগলে জমা দিন', list:[]},
             {k:'b', t:'✅ গুগলে জমা হয়েছে', list:[]},
-            {k:'c', t:'📄 অন্যান্য (ড্রাফট / শিডিউল / ছোট পোস্ট)', list:[]}
+            {k:'c', t:'📄 অন্যান্য (ড্রাফট / শিডিউল / ছোট পোস্ট)', list:[]},
+            {k:'d', t:'🔴 সবচেয়ে ছোট পোস্ট (২৫০ শব্দের কম — আগে বড় করুন)', list:[]},
+            {k:'e', t:'🟡 আরও বাড়ান (২৫০–৪০০ শব্দ)', list:[]}
           ];
-          cards.forEach(c => { const r = sub(c); groups[r[0]].list.push({c:c, s:r[1], o:Number(c.dataset.ord)}); });
+          const __wc = c => {
+            const p = (window.__adminPostsData || {})[String(c.id).replace('postCard','')];
+            if(!p || p.draft || p.private || (p.publishAt && p.published === false)) return -1;
+            const t = String(p.content || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
+            return t ? t.split(' ').length : 0;
+          };
+          cards.forEach(c => {
+            const r = sub(c); const w = __wc(c);
+            if(w >= 0 && w < 250) groups[3].list.push({c:c, s:w, o:Number(c.dataset.ord)});
+            else if(w >= 250 && w < 400) groups[4].list.push({c:c, s:w, o:Number(c.dataset.ord)});
+            else groups[r[0]].list.push({c:c, s:r[1], o:Number(c.dataset.ord)});
+          });
           window.__gGroupOpen = window.__gGroupOpen || {};
           const old = Array.from(lst.querySelectorAll(':scope > .gGroup'));
           const fresh = [];
-          groups.forEach(g => {
+          [groups[0], groups[3], groups[4], groups[1], groups[2]].forEach(g => {
             if(!g.list.length) return;
             g.list.sort((x,y) => x.s - y.s || x.o - y.o);
             const wrap = document.createElement('div');
