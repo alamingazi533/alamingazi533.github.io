@@ -1333,8 +1333,9 @@ function __bulkBarUpdate(){
     bar = document.createElement('div'); bar.id = 'bulkBar';
     bar.style.cssText = 'position:fixed; left:0; right:0; bottom:0; z-index:9998; background:var(--forest); color:#fff; padding:10px 12px; display:none; gap:8px; align-items:center; flex-wrap:wrap; box-shadow:0 -2px 10px rgba(0,0,0,.25);';
     const b = (id, label, bg) => '<button type="button" id="' + id + '" style="padding:8px 12px; border:0; border-radius:8px; font-weight:700; font-size:13px; background:' + bg + '; color:#fff;">' + label + '</button>';
-    bar.innerHTML = '<b id="bulkCount" style="margin-right:4px;"></b>' + b('bulkPriv', '🔒 আনপাবলিক', '#4a2b7a') + b('bulkPub', '🌐 পাবলিক', '#1e6b34') + b('bulkDel', '🗑️ মুছুন', '#b3261e') + b('bulkClear', '✖ বাতিল', '#555');
+    bar.innerHTML = '<b id="bulkCount" style="margin-right:4px;"></b>' + b('bulkCopy', '📋 শিরোনাম কপি', '#0b5cab') + b('bulkPriv', '🔒 আনপাবলিক', '#4a2b7a') + b('bulkPub', '🌐 পাবলিক', '#1e6b34') + b('bulkDel', '🗑️ মুছুন', '#b3261e') + b('bulkClear', '✖ বাতিল', '#555');
     document.body.appendChild(bar);
+    document.getElementById('bulkCopy').onclick = __copySelectedTitles;
     document.getElementById('bulkPriv').onclick = () => __bulkRun('private');
     document.getElementById('bulkPub').onclick = () => __bulkRun('public');
     document.getElementById('bulkDel').onclick = () => __bulkRun('delete');
@@ -1349,14 +1350,34 @@ function __ensureBulkTools(){
   const d = document.createElement('div'); d.id = 'bulkTools';
   d.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 8px;';
   const st = 'padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;';
-  d.innerHTML = '<button type="button" id="bulkAll" style="' + st + '">☑ সব সিলেক্ট (এখন যা দেখা যাচ্ছে)</button><button type="button" id="bulkNone" style="' + st + '">☐ কোনোটি নয়</button>';
+  d.innerHTML = '<button type="button" id="bulkAll" style="' + st + '">☑ সব সিলেক্ট (এখন যা দেখা যাচ্ছে)</button><button type="button" id="bulkNone" style="' + st + '">☐ কোনোটি নয়</button><button type="button" id="bulkCopyAll" style="' + st + '">📋 সব শিরোনাম কপি</button>';
   lst.parentNode.insertBefore(d, lst);
   document.getElementById('bulkAll').onclick = () => { document.querySelectorAll('.bulkCb').forEach(c => { c.checked = true; }); __bulkSync(); };
+  document.getElementById('bulkCopyAll').onclick = () => {
+    const rows = Array.from(document.querySelectorAll('.bulkCb')).map(c => Number(c.getAttribute('data-row')));
+    const t = __titlesOf(rows);
+    if(t.length) __copyText(t.join('\n\n'), '📋 ' + t.length + 'টি শিরোনাম কপি হয়েছে');
+  };
   document.getElementById('bulkNone').onclick = () => { document.querySelectorAll('.bulkCb').forEach(c => { c.checked = false; }); __bulkSync(); };
 }
 document.addEventListener('change', function(e){
   if(e.target && e.target.classList && e.target.classList.contains('bulkCb')) __bulkSync();
 });
+function __copyText(text, doneMsg){
+  const ok = () => __adminToast(doneMsg, 'ok');
+  const fb = () => { try{ const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:0;'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); ok(); }catch(_){ __adminToast('❌ কপি হয়নি', 'err'); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok, fb); } else fb();
+}
+function __titlesOf(rows){
+  const d = window.__adminPostsData || {};
+  return rows.map(r => d[r] ? String(d[r].title || '').replace(/<[^>]*>/g, '').trim() : '').filter(Boolean);
+}
+function __copySelectedTitles(){
+  const rows = Array.from(window.__bulkSel).sort((a, b) => a - b);
+  const t = __titlesOf(rows);
+  if(!t.length) return;
+  __copyText(t.join('\n\n'), '📋 ' + t.length + 'টি শিরোনাম কপি হয়েছে');
+}
 async function __bulkRun(kind){
   const rows = Array.from(window.__bulkSel);
   if(!rows.length) return;
@@ -1723,7 +1744,7 @@ function renderGoogleStatus(){
             const open = !!window.__gGroupOpen[g.k] || !!String((document.getElementById('postSearchBox') || {}).value || '').trim();
             const head = document.createElement('div');
             head.style.cssText = 'display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:11px 12px; font-weight:800; color:var(--forest);';
-            head.innerHTML = '<span>' + g.t + ' (' + g.list.length + 'টি)</span><span style="display:flex; gap:8px; align-items:center;"><button type="button" class="gSelBtn" style="padding:4px 9px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12px; font-weight:700;">☑ ফোল্ডার সিলেক্ট</button><span class="gArrow">' + (open ? '▾' : '▸') + '</span></span>';
+            head.innerHTML = '<span>' + g.t + ' (' + g.list.length + 'টি)</span><span style="display:flex; gap:8px; align-items:center;"><button type="button" class="gCopyBtn" style="padding:4px 9px; border:1px solid #0b5cab; border-radius:6px; background:var(--card-bg); color:#0b5cab; font-size:12px; font-weight:700;">📋 শিরোনাম কপি</button><button type="button" class="gSelBtn" style="padding:4px 9px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12px; font-weight:700;">☑ সিলেক্ট</button><span class="gArrow">' + (open ? '▾' : '▸') + '</span></span>';
             const body = document.createElement('div');
             body.style.cssText = 'padding:0 12px 6px; display:' + (open ? 'block' : 'none') + ';';
             head.addEventListener('click', () => {
@@ -1731,6 +1752,12 @@ function renderGoogleStatus(){
               body.style.display = nowOpen ? 'block' : 'none';
               head.querySelector('.gArrow').textContent = nowOpen ? '▾' : '▸';
               window.__gGroupOpen[g.k] = nowOpen;
+            });
+            head.querySelector('.gCopyBtn').addEventListener('click', ev => {
+              ev.stopPropagation();
+              const rows = Array.from(body.querySelectorAll('.bulkCb')).map(c => Number(c.getAttribute('data-row')));
+              const t = __titlesOf(rows);
+              if(t.length) __copyText(t.join('\n\n'), '📋 ' + t.length + 'টি শিরোনাম কপি হয়েছে');
             });
             head.querySelector('.gSelBtn').addEventListener('click', ev => {
               ev.stopPropagation();
