@@ -2594,6 +2594,7 @@ function showBlogDetail(postId){
   const safeContent = blogEscape(post.content)
     .replace(/^## (.+)$/gm, '<h2 class="post-sub">$1</h2>')
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!!)\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*|\?[^\s)]*)\)/g, '<a href="$2" rel="noopener">$1</a>')
     .replace(/!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)/g, (m, cap, src) => '<figure class="post-fig"><img src="' + src + '" alt="' + cap + '" loading="lazy">' + (cap ? '<figcaption>' + cap + '</figcaption>' : '') + '</figure>');
   const imageHtml = blogSafeUrl(post.imageUrl)
     ? '<img src="' + blogSafeUrl(post.imageUrl) + '" alt="' + safeTitle + '" loading="lazy" style="width:100%; border-radius:10px; margin-bottom:14px; display:block;">'
@@ -2640,7 +2641,7 @@ function showBlogDetail(postId){
       '<p style="text-align:center; margin:18px 0 0; font-weight:700;">আপনার সমস্যাও কি এমন? আমাদের জানান — সমাধানে সাহায্য করব।</p>' +
       '<a class="whatsapp-btn" style="max-width:340px; margin:10px auto 0; background:#B8863B;" href="?form=1">📝 আবেদন করুন</a>' +
       '<a class="whatsapp-btn" style="max-width:340px; margin:10px auto 0;" href="https://wa.me/8801764324313?text=' + encodeURIComponent('আসসালামু আলাইকুম, আপনাদের সাইটের "' + String(post.title || '').slice(0, 120) + '" পোস্টটি পড়ে যোগাযোগ করছি। আমার সমস্যা: ') + '" target="_blank" rel="noopener">WhatsApp-এ সমস্যা জানান</a>' +
-      '<div style="display:flex;gap:12px;align-items:center;background:#fff;color:#22281F;border:1px solid #DED0AE;border-radius:12px;padding:12px 14px;margin:14px auto 0;max-width:420px;text-align:left"><img src="profile.jpg" alt="" width="52" height="52" loading="lazy" style="border-radius:50%;object-fit:cover;flex:none"><div><b>মোঃ আলামিন ইসলাম</b><br><small style="color:#6B6752;line-height:1.5">কেশবপুর, যশোর থেকে ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব অ্যাকাউন্টের সমস্যায় মানুষকে সাহায্য করছি।</small></div></div>' +
+      '<div style="display:flex;gap:12px;align-items:center;background:#fff;color:#22281F;border:1px solid #DED0AE;border-radius:12px;padding:12px 14px;margin:14px auto 0;max-width:420px;text-align:left"><img src="profile.jpg" alt="" width="52" height="52" loading="lazy" style="border-radius:50%;object-fit:cover;flex:none"><div><b><a href="author.html" style="color:inherit;text-decoration:none">মোঃ আলামিন ইসলাম</a></b><br><small style="color:#6B6752;line-height:1.5">কেশবপুর, যশোর থেকে ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব অ্যাকাউন্টের সমস্যায় মানুষকে সাহায্য করছি।</small></div></div>' +
     '</div>' +
     '<div class="blog-comments">' +
       '<h2>💬 কমেন্ট (<span id="commentCountLabel">' + (post.commentCount || 0) + '</span>)</h2>' +
@@ -2810,6 +2811,15 @@ function renderRelatedPosts(post){
 
 
 // ============ হোমপেজ: "আপনার সমস্যা কী?" গাইড + জনপ্রিয় পোস্ট ============
+const HELP_GUIDE_PLATS = [
+  {label:'সব'},
+  {label:'Facebook', re:/ফেসবুক|facebook|meta|মেটা/i},
+  {label:'Instagram', re:/ইনস্টাগ্রাম|instagram/i},
+  {label:'YouTube', re:/ইউটিউব|youtube/i},
+  {label:'WhatsApp', re:/হোয়াটসঅ্যাপ|whatsapp/i},
+  {label:'TikTok', re:/টিকটক|tiktok/i},
+  {label:'Google', re:/গুগল|google|gmail/i}
+];
 const HELP_GUIDE_TOPICS = [
   {label:'🔓 হ্যাক হয়েছে', re:/হ্যাক|hack|recover|রিকভার|পুনরুদ্ধার/i},
   {label:'🚫 আইডি/পেজ বন্ধ', re:/ডিজেবল|বন্ধ|সাসপেন্ড|disabled|suspend|restrict|রিস্ট্রিক্ট|সীমাবদ্ধ|banned|ব্যান/i},
@@ -2823,7 +2833,7 @@ function helpGuideCss(){
   st.textContent =
     '.help-guide,.pop-posts{max-width:760px;margin:18px auto;padding:16px;background:#fff;border:1px solid #DED0AE;border-radius:16px;box-sizing:border-box}' +
     '.help-guide h2,.pop-posts h2{margin:0 0 10px;font-size:20px;color:#1F3B2C}' +
-    '.hg-chips{display:flex;flex-wrap:wrap;gap:8px}.hg-chip{border:1px solid #DED0AE;background:#F2EBDA;color:#1F3B2C;border-radius:20px;padding:8px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}' +
+    '.hg-chips{display:flex;flex-wrap:wrap;gap:8px}.hg-plats{margin-bottom:8px}.hg-plats .hg-chip{padding:5px 12px;font-size:13.5px}.hg-chip{border:1px solid #DED0AE;background:#F2EBDA;color:#1F3B2C;border-radius:20px;padding:8px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}' +
     '.hg-chip.on{background:#1F3B2C;color:#fff}.hg-res{margin-top:12px}.hg-res a,.pop-posts a{display:block;padding:9px 0;border-top:1px solid #DED0AE;color:#22281F;text-decoration:none;font-weight:600}' +
     '.hg-cta{display:inline-block;margin-top:10px;background:#25D366;color:#fff!important;padding:10px 18px!important;border:0!important;border-radius:10px;font-weight:700}' +
     '.pop-posts ol{margin:0;padding:0;list-style:none}.pop-posts small{color:#6B6752;font-weight:400}';
@@ -2841,15 +2851,19 @@ function renderHelpGuide(){
       g = document.createElement('section'); g.id = 'helpGuide'; g.className = 'help-guide';
       g.setAttribute('aria-label', 'সমস্যা বাছাই গাইড');
       anchor.parentNode.insertBefore(g, anchor);
-      g.innerHTML = '<h2>আপনার সমস্যা কী?</h2><div class="hg-chips">' +
+      g.innerHTML = '<h2>আপনার সমস্যা কী?</h2><div class="hg-chips hg-plats">' +
+        HELP_GUIDE_PLATS.map((t, i) => '<button type="button" class="hg-chip hg-pl' + (i === 0 ? ' on' : '') + '" data-p="' + i + '">' + t.label + '</button>').join('') +
+        '</div><div class="hg-chips">' +
         HELP_GUIDE_TOPICS.map((t, i) => '<button type="button" class="hg-chip" data-i="' + i + '">' + t.label + '</button>').join('') +
         '</div><div class="hg-res" id="hgRes"></div>';
       g.addEventListener('click', e => {
         const b = e.target.closest ? e.target.closest('.hg-chip') : null;
         if(!b) return;
-        g.querySelectorAll('.hg-chip').forEach(x => x.classList.toggle('on', x === b));
-        const t = HELP_GUIDE_TOPICS[Number(b.dataset.i)];
-        const list = (__allPosts || []).filter(p => t.re.test(String(p.title || ''))).slice(0, 5);
+        if(b.classList.contains('hg-pl')){ g.querySelectorAll('.hg-pl').forEach(x => x.classList.toggle('on', x === b)); g.__pl = Number(b.dataset.p); }
+        else { g.querySelectorAll('.hg-chip:not(.hg-pl)').forEach(x => x.classList.toggle('on', x === b)); g.__tp = Number(b.dataset.i); }
+        const t = HELP_GUIDE_TOPICS[g.__tp], pl = HELP_GUIDE_PLATS[g.__pl || 0];
+        if(!t && !pl.re){ document.getElementById('hgRes').innerHTML = '<p>একটা সমস্যার ধরন বেছে নিন।</p>'; return; }
+        const list = (__allPosts || []).filter(p => (!t || t.re.test(String(p.title || ''))) && (!pl.re || pl.re.test(String(p.title || '')))).slice(0, 8);
         const res = document.getElementById('hgRes');
         res.innerHTML = (list.length
           ? list.map(p => '<a href="' + blogEscape(blogPostShareUrl(p)) + '">' + blogEscape(String(p.title).replace(/<[^>]*>/g, '')) + '</a>').join('')

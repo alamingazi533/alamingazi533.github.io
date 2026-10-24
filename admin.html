@@ -3788,5 +3788,125 @@ function insertPostImage(id){
   setTimeout(qcLive, 1600);
 })();
 </script>
+<script>
+// ============ অ্যাডমিন টুল (২য় দফা): আগের ভার্সন, লক্ষ্য ট্র্যাকার, সাজেশন, গুগল প্রিভিউ, ছবি ছাড়া, ভাঙা লিংক ============
+(function(){
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const plain = t => String(t || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ').replace(/\*\*/g, '').replace(/^##\s+/gm, '').replace(/\s+/g, ' ').trim();
+  const wordsOf = t => { const p = plain(t); return p ? p.split(' ').length : 0; };
+  const isEn = (title, content) => { const bn = c => (String(c).match(/[ঀ-৿]/g) || []).length, pc = plain(content); return bn(title) === 0 && bn(pc) / Math.max(1, pc.length) < 0.05 && /[A-Za-z]{20}/.test(pc); };
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const toast = (m, k) => { try{ __adminToast(m, k); }catch(_){} };
+  const btnSt = 'padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;';
+  const slug = id => String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase();
+  const tokens = t => plain(t).toLowerCase().split(/[^ঀ-৿a-z0-9]+/).filter(w => w.length > 2);
+  const copy = (text, msg) => { try{ __copyText(text, msg); }catch(_){} };
+  function panelEl(id){ let p = document.getElementById(id); if(p) p.remove(); p = document.createElement('div'); p.id = id; p.style.cssText = 'margin:8px 0 12px; padding:12px; border:1.5px solid var(--forest); border-radius:10px; background:var(--card-bg); color:var(--ink);'; const bt = document.getElementById('bulkTools'); (bt || document.getElementById('postsList')).after(p); return p; }
+  function closeBtn(panel){ setTimeout(function(){ const b = panel.querySelector('.pClose'); if(b) b.onclick = () => panel.remove(); }, 0); return '<div style="margin-top:8px;"><button type="button" class="pClose" style="padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--ink); font-size:12.5px;">✖ বন্ধ করুন</button></div>'; }
+  const isPublic = p => !p.private && !p.draft && !(p.publishAt && p.published === false);
+
+  // ---------- লক্ষ্য ট্র্যাকার ----------
+  function goalRender(){
+    const ps = posts().filter(isPublic); if(!ps.length) return;
+    const lt = document.getElementById('bulkTools'); if(!lt) return;
+    let card = document.getElementById('goalCard');
+    if(!card){ card = document.createElement('div'); card.id = 'goalCard'; card.style.cssText = 'margin:6px 0 10px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card-bg); color:var(--ink); font-size:13px;'; lt.before(card); }
+    const info = ps.map(p => ({p: p, w: wordsOf(p.content), need: isEn(p.title, p.content) ? 500 : 400}));
+    const ok = info.filter(x => x.w >= x.need).length, pct = Math.round(ok * 100 / info.length);
+    const weak = info.filter(x => x.w < x.need).sort((a, b) => a.w - b.w).slice(0, 10);
+    card.innerHTML = '<div style="font-weight:700;">🎯 লক্ষ্য: সব পাবলিক পোস্ট বড় করা (বাংলা ৪০০+, ইংরেজি ৫০০+ শব্দ)</div>' +
+      '<div style="margin:7px 0 4px; height:12px; border-radius:7px; background:rgba(127,127,127,.18); overflow:hidden;"><div style="height:100%; width:' + pct + '%; background:' + (pct >= 90 ? '#2e8b57' : pct >= 60 ? '#c79a2b' : '#c0392b') + ';"></div></div>' +
+      '<div>' + info.length + 'টির মধ্যে <b>' + ok + 'টি</b> হয়েছে (' + pct + '%) — বাকি <b>' + (info.length - ok) + 'টি</b></div>' +
+      (weak.length ? '<details style="margin-top:6px;"><summary style="cursor:pointer; font-weight:700; color:var(--forest);">পরের ' + weak.length + 'টি দুর্বল পোস্ট দেখুন</summary>' + weak.map(x => '<div style="padding:2px 0; font-size:12.5px;">' + (x.w < 250 ? '🔴' : '🟡') + ' ' + x.w + '/' + x.need + ' — ' + esc(String(x.p.title).slice(0, 70)) + '</div>').join('') + '<button type="button" id="goalCopy" style="' + btnSt + ' margin-top:6px;">📋 এই ' + weak.length + 'টির শিরোনাম কপি</button></details>' : '<div style="margin-top:6px; color:#1e6b34; font-weight:700;">🎉 সব পোস্ট লক্ষ্যে পৌঁছেছে!</div>');
+    const cb = document.getElementById('goalCopy'); if(cb) cb.onclick = () => copy(weak.map(x => String(x.p.title).replace(/<[^>]*>/g, '').trim()).join('\n\n'), '📋 ' + weak.length + 'টি শিরোনাম কপি হয়েছে');
+  }
+  (function(){ const o = window.__renderAdminPostsData; if(typeof o === 'function') window.__renderAdminPostsData = function(){ const r = o.apply(this, arguments); setTimeout(goalRender, 50); return r; }; })();
+
+  // ---------- নতুন পোস্টে: গুগল প্রিভিউ ও সম্পর্কিত পোস্ট সাজেশন ----------
+  function liveBoxes(){
+    const ti = document.getElementById('newPostTitle'), ta = document.getElementById('newPostContent'), qc = document.getElementById('qcBox'); if(!ti || !ta || !qc) return;
+    let gp = document.getElementById('gpBox');
+    if(!gp){ gp = document.createElement('div'); gp.id = 'gpBox'; gp.style.cssText = 'margin:0 0 10px; padding:9px 11px; border-radius:8px; background:rgba(127,127,127,.08); font-size:12.5px; line-height:1.6;'; qc.after(gp); }
+    let sg = document.getElementById('sugBox');
+    if(!sg){ sg = document.createElement('div'); sg.id = 'sugBox'; sg.style.cssText = 'margin:0 0 10px; padding:9px 11px; border-radius:8px; background:rgba(127,127,127,.08); font-size:12.5px; line-height:1.6;'; gp.after(sg); }
+    const title = ti.value.trim() || '(শিরোনাম লিখুন)', brand = 'সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা';
+    let full = title.length > 55 ? title : title + ' — ' + brand; if(full.length > 62) full = full.slice(0, 60).trim() + '…';
+    const sn = plain(ta.value).slice(0, 155) || '(লেখা শুরু করুন)';
+    gp.innerHTML = '<div style="color:var(--muted); font-size:11.5px; margin-bottom:3px;">🔎 গুগলে মোটামুটি এমন দেখাবে</div><div style="color:#1a0dab; font-size:15px; line-height:1.35;">' + esc(full) + '</div><div style="color:#188038; font-size:12px;">alamingazi533.github.io › p › …</div><div style="color:#4d5156;">' + esc(sn) + (plain(ta.value).length > 155 ? '…' : '') + '</div>' +
+      (title.length > 60 ? '<div style="color:#8a6100; margin-top:3px;">⚠️ শিরোনাম বড়, গুগলে কেটে যেতে পারে</div>' : '');
+    const q = {}; tokens(ti.value).forEach(w => { q[w] = 3; }); tokens(ta.value).slice(0, 200).forEach(w => { q[w] = (q[w] || 0) + 1; });
+    const cand = posts().filter(p => !p.draft).map(p => { let sc = 0; tokens(p.title).forEach(w => { if(q[w]) sc += q[w] * 2; }); return {p: p, sc: sc}; }).filter(x => x.sc > 6).sort((a, b) => b.sc - a.sc).slice(0, 3);
+    sg.innerHTML = '<div style="color:var(--muted); font-size:11.5px; margin-bottom:3px;">🔗 লেখায় লিংক দিতে পারেন (সম্পর্কিত পুরোনো পোস্ট)</div>' + (cand.length ? cand.map((x, i) => '<div style="display:flex; gap:8px; align-items:center; padding:2px 0;"><span style="flex:1;">' + esc(String(x.p.title).slice(0, 65)) + '</span><button type="button" data-sg="' + i + '" style="padding:3px 9px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-size:12px;">📋 লিংক কপি</button></div>').join('') + '<div style="color:var(--muted); font-size:11.5px; margin-top:3px;">কপি করা লেখা (যেমন [শিরোনাম](লিংক)) পোস্টের ভেতরে বসালে ক্লিকযোগ্য লিংক হবে।</div>' : '<div style="color:var(--muted);">শিরোনাম/লেখা বাড়লে সাজেশন আসবে।</div>');
+    sg.querySelectorAll('button[data-sg]').forEach(b => { b.onclick = () => { const p = cand[Number(b.getAttribute('data-sg'))].p; copy('[' + String(p.title).replace(/[\[\]]/g, '') + '](https://alamingazi533.github.io/p/' + slug(p.id) + '.html)', '📋 লিংক কপি হয়েছে — লেখায় পেস্ট করুন'); }; });
+  }
+  document.addEventListener('input', function(e){ if(e.target && (e.target.id === 'newPostContent' || e.target.id === 'newPostTitle')){ clearTimeout(window.__lbT); window.__lbT = setTimeout(liveBoxes, 450); } });
+  setTimeout(liveBoxes, 1900);
+
+  // ---------- আগের ভার্সন (এডিট ফর্মে) ----------
+  (function(){
+    const os = window.startEditPost;
+    if(typeof os === 'function') window.startEditPost = function(row){
+      const r = os.apply(this, arguments);
+      setTimeout(function(){
+        try{
+          const ta = document.getElementById('editContent' + row), p = (window.__adminPostsData || {})[row]; if(!ta || !p || document.getElementById('revBtn' + row)) return;
+          const b = document.createElement('button'); b.type = 'button'; b.id = 'revBtn' + row; b.textContent = '🕘 আগের ভার্সন'; b.style.cssText = btnSt + ' margin:0 0 8px;';
+          ta.before(b);
+          b.onclick = async function(){
+            let box = document.getElementById('revBox' + row); if(box) box.remove();
+            box = document.createElement('div'); box.id = 'revBox' + row; box.style.cssText = 'margin:0 0 10px; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;'; box.textContent = '⏳ লোড হচ্ছে…'; b.after(box);
+            try{
+              const pw = sessionStorage.getItem('adminPw') || '';
+              const d = await (await fetch(SCRIPT_URL + '?action=listRevisions&password=' + encodeURIComponent(pw) + '&id=' + encodeURIComponent(p.id) + '&_=' + Date.now(), {cache: 'no-store'})).json();
+              const rv = (d && d.revisions) || [];
+              if(!rv.length){ box.innerHTML = 'এখনো কোনো আগের ভার্সন জমা নেই। (এখন থেকে প্রতিবার লেখা বদলে সেভ করলে আগেরটা জমা থাকবে।)'; return; }
+              box.innerHTML = '<b>' + rv.length + 'টি আগের ভার্সন (নতুন আগে)</b>' + rv.map((x, i) => '<div style="border-top:1px solid var(--line); margin-top:6px; padding-top:6px;"><div>' + esc(new Date(x.ts).toLocaleString('bn-BD')) + ' · ' + wordsOf(x.content) + ' শব্দ</div><div style="color:var(--muted);">' + esc(plain(x.content).slice(0, 110)) + '…</div><button type="button" data-rv="' + i + '" style="' + btnSt + ' margin-top:4px;">↩ এটা বসান (তারপর সেভ চাপুন)</button></div>').join('');
+              box.querySelectorAll('button[data-rv]').forEach(bt => { bt.onclick = () => { const x = rv[Number(bt.getAttribute('data-rv'))]; if(!confirm('এই ভার্সনের লেখা এখনকার লেখার জায়গায় বসাবেন? (সেভ না চাপা পর্যন্ত কিছু বদলাবে না)')) return; const te = document.getElementById('editTitle' + row); if(te) te.value = x.title; ta.value = x.content; ta.dispatchEvent(new Event('input', {bubbles: true})); toast('↩ বসানো হয়েছে — এখন "সেভ করুন" চাপুন', 'ok'); }; });
+            }catch(err){ box.textContent = '❌ আনা যায়নি: ' + err; }
+          };
+        }catch(_){}
+      }, 150);
+      return r;
+    };
+  })();
+
+  // ---------- ছবি ছাড়া পোস্ট ----------
+  window.__noImgRun = function(){
+    const ps = posts().filter(p => !p.imageUrl && !/!\[[^\]]*\]\(/.test(String(p.content || ''))), panel = panelEl('noImgPanel');
+    if(!ps.length){ panel.innerHTML = '<b>🖼 ছবি ছাড়া পোস্ট</b><div style="margin-top:6px; color:#1e6b34;">✓ সব পোস্টেই ছবি আছে।</div>' + closeBtn(panel); return; }
+    panel.innerHTML = '<b>🖼 ছবি নেই: ' + ps.length + 'টি পোস্ট</b>' + ps.slice(0, 40).map(p => '<div style="font-size:12.5px; padding:2px 0;">• ' + esc(String(p.title).slice(0, 80)) + (p.private ? ' <span style="color:var(--muted);">(আনপাবলিক)</span>' : '') + '</div>').join('') + (ps.length > 40 ? '<div style="font-size:12px; color:var(--muted);">…আরও ' + (ps.length - 40) + 'টি</div>' : '') + '<button type="button" id="noImgCopy" style="' + btnSt + ' margin-top:8px;">📋 সব শিরোনাম কপি</button>' + closeBtn(panel);
+    document.getElementById('noImgCopy').onclick = () => copy(ps.map(p => String(p.title).replace(/<[^>]*>/g, '').trim()).join('\n\n'), '📋 ' + ps.length + 'টি শিরোনাম কপি হয়েছে');
+  };
+
+  // ---------- ভাঙা লিংক পরীক্ষা ----------
+  window.__linkRun = async function(){
+    const map = {};
+    posts().filter(p => !p.draft || p.private).forEach(p => {
+      String(p.content || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/https?:\/\/[^\s)\]"'<>]+/g, u => { u = u.replace(/[.,;:!?]+$/, ''); if(/alamingazi533\.github\.io|script\.google\.com/.test(u)) return ''; (map[u] = map[u] || []).push(String(p.title).slice(0, 50)); return ''; });
+    });
+    const urls = Object.keys(map), panel = panelEl('linkPanel');
+    if(!urls.length){ panel.innerHTML = '<b>🔗 লিংক পরীক্ষা</b><div style="margin-top:6px;">পোস্টের ভেতরে কোনো বাইরের লিংক পাওয়া যায়নি।</div>' + closeBtn(panel); return; }
+    const pw = sessionStorage.getItem('adminPw') || '', bad = [], unsure = []; let okc = 0;
+    for(let i = 0; i < urls.length; i += 5){
+      panel.innerHTML = '<b>🔗 লিংক পরীক্ষা চলছে… ' + Math.min(i + 5, urls.length) + '/' + urls.length + '</b> (পাতা বন্ধ করবেন না)';
+      try{
+        const d = await (await fetch(SCRIPT_URL + '?action=checkLinks&password=' + encodeURIComponent(pw) + '&urls=' + encodeURIComponent(JSON.stringify(urls.slice(i, i + 5))) + '&_=' + Date.now(), {cache: 'no-store'})).json();
+        ((d && d.results) || []).forEach(r => { const c = Number(r.code) || 0; if(c >= 200 && c < 400) okc++; else if(c === 0 || c === 404 || c === 410 || c >= 500) bad.push(r); else unsure.push(r); });
+      }catch(_){ unsure.push({url: urls[i], code: 0, error: 'নেটওয়ার্ক'}); }
+    }
+    panel.innerHTML = '<b>🔗 ফলাফল: ' + urls.length + 'টি লিংকের মধ্যে ✅ ' + okc + ' ঠিক, ❌ ' + bad.length + ' ভাঙা, ❔ ' + unsure.length + ' অনিশ্চিত</b>' +
+      (bad.length ? '<div style="margin-top:8px; font-weight:700; color:#b3261e;">ভাঙা লিংক:</div>' + bad.map(r => '<div style="font-size:12.5px; padding:3px 0; word-break:break-all;">❌ ' + esc(r.url) + ' <span style="color:var(--muted);">(' + (r.code || r.error || 'সংযোগ হয়নি') + ')</span><br><span style="color:var(--muted);">পোস্ট: ' + esc((map[r.url] || []).join(', ')) + '</span></div>').join('') : '<div style="margin-top:6px; color:#1e6b34;">কোনো ভাঙা লিংক পাওয়া যায়নি ✓</div>') +
+      (unsure.length ? '<div style="margin-top:8px; font-size:12px; color:var(--muted);">অনিশ্চিত = সাইট বট আটকায় (৪০১/৪০৩ ইত্যাদি), হাতে খুলে দেখে নিন: ' + unsure.slice(0, 5).map(r => esc(r.url.slice(0, 50))).join(', ') + '</div>' : '') + closeBtn(panel);
+  };
+
+  // টুল বাটন
+  function ensureTools2(){
+    const bt = document.getElementById('bulkTools'); if(!bt || document.getElementById('xtImg')) return;
+    [['xtImg', '🖼 ছবি ছাড়া পোস্ট', '__noImgRun'], ['xtLink', '🔗 ভাঙা লিংক পরীক্ষা', '__linkRun']].forEach(x => { const b = document.createElement('button'); b.type = 'button'; b.id = x[0]; b.style.cssText = btnSt; b.textContent = x[1]; b.onclick = () => window[x[2]](); bt.appendChild(b); });
+    goalRender();
+  }
+  setInterval(ensureTools2, 1500);
+})();
+</script>
 </body>
 </html>
