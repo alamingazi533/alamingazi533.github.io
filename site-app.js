@@ -1585,6 +1585,10 @@ form.addEventListener('submit', async (e)=>{
     }
     downloadBtn.classList.add('show');
     document.getElementById('whatsappNote').classList.add('show');
+    try{
+      const ns = document.getElementById('nextSteps');
+      if(ns){ ns.classList.add('show'); setTimeout(()=>{ try{ ns.scrollIntoView({behavior:'smooth', block:'center'}); }catch(_){} }, 300); }
+    }catch(_){}
 
     // সাবমিট সফল হওয়ার পর সংখ্যাগুলো আপডেট করা (নতুন আবেদন যোগ হয়েছে)
     loadStats();
@@ -2619,6 +2623,7 @@ function showBlogDetail(postId){
         '<div>' +
           '<div class="byline-name">মোঃ আলামিন ইসলাম</div>' +
           '<div class="byline-date">' + cleanPostDate(post.date) + '</div>' +
+          ((post.updated && post.updated !== post.date) ? '<div class="byline-date">আপডেট: ' + blogEscape(cleanPostDate(post.updated)) + '</div>' : '') +
           '<div class="byline-date">' + blogReadMinutes(post.content) + ' মিনিটে পড়ুন</div>' +
         '</div>' +
       '</div>' +
@@ -2736,6 +2741,7 @@ function applyBlogFontSize(){
 document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('.fs-btn') : null;
   if(!b) return;
+  if(b.classList.contains('pr-btn')){ try{ window.print(); }catch(_){} return; }
   let idx = 2;
   try{ const v = parseInt(localStorage.getItem('blogFontIdx'), 10); if(v >= 0 && v < BLOG_FONT_SIZES.length) idx = v; }catch(_){}
   idx = Math.min(BLOG_FONT_SIZES.length - 1, Math.max(0, idx + parseInt(b.getAttribute('data-fs'), 10)));
@@ -2771,7 +2777,7 @@ function blogShareRowHtml(post){
     b('wa', 'https://wa.me/?text=' + t + '%20' + url, 'WhatsApp-এ শেয়ার', svg('M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.6 12.4c-.2.5-1.1 1-1.5 1-.4.1-.9.1-2.9-.7-2.4-1-3.9-3.5-4-3.6-.1-.2-1-1.3-1-2.5s.6-1.7.8-2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.8 1.9c.1.1.1.3 0 .4l-.3.5-.4.4c-.1.1-.3.3-.1.5.2.3.7 1.2 1.5 1.9 1 .9 1.900 1.200 2.200 1.300.3.1.4.1.5-.1l.7-.9c.2-.2.3-.2.5-.1l1.800.9c.2.1.4.2.4.3.1.2.1.700-.1 1.200z')) +
     b('tg', 'https://t.me/share/url?url=' + url + '&text=' + t, 'Telegram-এ শেয়ার', svg('M20.7 4.3 3.4 11c-.8.3-.8.8-.1 1l4.400 1.400 1.700 5.200c.2.600.4.700.9.400l2.500-2 4.600 3.400c.8.5 1.400.2 1.600-.8l3-14.300c.3-1.200-.4-1.700-1.300-1.300zM9 13.200l8.600-5.400c.4-.3.800-.1.500.2l-7 6.300-.3 3-1.800-4.100z')) +
     b('x', 'https://twitter.com/intent/tweet?url=' + url + '&text=' + t, 'X-এ শেয়ার', svg('M17.800 3h3l-6.600 7.500L22 21h-6.100l-4.800-6.200L5.600 21h-3l7.100-8.100L2.200 3h6.200l4.300 5.700L17.800 3zm-1 16.200h1.700L7.400 4.700H5.600l11.200 14.500z')) +
-    '<span class="fs-wrap"><button type="button" class="fs-btn" data-fs="-1" aria-label="লেখা ছোট করুন" style="font-size:14px">অ</button><button type="button" class="fs-btn" data-fs="1" aria-label="লেখা বড় করুন" style="font-size:21px">অ</button></span>' +
+    '<span class="fs-wrap"><button type="button" class="fs-btn pr-btn" aria-label="প্রিন্ট বা PDF" style="font-size:15px">🖨</button><button type="button" class="fs-btn" data-fs="-1" aria-label="লেখা ছোট করুন" style="font-size:14px">অ</button><button type="button" class="fs-btn" data-fs="1" aria-label="লেখা বড় করুন" style="font-size:21px">অ</button></span>' +
   '</div>';
 }
 
@@ -2780,9 +2786,14 @@ function renderRelatedPosts(post){
   const contentEl = document.getElementById('blogDetailContent');
   const moreLinkWrap = contentEl ? contentEl.querySelector('.blog-more-link-wrap') : null;
   if(!contentEl || !moreLinkWrap) return;
+  const words = t => String(t || '').toLowerCase().split(/[^\u0980-\u09FFa-z0-9]+/).filter(w => w.length > 2);
+  const tw = {}; words(post.title).forEach(w => { tw[w] = 1; });
+  const myCat = post.category || 'সাধারণ আপডেট';
   const related = __allPosts
-    .filter(p => String(p.id) !== String(post.id) && (p.category || 'সাধারণ আপডেট') === (post.category || 'সাধারণ আপডেট'))
-    .slice(0, 4);
+    .filter(p => String(p.id) !== String(post.id))
+    .map((p, i) => { let sc = 0; words(p.title).forEach(w => { if(tw[w]) sc += 2; }); if((p.category || 'সাধারণ আপডেট') === myCat) sc += 3; return { p, sc, i }; })
+    .sort((a, b) => b.sc - a.sc || a.i - b.i)
+    .slice(0, 4).map(x => x.p);
   if(related.length === 0) return;
   const itemsHtml = related.map((p, i) =>
     '<a class="blog-related-item' + (i < 2 && blogSafeUrl(p.imageUrl) ? ' is-big' : '') + '" href="?post=' + encodeURIComponent(p.id) + '">' +

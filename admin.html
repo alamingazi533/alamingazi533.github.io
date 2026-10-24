@@ -394,7 +394,7 @@
       <hr class="card-divider" style="margin:16px 0 12px;">
       <div id="postsAnalyticsSummary" style="margin-bottom:14px;"></div>
       <input type="search" id="postSearchBox" placeholder="🔍 পোস্ট খুঁজুন (শিরোনাম বা লেখার অংশ)" autocomplete="off" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:10px; background:var(--card-bg); color:var(--ink);">
-      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="postSortShort"> 📏 ছোট লেখা আগে দেখান (কম অক্ষরের পোস্ট উপরে)</label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:6px;">📊 সাজান: <select id="postSortShort" style="flex:1; padding:8px; border-radius:8px; border:1.5px solid var(--line); background:var(--card-bg); color:var(--ink); font-family:inherit; font-size:13.5px;"><option value="">নতুন আগে (ডিফল্ট)</option><option value="old">পুরোনো আগে</option><option value="short">📏 ছোট লেখা আগে</option><option value="long">বড় লেখা আগে</option><option value="views">👁 ভিউ বেশি আগে</option><option value="views0">👁 ভিউ কম আগে</option><option value="likes">❤️ লাইক বেশি আগে</option></select></label>
       <div id="postSearchInfo" style="font-size:12.5px; color:var(--muted); margin-bottom:6px;"></div>
       <div id="postsList">লোড হচ্ছে...</div>
       </div>
@@ -1205,7 +1205,12 @@ function __renderAdminPostsData(data, listEl){
       const __q = __sbox ? String(__sbox.value || '').trim().toLowerCase() : '';
       let __shown = __q ? data.posts.filter(p => (String(p.title || '') + ' ' + String(p.content || '') + ' ' + String(p.category || '')).toLowerCase().indexOf(__q) > -1) : data.posts;
       const __sortEl = document.getElementById('postSortShort');
-      if(__sortEl && __sortEl.checked){ __shown = __shown.slice().sort((a, b) => __plain(a.content).length - __plain(b.content).length); }
+      const __sm = __sortEl ? String(__sortEl.value || '') : '';
+      if(__sm){
+        const __len = p => __plain(p.content).length, __n = (p, k) => Number(p[k]) || 0;
+        const __cmp = { old: null, short: (a, b) => __len(a) - __len(b), long: (a, b) => __len(b) - __len(a), views: (a, b) => __n(b, 'views') - __n(a, 'views'), views0: (a, b) => __n(a, 'views') - __n(b, 'views'), likes: (a, b) => __n(b, 'likes') - __n(a, 'likes') }[__sm];
+        __shown = __sm === 'old' ? __shown.slice().reverse() : (__cmp ? __shown.slice().sort(__cmp) : __shown);
+      }
       const __info = document.getElementById('postSearchInfo');
       if(__info) __info.textContent = __q ? (__shown.length + 'টি পোস্ট পাওয়া গেছে (মোট ' + data.posts.length + 'টির মধ্যে)') : '';
       if(__q && __shown.length === 0){ listEl.textContent = 'এই লেখা দিয়ে কোনো পোস্ট পাওয়া যায়নি।'; return; }
@@ -3596,6 +3601,192 @@ function insertPostImage(id){
   ta.value = before + pre + md + post + after;
   ta.focus();
 }
+</script>
+<script>
+// ============ অ্যাডমিন অতিরিক্ত টুল: বাছাই, অটো-ড্রাফট, মান-পরীক্ষা, ডুপ্লিকেট, ব্যাকআপ, রিপোর্ট ============
+(function(){
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const plain = t => String(t || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ').replace(/\*\*/g, '').replace(/^##\s+/gm, '').replace(/\s+/g, ' ').trim();
+  const wordsOf = t => { const p = plain(t); return p ? p.split(' ').length : 0; };
+  const isEn = (title, content) => { const bn = c => (String(c).match(/[ঀ-৿]/g) || []).length; return bn(title) === 0 && bn(plain(content)) / Math.max(1, plain(content).length) < 0.05 && /[A-Za-z]{20}/.test(plain(content)); };
+  const lsGet = k => { try{ return localStorage.getItem(k); }catch(_){ return null; } };
+  const lsSet = (k, v) => { try{ localStorage.setItem(k, v); }catch(_){} };
+  const lsDel = k => { try{ localStorage.removeItem(k); }catch(_){} };
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const btnSt = 'padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;';
+
+  // ---------- মান-পরীক্ষা ----------
+  window.__qcIssues = function(title, content, hasImage){
+    const out = [], w = wordsOf(content), en = isEn(title, content), need = en ? 500 : 400, tl = String(title || '').trim().length;
+    if(w < need) out.push('লেখা ছোট: ' + w + ' শব্দ (লক্ষ্য ' + need + '+)');
+    if(tl < 15) out.push('শিরোনাম খুব ছোট (' + tl + ' অক্ষর)');
+    if(tl > 110) out.push('শিরোনাম খুব বড় (' + tl + ' অক্ষর) — গুগলে কেটে যাবে');
+    if(!hasImage) out.push('কোনো ছবি নেই');
+    if(!/^##\s+/m.test(String(content || ''))) out.push('কোনো "##" উপশিরোনাম নেই (পড়তে সুবিধা হয়)');
+    const norm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(), nt = norm(title);
+    if(nt && posts().some(p => norm(p.title) === nt)) out.push('একই শিরোনামের পোস্ট আগে থেকেই আছে');
+    return out;
+  };
+  // নতুন পোস্টের নিচে লাইভ মান-পরীক্ষা বক্স
+  function qcLive(){
+    const ta = document.getElementById('newPostContent'), ti = document.getElementById('newPostTitle'); if(!ta || !ti) return;
+    let box = document.getElementById('qcBox');
+    if(!box){ box = document.createElement('div'); box.id = 'qcBox'; box.style.cssText = 'font-size:12.5px; line-height:1.7; margin:0 0 10px; padding:8px 10px; border-radius:8px; background:rgba(127,127,127,.08);'; const wc = ta.nextElementSibling; (wc && wc.classList && wc.classList.contains('wcBox') ? wc : ta).after(box); }
+    const img = document.getElementById('newPostImage');
+    const issues = window.__qcIssues(ti.value, ta.value, !!(img && img.files && img.files[0]) || /!\[[^\]]*\]\(/.test(ta.value));
+    box.innerHTML = '<b>✔ মান-পরীক্ষা:</b> ' + (issues.length ? issues.map(i => '<div style="color:#8a6100;">⚠️ ' + esc(i) + '</div>').join('') : '<span style="color:#1e6b34;">সব ঠিক আছে ✓</span>');
+  }
+  document.addEventListener('input', function(e){ if(e.target && (e.target.id === 'newPostContent' || e.target.id === 'newPostTitle')){ qcLive(); autoSaveNew(); } });
+  document.addEventListener('change', function(e){ if(e.target && e.target.id === 'newPostImage') qcLive(); });
+  // সেভের আগে সতর্কতা
+  (function(){
+    const oa = window.addPost;
+    if(typeof oa === 'function') window.addPost = function(isDraft){
+      if(!isDraft){
+        try{
+          const ti = document.getElementById('newPostTitle'), ta = document.getElementById('newPostContent'), img = document.getElementById('newPostImage');
+          if(ti && ta && ti.value.trim() && ta.value.trim()){
+            const norm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+            const is = window.__qcIssues(ti.value, ta.value, !!(img && img.files && img.files[0]) || /!\[[^\]]*\]\(/.test(ta.value)).filter(x => x.indexOf('একই শিরোনাম') < 0);
+            if(is.length && !confirm('⚠️ পোস্ট করার আগে দেখুন:\n\n• ' + is.join('\n• ') + '\n\nতবুও পোস্ট করবেন?')) return;
+          }
+        }catch(_){}
+      }
+      return oa.apply(this, arguments);
+    };
+    const oe = window.saveEditPost;
+    if(typeof oe === 'function') window.saveEditPost = function(row){
+      try{
+        const ti = document.getElementById('editTitle' + row), ta = document.getElementById('editContent' + row), p = (window.__adminPostsData || {})[row];
+        if(ti && ta && ti.value.trim() && ta.value.trim()){
+          const is = window.__qcIssues(ti.value, ta.value, !!(p && p.imageUrl) || /!\[[^\]]*\]\(/.test(ta.value)).filter(x => x.indexOf('একই শিরোনাম') < 0 && x.indexOf('উপশিরোনাম') < 0);
+          if(is.length && !confirm('⚠️ সেভ করার আগে দেখুন:\n\n• ' + is.join('\n• ') + '\n\nতবুও সেভ করবেন?')) return;
+        }
+      }catch(_){}
+      return oe.apply(this, arguments);
+    };
+  })();
+
+  // ---------- অটো-ড্রাফট ----------
+  let __asT = null;
+  function autoSaveNew(){
+    clearTimeout(__asT);
+    __asT = setTimeout(function(){
+      const ti = document.getElementById('newPostTitle'), ta = document.getElementById('newPostContent'), ct = document.getElementById('newPostCategory'); if(!ti || !ta) return;
+      if(!ti.value.trim() && !ta.value.trim()){ lsDel('adminDraftNew'); return; }
+      lsSet('adminDraftNew', JSON.stringify({t: ti.value, c: ta.value, cat: ct ? ct.value : '', ts: Date.now()}));
+    }, 600);
+  }
+  function banner(anchor, id, text, onRestore, onDrop){
+    let b = document.getElementById(id); if(b) b.remove();
+    b = document.createElement('div'); b.id = id; b.style.cssText = 'margin:0 0 10px; padding:9px 11px; border-radius:8px; background:#fff3cd; color:#6b4e00; font-size:13px; line-height:1.7;';
+    b.innerHTML = '💾 ' + esc(text) + '<div style="margin-top:6px; display:flex; gap:8px;"><button type="button" style="' + btnSt + '">↩ ফিরিয়ে আনুন</button><button type="button" style="padding:7px 12px; border:1px solid #b3261e; border-radius:6px; background:var(--card-bg); color:#b3261e; font-weight:700; font-size:12.5px;">🗑 মুছে ফেলুন</button></div>';
+    const bs = b.querySelectorAll('button');
+    bs[0].onclick = () => { onRestore(); b.remove(); };
+    bs[1].onclick = () => { onDrop(); b.remove(); };
+    anchor.parentNode.insertBefore(b, anchor);
+  }
+  function ago(ts){ const m = Math.round((Date.now() - ts) / 60000); return m < 1 ? 'এইমাত্র' : m < 60 ? m + ' মিনিট আগে' : m < 1440 ? Math.round(m / 60) + ' ঘণ্টা আগে' : Math.round(m / 1440) + ' দিন আগে'; }
+  function offerNewDraft(){
+    const ti = document.getElementById('newPostTitle'), ta = document.getElementById('newPostContent'), ct = document.getElementById('newPostCategory'); if(!ti || !ta) return;
+    let d = null; try{ d = JSON.parse(lsGet('adminDraftNew') || 'null'); }catch(_){}
+    if(!d || (!d.t && !d.c) || ti.value.trim() || ta.value.trim()) return;
+    banner(ti, 'draftBanner', 'অসমাপ্ত নতুন লেখা পাওয়া গেছে (' + ago(d.ts) + ', ' + wordsOf(d.c) + ' শব্দ)।', function(){
+      ti.value = d.t || ''; ta.value = d.c || ''; if(ct && d.cat) ct.value = d.cat;
+      ta.dispatchEvent(new Event('input', {bubbles: true}));
+    }, function(){ lsDel('adminDraftNew'); });
+  }
+  setTimeout(offerNewDraft, 1500);
+  // সফল পোস্টের পর ড্রাফট মুছে ফেলা
+  (function(){
+    const mb = document.getElementById('postMsg'); if(!mb || !window.MutationObserver) return;
+    new MutationObserver(function(){ if(/^✓/.test(mb.textContent || '')){ lsDel('adminDraftNew'); const q = document.getElementById('qcBox'); if(q) q.remove(); } }).observe(mb, {childList: true, characterData: true, subtree: true});
+  })();
+  // এডিট ড্রাফট (পোস্ট আইডি ধরে)
+  document.addEventListener('input', function(e){
+    const t = e.target; if(!t || t.tagName !== 'TEXTAREA' || String(t.id || '').indexOf('editContent') !== 0) return;
+    const row = t.id.replace('editContent', ''), p = (window.__adminPostsData || {})[row]; if(!p) return;
+    clearTimeout(t.__dt); t.__dt = setTimeout(function(){ if(String(t.value) !== String(p.content || '')) lsSet('adminDraftEdit_' + p.id, JSON.stringify({c: t.value, ts: Date.now()})); else lsDel('adminDraftEdit_' + p.id); }, 700);
+  });
+  (function(){
+    const os = window.startEditPost;
+    if(typeof os === 'function') window.startEditPost = function(row){
+      const r = os.apply(this, arguments);
+      setTimeout(function(){
+        try{
+          const ta = document.getElementById('editContent' + row), p = (window.__adminPostsData || {})[row]; if(!ta || !p) return;
+          let d = null; try{ d = JSON.parse(lsGet('adminDraftEdit_' + p.id) || 'null'); }catch(_){}
+          if(!d || !d.c || String(d.c) === String(p.content || '') || ta.value !== String(p.content || '')) return;
+          banner(ta, 'draftEditBanner' + row, 'এই পোস্টের অসমাপ্ত এডিট পাওয়া গেছে (' + ago(d.ts) + ', ' + wordsOf(d.c) + ' শব্দ)।', function(){ ta.value = d.c; ta.dispatchEvent(new Event('input', {bubbles: true})); }, function(){ lsDel('adminDraftEdit_' + p.id); });
+        }catch(_){}
+      }, 120);
+      return r;
+    };
+  })();
+
+  // ---------- ডুপ্লিকেট খোঁজা ----------
+  const tokens = t => plain(t).toLowerCase().split(/[^ঀ-৿a-z0-9]+/).filter(w => w.length > 2);
+  function jac(a, b){ if(!a.size || !b.size) return 0; let i = 0; const [s, l] = a.size < b.size ? [a, b] : [b, a]; s.forEach(x => { if(l.has(x)) i++; }); return i / (a.size + b.size - i); }
+  function findDupes(){
+    const ps = posts().filter(p => p && p.title), n = ps.length, par = ps.map((_, i) => i);
+    const find = x => par[x] === x ? x : (par[x] = find(par[x]));
+    const T = ps.map(p => new Set(tokens(p.title))), S = ps.map(p => { const w = tokens(p.content), s = new Set(); for(let i = 0; i + 4 <= w.length; i += 1) s.add(w.slice(i, i + 4).join(' ')); return s; });
+    const why = {};
+    for(let i = 0; i < n; i++) for(let j = i + 1; j < n; j++){
+      const jt = jac(T[i], T[j]), js = jac(S[i], S[j]);
+      if(jt >= 0.7 || js >= 0.4){ par[find(i)] = find(j); why[i + '-' + j] = {jt: jt, js: js}; }
+    }
+    const g = {}; for(let i = 0; i < n; i++){ (g[find(i)] = g[find(i)] || []).push(i); }
+    return Object.values(g).filter(a => a.length > 1).map(a => a.map(i => ps[i]));
+  }
+  window.__dupRun = function(){
+    const panel = panelEl('dupPanel'), gs = findDupes();
+    if(!gs.length){ panel.innerHTML = '<b>🔍 ডুপ্লিকেট খোঁজা</b><div style="margin-top:6px; color:#1e6b34;">✓ প্রায় একই শিরোনাম বা একই লেখার কোনো পোস্ট পাওয়া যায়নি।</div>' + closeBtn(panel); return; }
+    panel.innerHTML = '<b>🔍 ' + gs.length + 'টি দলে একই ধরনের পোস্ট পাওয়া গেছে</b><div style="font-size:12px; color:var(--muted); margin:4px 0 8px;">প্রতিটি দলে সবচেয়ে বড় লেখাটা রাখুন, বাকিগুলো সিলেক্ট করে 🔒 আনপাবলিক বা 🗑️ মুছুন। (সবগুলো সত্যিই ডুপ্লিকেট নাও হতে পারে — নিজে দেখে নিন।)</div>' +
+      gs.map((g, gi) => { const best = g.slice().sort((a, b) => wordsOf(b.content) - wordsOf(a.content))[0];
+        return '<div style="border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px;">' + g.map(p => '<div style="font-size:13px; line-height:1.6;' + (p === best ? 'font-weight:700; color:#1e6b34;' : '') + '">' + (p === best ? '✅ রাখুন: ' : '• ') + esc(p.title) + ' <span style="color:var(--muted); font-weight:400;">(' + wordsOf(p.content) + ' শব্দ, 👁 ' + (p.views || 0) + ')</span></div>').join('') +
+          '<button type="button" data-dg="' + gi + '" style="' + btnSt + ' margin-top:6px;">☑ বাকিগুলো সিলেক্ট করুন</button></div>'; }).join('') + closeBtn(panel);
+    panel.querySelectorAll('button[data-dg]').forEach(b => { b.onclick = () => { const g = gs[Number(b.getAttribute('data-dg'))], best = g.slice().sort((x, y) => wordsOf(y.content) - wordsOf(x.content))[0]; g.forEach(p => { if(p === best) return; const c = document.querySelector('.bulkCb[data-row="' + p.rowIndex + '"]'); if(c) c.checked = true; }); if(window.__bulkSync) __bulkSync(); __toast('☑ সিলেক্ট হয়েছে — নিচের বারে 🔒 বা 🗑️ চাপুন', 'ok'); }; });
+  };
+
+  // ---------- ব্যাকআপ ----------
+  function dl(name, text, type){ const b = new Blob([text], {type: type + ';charset=utf-8'}), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+  const today = () => new Date().toISOString().slice(0, 10);
+  window.__backupJson = function(){ const ps = posts(); if(!ps.length) return __toast('আগে পোস্ট লোড হতে দিন', 'err'); dl('posts-backup-' + today() + '.json', JSON.stringify({exported: new Date().toISOString(), count: ps.length, posts: ps}, null, 1), 'application/json'); __toast('💾 ' + ps.length + 'টি পোস্টের ব্যাকআপ নামছে', 'ok'); };
+  window.__backupTxt = function(){ const ps = posts().slice().reverse(); if(!ps.length) return __toast('আগে পোস্ট লোড হতে দিন', 'err'); const eq = '='.repeat(40); dl('posts-backup-' + today() + '.txt', ps.map((p, i) => eq + '\nপোস্ট ' + (i + 1) + '\n' + eq + '\n\nশিরোনাম:\n' + p.title + '\n\nবিভাগ: ' + (p.category || '') + '\nতারিখ: ' + (p.date || '') + (p.private ? '\n(আনপাবলিক)' : '') + (p.draft && !p.private ? '\n(খসড়া)' : '') + '\n\nলেখা:\n' + p.content + '\n').join('\n'), 'text/plain'); __toast('📄 ' + ps.length + 'টি পোস্টের টেক্সট ব্যাকআপ নামছে', 'ok'); };
+
+  // ---------- ভিউ/লাইক রিপোর্ট ----------
+  window.__reportRun = function(){
+    const ps = posts().filter(p => !p.draft || p.private), panel = panelEl('reportPanel');
+    if(!ps.length){ panel.innerHTML = 'পোস্ট লোড হয়নি।' + closeBtn(panel); return; }
+    const sum = k => ps.reduce((a, p) => a + (Number(p[k]) || 0), 0), tv = sum('views'), tl = sum('likes');
+    const top = (k, n) => ps.slice().sort((a, b) => (Number(b[k]) || 0) - (Number(a[k]) || 0)).slice(0, n);
+    const row = (p, k) => '<div style="font-size:12.5px; line-height:1.6; padding:2px 0;">' + (k === 'views' ? '👁 ' : '❤️ ') + '<b>' + (Number(p[k]) || 0) + '</b> — ' + esc(String(p.title).slice(0, 70)) + '</div>';
+    const zero = ps.filter(p => !(Number(p.views) > 0) && !p.private && !(p.publishAt && p.published === false));
+    const cats = {}; ps.forEach(p => { const c = p.category || 'সাধারণ আপডেট'; cats[c] = cats[c] || {n: 0, v: 0}; cats[c].n++; cats[c].v += Number(p.views) || 0; });
+    const avgW = Math.round(ps.reduce((a, p) => a + wordsOf(p.content), 0) / ps.length);
+    panel.innerHTML = '<b>📈 ভিউ ও লাইক রিপোর্ট</b>' +
+      '<div style="margin:8px 0; font-size:13px;">মোট পোস্ট <b>' + ps.length + '</b> · মোট ভিউ <b>' + tv + '</b> · মোট লাইক <b>' + tl + '</b> · গড় লেখা <b>' + avgW + '</b> শব্দ</div>' +
+      '<div style="font-weight:700; margin-top:6px;">🔥 সবচেয়ে বেশি পড়া ১০টি</div>' + top('views', 10).map(p => row(p, 'views')).join('') +
+      '<div style="font-weight:700; margin-top:8px;">👍 সবচেয়ে বেশি লাইক ১০টি</div>' + top('likes', 10).filter(p => p.likes > 0).map(p => row(p, 'likes')).join('') +
+      '<div style="font-weight:700; margin-top:8px;">📂 বিভাগ অনুযায়ী</div>' + Object.keys(cats).map(c => '<div style="font-size:12.5px;">' + esc(c) + ': ' + cats[c].n + 'টি পোস্ট, ' + cats[c].v + ' ভিউ</div>').join('') +
+      '<div style="font-weight:700; margin-top:8px;">😴 এখনো একটাও ভিউ হয়নি: ' + zero.length + 'টি</div>' + zero.slice(0, 8).map(p => '<div style="font-size:12.5px; color:var(--muted);">• ' + esc(String(p.title).slice(0, 70)) + '</div>').join('') + (zero.length > 8 ? '<div style="font-size:12px; color:var(--muted);">…আরও ' + (zero.length - 8) + 'টি</div>' : '') + closeBtn(panel);
+  };
+
+  // ---------- সাধারণ সাহায্যকারী ----------
+  function __toast(m, k){ try{ __adminToast(m, k); }catch(_){} }
+  function closeBtn(panel){ setTimeout(function(){ const b = panel.querySelector('.pClose'); if(b) b.onclick = () => panel.remove(); }, 0); return '<div style="margin-top:8px;"><button type="button" class="pClose" style="padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--ink); font-size:12.5px;">✖ বন্ধ করুন</button></div>'; }
+  function panelEl(id){ let p = document.getElementById(id); if(p) p.remove(); p = document.createElement('div'); p.id = id; p.style.cssText = 'margin:8px 0 12px; padding:12px; border:1.5px solid var(--forest); border-radius:10px; background:var(--card-bg); color:var(--ink);'; const bt = document.getElementById('bulkTools'); (bt || document.getElementById('postsList')).after(p); return p; }
+  // টুল বাটন: bulkTools সারিতে
+  function ensureTools(){
+    const bt = document.getElementById('bulkTools'); if(!bt || document.getElementById('xtDup')) return;
+    [['xtDup', '🔍 ডুপ্লিকেট খুঁজুন', '__dupRun'], ['xtRep', '📈 ভিউ/লাইক রিপোর্ট', '__reportRun'], ['xtBk', '💾 ব্যাকআপ (JSON)', '__backupJson'], ['xtBt', '📄 ব্যাকআপ (টেক্সট)', '__backupTxt']].forEach(x => {
+      const b = document.createElement('button'); b.type = 'button'; b.id = x[0]; b.style.cssText = btnSt; b.textContent = x[1]; b.onclick = () => window[x[2]](); bt.appendChild(b);
+    });
+  }
+  setInterval(ensureTools, 1500);
+  setTimeout(qcLive, 1600);
+})();
 </script>
 </body>
 </html>

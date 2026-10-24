@@ -1370,6 +1370,16 @@
   .site-footer-social svg{ width:19px; height:19px; fill:#fff; }
   a.post-eyebrow{ text-decoration:none; }
   .blog-detail .byline .byline-date + .byline-date{ margin-top:1px; }
+  .next-steps{ display:none; margin:14px 0; padding:14px 16px; border:1.5px solid var(--forest); border-radius:12px; background:var(--card-bg); color:var(--ink); line-height:1.8; font-size:14.5px; }
+  .next-steps.show{ display:block; }
+  .next-steps ol{ margin:8px 0 0; padding-left:22px; }
+  @media print{
+    body *{ visibility:hidden !important; }
+    #blogDetailContent, #blogDetailContent *{ visibility:visible !important; }
+    #blogDetailContent{ position:absolute; left:0; top:0; width:100%; }
+    .share-ic, .fs-wrap, .blog-engage-row, .blog-related-wrap, .blog-more-link-wrap{ display:none !important; }
+    body{ background:#fff !important; color:#000 !important; }
+  }
   .fs-wrap{ margin-left:auto; display:inline-flex; gap:6px; align-items:center; }
   .fs-btn{ width:34px; height:34px; border-radius:50%; border:1.5px solid var(--line); background:transparent; color:var(--ink); font-family:inherit; font-weight:700; cursor:pointer; padding:0; line-height:1; }
   .post-prevnext{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:22px 0 0; }
@@ -2952,6 +2962,15 @@
       <button type="button" class="app-id-copy-btn" id="appIdCopyBtn">📋 কপি করুন</button>
     </div>
     <button type="button" class="download-btn" id="downloadBtn">রশিদ ডাউনলোড করুন (PDF)</button>
+    <div class="next-steps" id="nextSteps">
+      <b>✅ আপনার আবেদন জমা হয়েছে। এরপর যা করবেন:</b>
+      <ol>
+        <li>উপরের আবেদন নম্বরটি কপি করে রাখুন।</li>
+        <li>রশিদ ডাউনলোড করে WhatsApp-এ আমাদের পাঠিয়ে দিন।</li>
+        <li>আমরা আপনার তথ্য যাচাই করে যোগাযোগ করব।</li>
+        <li>নিচের "আবেদনের অবস্থা যাচাই করুন" অংশে আবেদন নম্বর দিয়ে যেকোনো সময় অবস্থা দেখতে পারবেন।</li>
+      </ol>
+    </div>
     <div class="whatsapp-note" id="whatsappNote">
       <p>উপরের বাটনে চাপলে রশিদ ডাউনলোড হবে এবং শেয়ার মেনু খুলবে — সেখান থেকে WhatsApp সিলেক্ট করে আমাদের 01764324313 নম্বরে পাঠিয়ে দিন। ধন্যবাদ 🙏</p>
     </div>
@@ -3156,7 +3175,7 @@
   </div>
 </div>
 
-<script src="site-app.js?v=7" defer></script>
+<script src="site-app.js?v=8" defer></script>
 
 <!-- ============ Tawk.to লাইভ চ্যাট উইজেট ============
      নিচের YOUR_PROPERTY_ID এবং YOUR_WIDGET_ID বদলে আপনার নিজের ভ্যালু বসান।
