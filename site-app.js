@@ -889,6 +889,22 @@ downloadBtn.addEventListener('click', async ()=>{
       }
     }catch(_){}
     const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: '#ffffff' });
+    // html2canvas অনেক ফোনে QR ছবিটা ফাঁকা আঁকে, তাই চূড়ান্ত ছবির ওপর QR নিজে সরাসরি এঁকে দিই
+    try{
+      const qimg = document.querySelector('#r-qr img'), rid2 = (document.getElementById('r-id').textContent || '').trim();
+      const mx = qimg && rid2 ? sgQrMatrix('https://alamingazi533.github.io/?check=' + rid2) : null;
+      if(mx){
+        const rr = receiptEl.getBoundingClientRect(), qb = qimg.getBoundingClientRect(), sc = canvas.width / rr.width;
+        const cx = canvas.getContext('2d'), n = mx.length, qz = 3, cell = (qb.width * sc) / (n + qz * 2);
+        const ox = (qb.left - rr.left) * sc, oy = (qb.top - rr.top) * sc;
+        cx.fillStyle = '#ffffff'; cx.fillRect(Math.round(ox), Math.round(oy), Math.round(qb.width * sc), Math.round(qb.height * sc));
+        cx.fillStyle = '#1F3B2C';
+        for(let r = 0; r < n; r++) for(let k = 0; k < n; k++) if(mx[r][k]){
+          const x0 = Math.round(ox + (k + qz) * cell), x1 = Math.round(ox + (k + qz + 1) * cell), y0 = Math.round(oy + (r + qz) * cell), y1 = Math.round(oy + (r + qz + 1) * cell);
+          cx.fillRect(x0, y0, x1 - x0, y1 - y0);
+        }
+      }
+    }catch(_){}
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'px', format: [canvas.width, canvas.height] });
@@ -3476,9 +3492,10 @@ if(reviewSubmitBtn){
       const r = d.receipt, dt = new Date(r.date);
       set('r-id', r.id);
       set('r-date', isNaN(dt.getTime()) ? r.date : dt.toLocaleDateString('bn-BD') + ' ' + dt.toLocaleTimeString('bn-BD'));
-      set('r-name', r.fullName); set('r-phone', r.phone); set('r-dob', r.dob); set('r-gender', r.gender); set('r-email', r.email);
+      const fz = v => { const t = String(v == null ? '' : v).trim(); return /^1\d{9}$/.test(t) ? '0' + t : t; };
+      set('r-name', r.fullName); set('r-phone', fz(r.phone)); set('r-dob', r.dob); set('r-gender', r.gender); set('r-email', r.email);
       set('r-country', r.country); set('r-division', r.division); set('r-district', r.district); set('r-upazila', r.upazila); set('r-area', r.areaDetail);
-      set('r-comment', r.comment); set('r-payment', r.paymentMethod); set('r-txn', r.txnId); set('r-sender', r.senderNumber);
+      set('r-comment', r.comment); set('r-payment', r.paymentMethod); set('r-txn', r.txnId); set('r-sender', fz(r.senderNumber));
       set('r-platform', r.platform); set('r-idlink', r.idLink);
       const ph = document.getElementById('r-applicant-photo');
       if(ph){ if(r.photoData){ ph.src = r.photoData; ph.style.display = 'block'; } else ph.style.display = 'none'; }
