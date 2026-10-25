@@ -878,33 +878,23 @@ downloadBtn.addEventListener('click', async ()=>{
       const qrBox = document.getElementById('r-qr');
       const rid = (document.getElementById('r-id').textContent || '').trim();
       if(qrBox && rid){
-        const qurl = sgQrDataUrl('https://alamingazi533.github.io/?check=' + rid, 132);
-        if(qurl){
-          const qi = new Image(); qi.style.cssText = 'display:block;width:132px;height:132px;'; qi.src = qurl;
-          qrBox.innerHTML = ''; qrBox.appendChild(qi);
-          try{ await qi.decode(); }catch(_){}
+        const mx = sgQrMatrix('https://alamingazi533.github.io/?check=' + rid);
+        if(mx){
+          const n = mx.length, qz = 3, cell = 4, size = (n + qz * 2) * cell;
+          const box = document.createElement('div');
+          box.style.cssText = 'position:relative;background:#ffffff;width:' + size + 'px;height:' + size + 'px;';
+          for(let r = 0; r < n; r++) for(let k = 0; k < n; k++) if(mx[r][k]){
+            const d = document.createElement('div');
+            d.style.cssText = 'position:absolute;background:#1F3B2C;width:' + cell + 'px;height:' + cell + 'px;left:' + ((k + qz) * cell) + 'px;top:' + ((r + qz) * cell) + 'px;';
+            box.appendChild(d);
+          }
+          qrBox.innerHTML = ''; qrBox.appendChild(box);
           qrBox.parentElement.style.display = 'block';
           await new Promise(r => setTimeout(r, 80));
         }
       }
     }catch(_){}
     const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: '#ffffff' });
-    // html2canvas অনেক ফোনে QR ছবিটা ফাঁকা আঁকে, তাই চূড়ান্ত ছবির ওপর QR নিজে সরাসরি এঁকে দিই
-    try{
-      const qimg = document.querySelector('#r-qr img'), rid2 = (document.getElementById('r-id').textContent || '').trim();
-      const mx = qimg && rid2 ? sgQrMatrix('https://alamingazi533.github.io/?check=' + rid2) : null;
-      if(mx){
-        const rr = receiptEl.getBoundingClientRect(), qb = qimg.getBoundingClientRect(), sc = canvas.width / rr.width;
-        const cx = canvas.getContext('2d'), n = mx.length, qz = 3, cell = (qb.width * sc) / (n + qz * 2);
-        const ox = (qb.left - rr.left) * sc, oy = (qb.top - rr.top) * sc;
-        cx.fillStyle = '#ffffff'; cx.fillRect(Math.round(ox), Math.round(oy), Math.round(qb.width * sc), Math.round(qb.height * sc));
-        cx.fillStyle = '#1F3B2C';
-        for(let r = 0; r < n; r++) for(let k = 0; k < n; k++) if(mx[r][k]){
-          const x0 = Math.round(ox + (k + qz) * cell), x1 = Math.round(ox + (k + qz + 1) * cell), y0 = Math.round(oy + (r + qz) * cell), y1 = Math.round(oy + (r + qz + 1) * cell);
-          cx.fillRect(x0, y0, x1 - x0, y1 - y0);
-        }
-      }
-    }catch(_){}
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'px', format: [canvas.width, canvas.height] });
