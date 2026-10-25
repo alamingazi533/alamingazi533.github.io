@@ -873,25 +873,19 @@ downloadBtn.addEventListener('click', async ()=>{
     await ensureReceiptLibraries();
     const receiptEl = document.getElementById('receipt');
     try{ const wm = receiptEl.querySelector('.r-watermark'); if(wm && wm.decode) await wm.decode(); }catch(_){}
-    // রশিদে QR কোড: স্ক্যান করলে আবেদনের অবস্থা দেখার পেজ খুলবে
+    // আবেদন কপিতে QR কোড: স্ক্যান করলে আবেদনের অবস্থা দেখার পেজ খুলবে (নিজস্ব QR জেনারেটর — বাইরের লাইব্রেরি লাগে না)
     try{
       const qrBox = document.getElementById('r-qr');
       const rid = (document.getElementById('r-id').textContent || '').trim();
-      if(qrBox && rid && window.QRCode){
-        qrBox.innerHTML = '';
-        new QRCode(qrBox, { text: 'https://alamingazi533.github.io/?check=' + encodeURIComponent(rid), width: 96, height: 96, colorDark: '#1F3B2C', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-        qrBox.parentElement.style.display = 'block';
-        await new Promise(r => setTimeout(r, 150));
-        // html2canvas অনেক সময় QR-এর ক্যানভাস/দেরিতে-বসা ছবি ধরে না, তাই ক্যানভাস থেকে সরাসরি ছবি বানিয়ে বসাই
-        try{
-          const qc = qrBox.querySelector('canvas');
-          if(qc){
-            const qi = new Image(); qi.width = 96; qi.height = 96; qi.style.cssText = 'display:block;width:96px;height:96px;';
-            qi.src = qc.toDataURL('image/png');
-            qrBox.innerHTML = ''; qrBox.appendChild(qi);
-            try{ await qi.decode(); }catch(_){}
-          }
-        }catch(_){}
+      if(qrBox && rid){
+        const qurl = sgQrDataUrl('https://alamingazi533.github.io/?check=' + rid, 132);
+        if(qurl){
+          const qi = new Image(); qi.style.cssText = 'display:block;width:132px;height:132px;'; qi.src = qurl;
+          qrBox.innerHTML = ''; qrBox.appendChild(qi);
+          try{ await qi.decode(); }catch(_){}
+          qrBox.parentElement.style.display = 'block';
+          await new Promise(r => setTimeout(r, 80));
+        }
       }
     }catch(_){}
     const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: '#ffffff' });
@@ -3469,10 +3463,12 @@ if(reviewSubmitBtn){
   const say = (t, bad) => { msg.style.color = bad ? '#b3261e' : '#1F3B2C'; msg.textContent = t; };
   const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = (v === undefined || v === null || v === '') ? '-' : String(v); };
   btn.addEventListener('click', async function(){
-    const id = (document.getElementById('checkId').value || '').trim().toUpperCase();
-    const phone = (document.getElementById('rcPhone').value || '').trim();
-    if(!/^APP-\d{8}$/.test(id)){ say('উপরের ঘরে আবেদন নম্বর লিখুন (যেমন APP-12345678)।', true); return; }
-    if(phone.replace(/\D/g, '').length < 10){ say('আবেদনে দেওয়া সঠিক মোবাইল নম্বর লিখুন।', true); return; }
+    const bn = x => String(x || '').replace(/[০-৯]/g, ch => '০১২৩৪৫৬৭৮৯'.indexOf(ch));
+    const digits = bn(document.getElementById('rcId').value).replace(/\D/g, '');
+    const phone = bn(document.getElementById('rcPhone').value).trim();
+    if(!digits || digits.length > 8){ say('আবেদন নম্বরের শুধু সংখ্যাগুলো লিখুন (যেমন 12345678)।', true); return; }
+    const id = 'APP-' + ('00000000' + digits).slice(-8);
+    if(phone.replace(/\D/g, '').length < 10){ say('আবেদনের সময় দেওয়া সঠিক মোবাইল নম্বর লিখুন।', true); return; }
     btn.disabled = true; say('⏳ আবেদন কপি আনা হচ্ছে…');
     try{
       const d = await (await fetch(SCRIPT_URL + '?action=getReceipt&id=' + encodeURIComponent(id) + '&phone=' + encodeURIComponent(phone))).json();
@@ -3493,3 +3489,83 @@ if(reviewSubmitBtn){
     finally{ btn.disabled = false; }
   });
 })();
+
+
+// নিজস্ব QR এনকোডার (Version 4, Level M, Byte mode; সর্বোচ্চ ৬২ অক্ষর)
+function sgQrMatrix(text, forceMask){
+  var bytes = []; var enc = unescape(encodeURIComponent(String(text)));
+  for(var i = 0; i < enc.length; i++) bytes.push(enc.charCodeAt(i));
+  if(bytes.length > 62) return null;
+  var N = 33, DATA = 64, EC = 18;
+  var bits = [];
+  function put(v, n){ for(var i = n - 1; i >= 0; i--) bits.push((v >> i) & 1); }
+  put(4, 4); put(bytes.length, 8); bytes.forEach(function(b){ put(b, 8); });
+  for(var t = 0; t < 4 && bits.length < DATA * 8; t++) bits.push(0);
+  while(bits.length % 8) bits.push(0);
+  var data = []; for(var i = 0; i < bits.length; i += 8){ var v = 0; for(var j = 0; j < 8; j++) v = (v << 1) | bits[i + j]; data.push(v); }
+  for(var pad = 0xEC; data.length < DATA; pad ^= 0xEC ^ 0x11) data.push(pad);
+  // GF(256)
+  var exp = [], log = []; var x = 1;
+  for(var i = 0; i < 255; i++){ exp[i] = x; log[x] = i; x <<= 1; if(x & 256) x ^= 0x11D; }
+  for(var i = 255; i < 512; i++) exp[i] = exp[i - 255];
+  function mul(a, b){ return (a && b) ? exp[log[a] + log[b]] : 0; }
+  var gen = [1];
+  for(var i = 0; i < EC; i++){ var ng = new Array(gen.length + 1).fill(0); for(var j = 0; j < gen.length; j++){ ng[j] ^= gen[j]; ng[j + 1] ^= mul(gen[j], exp[i]); } gen = ng; }
+  function rs(block){ var r = new Array(EC).fill(0); block.forEach(function(b){ var f = b ^ r[0]; r.shift(); r.push(0); for(var i = 0; i < EC; i++) r[i] ^= mul(gen[i + 1], f); }); return r; }
+  var b1 = data.slice(0, 32), b2 = data.slice(32), e1 = rs(b1), e2 = rs(b2), cw = [];
+  for(var i = 0; i < 32; i++){ cw.push(b1[i]); cw.push(b2[i]); }
+  for(var i = 0; i < EC; i++){ cw.push(e1[i]); cw.push(e2[i]); }
+  var dbits = []; cw.forEach(function(c){ for(var i = 7; i >= 0; i--) dbits.push((c >> i) & 1); });
+  // matrix
+  var m = [], fn = [];
+  for(var r = 0; r < N; r++){ m.push(new Array(N).fill(0)); fn.push(new Array(N).fill(false)); }
+  function setf(r, c, v){ m[r][c] = v ? 1 : 0; fn[r][c] = true; }
+  function finder(r0, c0){ for(var dr = -1; dr <= 7; dr++) for(var dc = -1; dc <= 7; dc++){ var r = r0 + dr, c = c0 + dc; if(r < 0 || c < 0 || r >= N || c >= N) continue; var on = (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) && (dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)); setf(r, c, on); } }
+  finder(0, 0); finder(0, N - 7); finder(N - 7, 0);
+  for(var i = 8; i < N - 8; i++){ setf(6, i, i % 2 === 0); setf(i, 6, i % 2 === 0); }
+  for(var dr = -2; dr <= 2; dr++) for(var dc = -2; dc <= 2; dc++) setf(26 + dr, 26 + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
+  for(var i = 0; i < 9; i++){ if(!fn[8][i]) { m[8][i] = 0; fn[8][i] = true; } if(!fn[i][8]) { m[i][8] = 0; fn[i][8] = true; } }
+  for(var i = 0; i < 8; i++){ fn[8][N - 1 - i] = true; fn[N - 1 - i][8] = true; }
+  setf(N - 8, 8, 1);
+  function place(mask){
+    var mm = m.map(function(r){ return r.slice(); }), k = 0, up = true;
+    for(var c = N - 1; c > 0; c -= 2){ if(c === 6) c--;
+      for(var i = 0; i < N; i++){ var r = up ? N - 1 - i : i;
+        for(var d = 0; d < 2; d++){ var cc = c - d; if(fn[r][cc]) continue; var bit = k < dbits.length ? dbits[k++] : 0;
+          var inv = [ (r + cc) % 2 === 0, r % 2 === 0, cc % 3 === 0, (r + cc) % 3 === 0, (Math.floor(r / 2) + Math.floor(cc / 3)) % 2 === 0, (r * cc) % 2 + (r * cc) % 3 === 0, ((r * cc) % 2 + (r * cc) % 3) % 2 === 0, ((r + cc) % 2 + (r * cc) % 3) % 2 === 0 ][mask];
+          mm[r][cc] = bit ^ (inv ? 1 : 0); } }
+      up = !up; }
+    // format info (level M = 00)
+    var fd = (0 << 3) | mask, rem = fd; for(var i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >> 9) * 0x537);
+    var fb = ((fd << 10) | (rem & 0x3FF)) ^ 0x5412;
+    function g(i){ return (fb >> i) & 1; }
+    for(var i = 0; i <= 5; i++) mm[i][8] = g(i);
+    mm[7][8] = g(6); mm[8][8] = g(7); mm[8][7] = g(8);
+    for(var i = 9; i < 15; i++) mm[8][14 - i] = g(i);
+    for(var i = 0; i < 8; i++) mm[8][N - 1 - i] = g(i);
+    for(var i = 8; i < 15; i++) mm[N - 15 + i][8] = g(i);
+    mm[N - 8][8] = 1;
+    return mm;
+  }
+  function penalty(mm){
+    var p = 0, i, j;
+    for(var pass = 0; pass < 2; pass++){ for(i = 0; i < N; i++){ var run = 1; for(j = 1; j < N; j++){ var a = pass ? mm[j][i] : mm[i][j], b = pass ? mm[j - 1][i] : mm[i][j - 1]; if(a === b){ run++; if(run === 5) p += 3; else if(run > 5) p++; } else run = 1; } } }
+    for(i = 0; i < N - 1; i++) for(j = 0; j < N - 1; j++){ var v = mm[i][j]; if(v === mm[i + 1][j] && v === mm[i][j + 1] && v === mm[i + 1][j + 1]) p += 3; }
+    var pat = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], pat2 = pat.slice().reverse();
+    for(i = 0; i < N; i++) for(j = 0; j <= N - 11; j++){ var h1 = true, h2 = true, v1 = true, v2 = true; for(var k = 0; k < 11; k++){ if(mm[i][j + k] !== pat[k]) h1 = false; if(mm[i][j + k] !== pat2[k]) h2 = false; if(mm[j + k][i] !== pat[k]) v1 = false; if(mm[j + k][i] !== pat2[k]) v2 = false; } if(h1) p += 40; if(h2) p += 40; if(v1) p += 40; if(v2) p += 40; }
+    var dark = 0; for(i = 0; i < N; i++) for(j = 0; j < N; j++) dark += mm[i][j];
+    p += Math.floor(Math.abs(dark * 100 / (N * N) - 50) / 5) * 10;
+    return p;
+  }
+  var best = null, bp = 1e9; if(forceMask !== undefined) return place(forceMask); for(var mk = 0; mk < 8; mk++){ var cand = place(mk), pn = penalty(cand); if(pn < bp){ bp = pn; best = cand; } }
+  return best;
+}
+function sgQrDataUrl(text, px){
+  var mx = sgQrMatrix(text); if(!mx) return '';
+  var n = mx.length, q = 3, sc = Math.max(2, Math.floor((px || 120) / (n + q * 2))), size = (n + q * 2) * sc;
+  var c = document.createElement('canvas'); c.width = size; c.height = size; var x = c.getContext('2d');
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, size, size); x.fillStyle = '#1F3B2C';
+  for(var r = 0; r < n; r++) for(var k = 0; k < n; k++) if(mx[r][k]) x.fillRect((k + q) * sc, (r + q) * sc, sc, sc);
+  return c.toDataURL('image/png');
+}
+

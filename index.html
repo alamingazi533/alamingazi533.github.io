@@ -2992,8 +2992,12 @@
     <div class="check-result" id="checkResult"></div>
     <details id="rcBox" style="margin-top:14px; border:1.5px solid var(--line, #DED0AE); border-radius:10px; padding:10px 12px;">
       <summary style="cursor:pointer; font-weight:700;">📄 আবেদন কপি হারিয়ে ফেলেছেন? আবার ডাউনলোড করুন</summary>
-      <div style="margin-top:10px; font-size:13.5px; line-height:1.6;">আবেদন নম্বর (উপরের ঘরে লিখুন) এবং আবেদনের সময় দেওয়া মোবাইল নম্বর লিখুন।
-        <input type="tel" id="rcPhone" placeholder="আবেদনে দেওয়া মোবাইল নম্বর" autocomplete="tel" style="width:100%; box-sizing:border-box; margin:8px 0; padding:11px; border:1.5px solid #DED0AE; border-radius:8px; font:inherit; font-size:16px;">
+      <div style="margin-top:10px; font-size:13.5px; line-height:1.6;">
+        <label for="rcId" style="font-weight:600;">১. আবেদন নম্বর (শুধু সংখ্যা)</label>
+        <input type="text" id="rcId" inputmode="numeric" maxlength="8" placeholder="যেমন: 12345678" autocomplete="off" style="width:100%; box-sizing:border-box; margin:4px 0 10px; padding:11px; border:1.5px solid #DED0AE; border-radius:8px; font:inherit; font-size:16px;">
+        <label for="rcPhone" style="font-weight:600;">২. আবেদনের সময় দেওয়া মোবাইল নম্বর</label>
+        <input type="tel" id="rcPhone" placeholder="যেমন: 01XXXXXXXXX" autocomplete="tel" style="width:100%; box-sizing:border-box; margin:4px 0 4px; padding:11px; border:1.5px solid #DED0AE; border-radius:8px; font:inherit; font-size:16px;">
+        <div style="font-size:12.5px; color:#6B6752; margin-bottom:10px;">আবেদন করার সময় যে মোবাইল নম্বর দিয়েছিলেন, সেটাই লিখুন। অন্য নম্বর দিলে হবে না।</div>
         <button type="button" id="rcBtn" class="check-btn">⬇ আবেদন কপি ডাউনলোড করুন</button>
         <div id="rcMsg" style="margin-top:8px; font-size:13.5px;"></div>
       </div>
@@ -3198,7 +3202,7 @@
   </div>
 </div>
 
-<script src="site-app.js?v=9" defer></script>
+<script src="site-app.js?v=10" defer></script>
 
 <!-- ============ Tawk.to লাইভ চ্যাট উইজেট ============
      নিচের YOUR_PROPERTY_ID এবং YOUR_WIDGET_ID বদলে আপনার নিজের ভ্যালু বসান।
