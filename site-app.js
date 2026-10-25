@@ -881,7 +881,17 @@ downloadBtn.addEventListener('click', async ()=>{
         qrBox.innerHTML = '';
         new QRCode(qrBox, { text: 'https://alamingazi533.github.io/?check=' + encodeURIComponent(rid), width: 96, height: 96, colorDark: '#1F3B2C', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
         qrBox.parentElement.style.display = 'block';
-        await new Promise(r => setTimeout(r, 120));
+        await new Promise(r => setTimeout(r, 150));
+        // html2canvas অনেক সময় QR-এর ক্যানভাস/দেরিতে-বসা ছবি ধরে না, তাই ক্যানভাস থেকে সরাসরি ছবি বানিয়ে বসাই
+        try{
+          const qc = qrBox.querySelector('canvas');
+          if(qc){
+            const qi = new Image(); qi.width = 96; qi.height = 96; qi.style.cssText = 'display:block;width:96px;height:96px;';
+            qi.src = qc.toDataURL('image/png');
+            qrBox.innerHTML = ''; qrBox.appendChild(qi);
+            try{ await qi.decode(); }catch(_){}
+          }
+        }catch(_){}
       }
     }catch(_){}
     const canvas = await html2canvas(receiptEl, { scale: 2, backgroundColor: '#ffffff' });
@@ -2643,6 +2653,12 @@ function showBlogDetail(postId){
       '<a class="whatsapp-btn" style="max-width:340px; margin:10px auto 0;" href="https://wa.me/8801764324313?text=' + encodeURIComponent('আসসালামু আলাইকুম, আপনাদের সাইটের "' + String(post.title || '').slice(0, 120) + '" পোস্টটি পড়ে যোগাযোগ করছি। আমার সমস্যা: ') + '" target="_blank" rel="noopener">WhatsApp-এ সমস্যা জানান</a>' +
       '<div style="display:flex;gap:12px;align-items:center;background:#fff;color:#22281F;border:1px solid #DED0AE;border-radius:12px;padding:12px 14px;margin:14px auto 0;max-width:420px;text-align:left"><img src="profile.jpg" alt="" width="52" height="52" loading="lazy" style="border-radius:50%;object-fit:cover;flex:none"><div><b><a href="author.html" style="color:inherit;text-decoration:none">মোঃ আলামিন ইসলাম</a></b><br><small style="color:#6B6752;line-height:1.5">কেশবপুর, যশোর থেকে ফেসবুক, ইনস্টাগ্রাম, টিকটক ও ইউটিউব অ্যাকাউন্টের সমস্যায় মানুষকে সাহায্য করছি।</small></div></div>' +
     '</div>' +
+    '<details class="ask-box"><summary>❓ আপনার প্রশ্ন আছে? এখানে লিখুন</summary>' +
+      '<textarea id="askQ" maxlength="600" rows="3" placeholder="আপনার প্রশ্ন লিখুন (কমপক্ষে ১০ অক্ষর)"></textarea>' +
+      '<input id="askC" maxlength="100" placeholder="WhatsApp বা ইমেইল (ঐচ্ছিক)">' +
+      '<input id="askH" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">' +
+      '<button type="button" id="askSend" data-id="' + blogEscape(String(post.id || '')) + '" data-t="' + blogEscape(String(post.title || '').replace(/<[^>]*>/g, '')) + '">পাঠান</button><em id="askM"></em>' +
+      '<small>পাসওয়ার্ড, OTP বা লগইন কোড এখানে লিখবেন না।</small></details>' +
     '<div class="blog-comments">' +
       '<h2>💬 কমেন্ট (<span id="commentCountLabel">' + (post.commentCount || 0) + '</span>)</h2>' +
       '<div id="commentsList"><p class="posts-empty">লোড হচ্ছে...</p></div>' +
@@ -2739,6 +2755,27 @@ function applyBlogFontSize(){
     if(el) el.style.fontSize = BLOG_FONT_SIZES[idx] + 'px';
   }catch(e){}
 }
+document.addEventListener('click', e => {
+  const ab = e.target && e.target.closest ? e.target.closest('#askSend') : null;
+  if(!ab) return;
+  const q = document.getElementById('askQ'), c = document.getElementById('askC'), h = document.getElementById('askH'), m = document.getElementById('askM');
+  if(!q || !m) return;
+  const txt = String(q.value || '').trim();
+  if(txt.length < 10){ m.textContent = 'কমপক্ষে ১০ অক্ষর লিখুন।'; return; }
+  const dk = 'askQd_' + new Date().toISOString().slice(0, 10); let n = 0;
+  try{ n = parseInt(localStorage.getItem(dk) || '0', 10) || 0; }catch(_){}
+  if(n >= 3){ m.textContent = 'আজ অনেক প্রশ্ন পাঠানো হয়েছে, পরে চেষ্টা করুন।'; return; }
+  ab.disabled = true; m.textContent = 'পাঠানো হচ্ছে…';
+  fetch(SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'askQuestion', postId: ab.getAttribute('data-id'), postTitle: ab.getAttribute('data-t'), question: txt, contact: String((c && c.value) || '').trim(), hp: h ? h.value : '' }) })
+    .then(r => r.json().catch(() => null))
+    .then(res => {
+      if(res && res.success === false){ m.textContent = res.error === 'too many' ? 'এখন অনেক প্রশ্ন আসছে, কিছুক্ষণ পরে চেষ্টা করুন।' : 'প্রশ্ন পাঠানো যায়নি, আবার চেষ্টা করুন।'; return; }
+      try{ localStorage.setItem(dk, String(n + 1)); }catch(_){}
+      m.textContent = 'ধন্যবাদ! আপনার প্রশ্ন পেয়েছি।'; q.value = '';
+    })
+    .catch(() => { m.textContent = 'সংযোগে সমস্যা হয়েছে, আবার চেষ্টা করুন।'; })
+    .then(() => { setTimeout(() => { ab.disabled = false; }, 3000); });
+});
 document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('.fs-btn') : null;
   if(!b) return;

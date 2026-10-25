@@ -4104,5 +4104,117 @@ function insertPostImage(id){
   setInterval(function(){ ensureBar(); ensureToolBtn(); qrEnsure(); if(document.getElementById('bulkTools') && !document.getElementById('todayCard')) todayRender(); }, 1500);
 })();
 </script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  const btn = 'padding:7px 12px; border:1.5px solid var(--line); border-radius:8px; background:transparent; color:var(--ink); font-family:inherit; font-size:13px; cursor:pointer;';
+
+  // ---------- ১. পোস্টের কাঠামো টেমপ্লেট ----------
+  const TPL = {
+    problem: ['সমস্যা-সমাধান পোস্ট',
+      '## সমস্যাটা কী\n\n(কী ঘটে, কাদের হয়, দেখতে কেমন লাগে — ২–৩ বাক্যে)\n\n## কেন হয়\n\n(মূল কারণগুলো, একটা একটা করে)\n\n## সমাধানের ধাপ\n\n1. প্রথম ধাপ\n2. দ্বিতীয় ধাপ\n3. তৃতীয় ধাপ\n\n## কাজ না করলে কী করবেন\n\n(বিকল্প উপায়, অফিসিয়াল সাপোর্ট পেজ)\n\n## সাধারণ প্রশ্ন ও উত্তর\n\n**প্রশ্ন: ?**\n\nউত্তর: \n\n**প্রশ্ন: ?**\n\nউত্তর: \n\n## সতর্কতা\n\n(কাকে পাসওয়ার্ড/OTP দেবেন না, প্রতারণা থেকে সাবধান)\n'],
+    howto: ['কীভাবে করবেন (গাইড)',
+      '## শুরুর আগে যা লাগবে\n\n- \n- \n\n## ধাপে ধাপে করুন\n\n1. \n2. \n3. \n\n## সাধারণ ভুল\n\n(যেসব ভুলে আটকে যান)\n\n## সাধারণ প্রশ্ন ও উত্তর\n\n**প্রশ্ন: ?**\n\nউত্তর: \n\n## শেষ কথা\n\n(সংক্ষেপে মূল কথা)\n'],
+    scam: ['প্রতারণা সতর্কতা',
+      '## প্রতারণাটা কীভাবে কাজ করে\n\n(প্রতারকের মেসেজ/কলের ধরন)\n\n## চেনার উপায়\n\n- \n- \n\n## ফাঁদে পড়ে গেলে প্রথমে যা করবেন\n\n1. \n2. \n3. \n\n## কোথায় জানাবেন\n\n(অফিসিয়াল রিপোর্ট পেজ বা হেল্পলাইন)\n\n## সাধারণ প্রশ্ন ও উত্তর\n\n**প্রশ্ন: ?**\n\nউত্তর: \n'],
+    rule: ['নিয়ম/পলিসি ব্যাখ্যা',
+      '## নিয়মটা কী\n\n(সহজ ভাষায়)\n\n## কাদের জন্য প্রযোজ্য\n\n## না মানলে কী হয়\n\n## কী করবেন\n\n1. \n2. \n\n## সাধারণ প্রশ্ন ও উত্তর\n\n**প্রশ্ন: ?**\n\nউত্তর: \n\n## সূত্র\n\n(অফিসিয়াল পেজের নাম বা লিংক, আপডেটের তারিখ)\n']
+  };
+  function tplEnsure(){
+    const ta = $('newPostContent'); if(!ta || $('tplBar')) return;
+    const bar = document.createElement('div'); bar.id = 'tplBar'; bar.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;';
+    bar.innerHTML = '<select id="tplSel" style="flex:1; min-width:150px; padding:8px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:13px; background:transparent; color:var(--ink);"><option value="">📑 কাঠামো টেমপ্লেট বেছে নিন…</option>' + Object.keys(TPL).map(k => '<option value="' + k + '">' + TPL[k][0] + '</option>').join('') + '</select><button type="button" id="tplGo" style="' + btn + '">➕ বসান</button>';
+    ta.before(bar);
+    $('tplGo').onclick = function(){
+      const k = $('tplSel').value; if(!k){ alert('আগে একটা টেমপ্লেট বেছে নিন।'); return; }
+      const cur = ta.value.trim();
+      if(cur && !confirm('লেখার বক্সে আগে থেকে লেখা আছে। টেমপ্লেটটা নিচে যোগ হবে। ঠিক আছে?')) return;
+      ta.value = cur ? cur + '\n\n' + TPL[k][1] : TPL[k][1];
+      ta.dispatchEvent(new Event('input', {bubbles: true})); ta.focus();
+    };
+  }
+
+  // ---------- ২. কভার ছবি জেনারেটর ----------
+  const PLAT = [
+    [/ফেসবুক|facebook|fb|মেটা|meta/i, ['#1877F2', '#0B3C91'], 'Facebook'],
+    [/ইউটিউব|youtube|মনিটাইজ/i, ['#E62117', '#7A0C08'], 'YouTube'],
+    [/টিকটক|tiktok/i, ['#161823', '#FE2C55'], 'TikTok'],
+    [/ইনস্টাগ্রাম|instagram/i, ['#C13584', '#F77737'], 'Instagram'],
+    [/হোয়াটসঅ্যাপ|whatsapp/i, ['#25D366', '#0B6B33'], 'WhatsApp'],
+    [/গুগল|google|জিমেইল|gmail|অ্যাডসেন্স|adsense/i, ['#4285F4', '#1A3F8F'], 'Google'],
+    [/বিকাশ|নগদ|bkash|nagad|ওটিপি|otp|প্রতারণা|scam/i, ['#B3261E', '#5A0F0B'], '']
+  ];
+  function wrap(ctx, text, maxW){
+    const words = text.split(/\s+/), lines = []; let line = '';
+    words.forEach(w => { const t = line ? line + ' ' + w : w; if(ctx.measureText(t).width > maxW && line){ lines.push(line); line = w; } else line = t; });
+    if(line) lines.push(line); return lines;
+  }
+  function coverMake(title){
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 630; const x = c.getContext('2d');
+    let col = ['#1F3B2C', '#2E5A43'], tag = '';
+    for(const p of PLAT){ if(p[0].test(title)){ col = p[1]; tag = p[2]; break; } }
+    const g = x.createLinearGradient(0, 0, 1200, 630); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]); x.fillStyle = g; x.fillRect(0, 0, 1200, 630);
+    x.fillStyle = 'rgba(255,255,255,.08)'; x.beginPath(); x.arc(1050, 90, 220, 0, 7); x.fill(); x.beginPath(); x.arc(120, 600, 180, 0, 7); x.fill();
+    const ff = "'Noto Serif Bengali','Noto Sans Bengali','Hind Siliguri',FreeSans,sans-serif";
+    let size = 68, lines; x.fillStyle = '#fff'; x.textBaseline = 'top';
+    for(; size >= 40; size -= 4){ x.font = '700 ' + size + 'px ' + ff; lines = wrap(x, title, 1020); if(lines.length <= 4) break; }
+    lines = lines.slice(0, 4); const lh = size * 1.4, top = (630 - lines.length * lh) / 2 - 10;
+    lines.forEach((l, i) => x.fillText(l, 90, top + i * lh));
+    if(tag){ x.font = '700 30px ' + ff; x.fillStyle = 'rgba(255,255,255,.85)'; x.fillText(tag, 90, 70); }
+    x.font = '600 26px ' + ff; x.fillStyle = 'rgba(255,255,255,.8)'; x.fillText('সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা', 90, 545);
+    return c;
+  }
+  function coverEnsure(){
+    const inp = $('newPostImage'); if(!inp || $('coverGen')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'coverGen'; b.style.cssText = btn + ' margin:0 0 8px;'; b.textContent = '🎨 শিরোনাম থেকে কভার ছবি বানান';
+    inp.after(b);
+    b.onclick = function(){
+      const t = ($('newPostTitle').value || '').trim(); if(!t){ alert('আগে শিরোনাম লিখুন।'); return; }
+      const go = () => coverMake(t).toBlob(function(bl){
+        if(!bl){ alert('ছবি বানানো যায়নি।'); return; }
+        const f = new File([bl], 'cover-' + Date.now() + '.jpg', {type: 'image/jpeg'});
+        try{ const dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files; }catch(e){ alert('এই ব্রাউজারে ছবি বসানো গেল না।'); return; }
+        inp.dispatchEvent(new Event('change', {bubbles: true}));
+        const u = URL.createObjectURL(bl), im = $('newPostImagePreview'), w = $('newPostImagePreviewWrap');
+        if(im) im.src = u; if(w) w.style.display = 'block';
+        (window.__adminToast || alert)('✅ কভার ছবি বসেছে। পছন্দ না হলে ছবি Edit বা নতুন ছবি দিন।', 'ok');
+      }, 'image/jpeg', 0.9);
+      (document.fonts && document.fonts.load) ? document.fonts.load("700 40px 'Noto Serif Bengali'", t).then(go, go) : go();
+    };
+  }
+
+  // ---------- ৩. পাঠকের প্রশ্ন ----------
+  function panel(){
+    let p = $('qnPanel'); if(!p){ p = document.createElement('div'); p.id = 'qnPanel'; p.style.cssText = 'border:1.5px solid var(--line); border-radius:10px; padding:12px; margin:10px 0; background:var(--card-bg);'; const bt = $('bulkTools'); (bt.parentNode).insertBefore(p, bt.nextSibling); }
+    return p;
+  }
+  async function qnCall(op, row){
+    try{ return await (await fetch(SCRIPT_URL + '?action=questionAction&row=' + row + '&op=' + op + '&password=' + encodeURIComponent(pwd()) + '&_=' + Date.now(), {cache: 'no-store'})).json(); }catch(e){ return {success: false}; }
+  }
+  window.__qnRun = async function(){
+    const p = panel(); p.innerHTML = '<b>❓ পাঠকের প্রশ্ন</b><div style="margin-top:6px;">⏳ আনা হচ্ছে…</div>';
+    let d; try{ d = await (await fetch(SCRIPT_URL + '?action=listQuestions&password=' + encodeURIComponent(pwd()) + '&_=' + Date.now(), {cache: 'no-store'})).json(); }catch(e){ d = {success: false}; }
+    const close = '<button type="button" onclick="this.closest(\'#qnPanel\').remove()" style="' + btn + ' margin-top:10px;">✖ বন্ধ করুন</button>';
+    if(!d || !d.success){ p.innerHTML = '<b>❓ পাঠকের প্রশ্ন</b><div style="color:#b3261e;margin-top:6px;">❌ আনা যায়নি। Apps Script-এ নতুন Code.txt বসিয়ে New version করেছেন কিনা দেখুন।</div>' + close; return; }
+    const qs = d.questions || [], nw = qs.filter(q => q.status !== 'দেখা হয়েছে').length;
+    p.innerHTML = '<b>❓ পাঠকের প্রশ্ন</b> <span style="font-size:12px;color:var(--muted);">(নতুন ' + nw + ', মোট ' + qs.length + ')</span>' +
+      (qs.length ? qs.map(q => '<div data-r="' + q.row + '" style="border-top:1px solid var(--line); padding:8px 0; font-size:13.5px;' + (q.status === 'দেখা হয়েছে' ? 'opacity:.55;' : '') + '"><div style="font-size:12px;color:var(--muted);">' + esc(q.time) + (q.postTitle ? ' · ' + esc(String(q.postTitle).slice(0, 50)) : '') + (q.contact ? ' · 📞 ' + esc(q.contact) : '') + '</div><div style="margin:4px 0; line-height:1.6;">' + esc(q.question) + '</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button type="button" class="qnCp" style="' + btn + '">📋 কপি</button><button type="button" class="qnDn" style="' + btn + '">' + (q.status === 'দেখা হয়েছে' ? '↩ আবার নতুন' : '✅ উত্তর দেওয়া হয়েছে') + '</button><button type="button" class="qnDl" style="' + btn + 'color:#b3261e;">🗑 মুছুন</button></div></div>').join('') : '<div style="margin-top:8px;color:var(--muted);">এখনো কোনো প্রশ্ন আসেনি।</div>') + '<div>' + close + '</div>';
+    const byRow = {}; qs.forEach(q => { byRow[q.row] = q; });
+    p.querySelectorAll('[data-r]').forEach(el => {
+      const r = el.getAttribute('data-r'), q = byRow[r];
+      el.querySelector('.qnCp').onclick = () => { try{ __copyText(q.question, '📋 প্রশ্ন কপি হয়েছে'); }catch(_){ navigator.clipboard && navigator.clipboard.writeText(q.question); } };
+      el.querySelector('.qnDn').onclick = async () => { const x = await qnCall(q.status === 'দেখা হয়েছে' ? 'new' : 'done', r); if(x && x.success) window.__qnRun(); else alert('হয়নি, আবার চেষ্টা করুন।'); };
+      el.querySelector('.qnDl').onclick = async () => { if(!confirm('প্রশ্নটা মুছে ফেলবেন?')) return; const x = await qnCall('delete', r); if(x && x.success) window.__qnRun(); else alert('হয়নি, আবার চেষ্টা করুন।'); };
+    });
+  };
+  function qnBtn(){
+    const bt = $('bulkTools'); if(!bt || $('xtQn')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'xtQn'; b.style.cssText = btn; b.textContent = '❓ পাঠকের প্রশ্ন'; b.onclick = () => window.__qnRun(); bt.appendChild(b);
+  }
+  setInterval(function(){ tplEnsure(); coverEnsure(); qnBtn(); }, 1500);
+})();
+</script>
 </body>
 </html>
