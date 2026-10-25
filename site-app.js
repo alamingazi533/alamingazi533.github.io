@@ -901,7 +901,7 @@ downloadBtn.addEventListener('click', async ()=>{
     pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
 
     const pdfBlob = pdf.output('blob');
-    const fileName = 'আবেদন-রশিদ.pdf';
+    const fileName = 'আবেদন-কপি-' + ((document.getElementById('r-id').textContent || '').trim() || 'APP') + '.pdf';
 
     // ১. ফোনে PDF ডাউনলোড করুন
     pdf.save(fileName);
@@ -912,8 +912,8 @@ downloadBtn.addEventListener('click', async ()=>{
       try{
         await navigator.share({
           files: [pdfFile],
-          title: 'আবেদন রশিদ',
-          text: 'আমার রেজিস্ট্রেশন আবেদন রশিদ'
+          title: 'আবেদন কপি',
+          text: 'আমার রেজিস্ট্রেশন আবেদন কপি'
         });
       }catch(shareErr){
         // ব্যবহারকারী শেয়ার মেনু বাতিল করলে কিছু করার দরকার নেই
@@ -925,10 +925,10 @@ downloadBtn.addEventListener('click', async ()=>{
     resetFormAfterDownload();
   }catch(err){
     console.error(err);
-    alert('রশিদ ডাউনলোড করতে সমস্যা হয়েছে, আবার চেষ্টা করুন।');
+    alert('আবেদন কপি ডাউনলোড করতে সমস্যা হয়েছে, আবার চেষ্টা করুন।');
   }finally{
     downloadBtn.disabled = false;
-    downloadBtn.textContent = 'রশিদ ডাউনলোড করুন (PDF)';
+    downloadBtn.textContent = 'আবেদন কপি ডাউনলোড করুন (PDF)';
   }
 });
 
@@ -3460,3 +3460,36 @@ if(reviewSubmitBtn){
   });
 }// ============ Service Worker রেজিস্ট্রেশন এখন OneSignal.init()-এর serviceWorkerPath দিয়েই হয় (উপরে দেখুন) —
 // এখানে আলাদা করে আবার register() ডাকা হলে একই ফাইল দুইবার রেজিস্টার/যাচাই হতো, যা বাড়তি দেরির একটা কারণ ছিল।
+
+
+// ============ আবেদন নম্বর + মোবাইল নম্বর দিয়ে রশিদ আবার ডাউনলোড ============
+(function(){
+  const btn = document.getElementById('rcBtn'); if(!btn) return;
+  const msg = document.getElementById('rcMsg');
+  const say = (t, bad) => { msg.style.color = bad ? '#b3261e' : '#1F3B2C'; msg.textContent = t; };
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = (v === undefined || v === null || v === '') ? '-' : String(v); };
+  btn.addEventListener('click', async function(){
+    const id = (document.getElementById('checkId').value || '').trim().toUpperCase();
+    const phone = (document.getElementById('rcPhone').value || '').trim();
+    if(!/^APP-\d{8}$/.test(id)){ say('উপরের ঘরে আবেদন নম্বর লিখুন (যেমন APP-12345678)।', true); return; }
+    if(phone.replace(/\D/g, '').length < 10){ say('আবেদনে দেওয়া সঠিক মোবাইল নম্বর লিখুন।', true); return; }
+    btn.disabled = true; say('⏳ আবেদন কপি আনা হচ্ছে…');
+    try{
+      const d = await (await fetch(SCRIPT_URL + '?action=getReceipt&id=' + encodeURIComponent(id) + '&phone=' + encodeURIComponent(phone))).json();
+      if(!d || !d.success){ say(d && d.error === 'too many' ? 'অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।' : 'নম্বর বা মোবাইল মিলছে না। দুটোই আবার দেখে নিন।', true); return; }
+      const r = d.receipt, dt = new Date(r.date);
+      set('r-id', r.id);
+      set('r-date', isNaN(dt.getTime()) ? r.date : dt.toLocaleDateString('bn-BD') + ' ' + dt.toLocaleTimeString('bn-BD'));
+      set('r-name', r.fullName); set('r-phone', r.phone); set('r-dob', r.dob); set('r-gender', r.gender); set('r-email', r.email);
+      set('r-country', r.country); set('r-division', r.division); set('r-district', r.district); set('r-upazila', r.upazila); set('r-area', r.areaDetail);
+      set('r-comment', r.comment); set('r-payment', r.paymentMethod); set('r-txn', r.txnId); set('r-sender', r.senderNumber);
+      set('r-platform', r.platform); set('r-idlink', r.idLink);
+      const ph = document.getElementById('r-applicant-photo');
+      if(ph){ if(r.photoData){ ph.src = r.photoData; ph.style.display = 'block'; } else ph.style.display = 'none'; }
+      say('✓ পাওয়া গেছে। PDF তৈরি হচ্ছে…');
+      downloadBtn.click();
+      setTimeout(function(){ say('✓ আবেদন কপি ডাউনলোড শুরু হয়েছে।'); }, 1500);
+    }catch(e){ say('সংযোগে সমস্যা হয়েছে। একটু পর আবার চেষ্টা করুন।', true); }
+    finally{ btn.disabled = false; }
+  });
+})();

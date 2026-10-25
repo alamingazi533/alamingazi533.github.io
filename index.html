@@ -2968,18 +2968,18 @@
       <span class="app-id-display-value" id="appIdDisplayValue"></span>
       <button type="button" class="app-id-copy-btn" id="appIdCopyBtn">📋 কপি করুন</button>
     </div>
-    <button type="button" class="download-btn" id="downloadBtn">রশিদ ডাউনলোড করুন (PDF)</button>
+    <button type="button" class="download-btn" id="downloadBtn">আবেদন কপি ডাউনলোড করুন (PDF)</button>
     <div class="next-steps" id="nextSteps">
       <b>✅ আপনার আবেদন জমা হয়েছে। এরপর যা করবেন:</b>
       <ol>
         <li>উপরের আবেদন নম্বরটি কপি করে রাখুন।</li>
-        <li>রশিদ ডাউনলোড করে WhatsApp-এ আমাদের পাঠিয়ে দিন।</li>
+        <li>আবেদন কপি ডাউনলোড করে WhatsApp-এ আমাদের পাঠিয়ে দিন।</li>
         <li>আমরা আপনার তথ্য যাচাই করে যোগাযোগ করব।</li>
         <li>নিচের "আবেদনের অবস্থা যাচাই করুন" অংশে আবেদন নম্বর দিয়ে যেকোনো সময় অবস্থা দেখতে পারবেন।</li>
       </ol>
     </div>
     <div class="whatsapp-note" id="whatsappNote">
-      <p>উপরের বাটনে চাপলে রশিদ ডাউনলোড হবে এবং শেয়ার মেনু খুলবে — সেখান থেকে WhatsApp সিলেক্ট করে আমাদের 01764324313 নম্বরে পাঠিয়ে দিন। ধন্যবাদ 🙏</p>
+      <p>উপরের বাটনে চাপলে আবেদন কপি ডাউনলোড হবে এবং শেয়ার মেনু খুলবে — সেখান থেকে WhatsApp সিলেক্ট করে আমাদের 01764324313 নম্বরে পাঠিয়ে দিন। ধন্যবাদ 🙏</p>
     </div>
     </div>
   </form>
@@ -2990,6 +2990,14 @@
     <input type="text" id="checkId" placeholder="APP-XXXXXXXX">
     <button type="button" id="checkBtn" class="check-btn">যাচাই করুন</button>
     <div class="check-result" id="checkResult"></div>
+    <details id="rcBox" style="margin-top:14px; border:1.5px solid var(--line, #DED0AE); border-radius:10px; padding:10px 12px;">
+      <summary style="cursor:pointer; font-weight:700;">📄 আবেদন কপি হারিয়ে ফেলেছেন? আবার ডাউনলোড করুন</summary>
+      <div style="margin-top:10px; font-size:13.5px; line-height:1.6;">আবেদন নম্বর (উপরের ঘরে লিখুন) এবং আবেদনের সময় দেওয়া মোবাইল নম্বর লিখুন।
+        <input type="tel" id="rcPhone" placeholder="আবেদনে দেওয়া মোবাইল নম্বর" autocomplete="tel" style="width:100%; box-sizing:border-box; margin:8px 0; padding:11px; border:1.5px solid #DED0AE; border-radius:8px; font:inherit; font-size:16px;">
+        <button type="button" id="rcBtn" class="check-btn">⬇ আবেদন কপি ডাউনলোড করুন</button>
+        <div id="rcMsg" style="margin-top:8px; font-size:13.5px;"></div>
+      </div>
+    </details>
   </div>
 
   <footer>আপনার তথ্য নিরাপদে সংরক্ষণ করা হবে</footer>
@@ -3141,7 +3149,7 @@
   <div class="r-header">
     <img src="profile.jpg" alt="মোঃ আলামিন ইসলাম" loading="lazy" decoding="async">
     <div class="r-eyebrow">সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা</div>
-    <div class="r-title">আবেদন রশিদ</div>
+    <div class="r-title">আবেদন কপি</div>
     <div class="r-sub">মোঃ আলামিন ইসলাম • গোপসেনা, কেশবপুর, যশোর</div>
   </div>
   <div class="r-status" id="r-status">✓ রেজিস্ট্রেশন সফল হয়েছে</div>
@@ -3180,7 +3188,7 @@
     <div class="r-row"><span class="label">প্রেরকের নম্বর</span><span class="value" id="r-sender"></span></div>
 
     <div class="r-foot">
-      এই রশিদটি সংরক্ষণ করুন — প্রয়োজনে যোগাযোগের সময় দেখাতে পারবেন।<br>
+      এই আবেদন কপিটি সংরক্ষণ করুন — প্রয়োজনে যোগাযোগের সময় দেখাতে পারবেন।<br>
       <span class="r-contact">📞 হোয়াটসঅ্যাপ: 01764324313</span>
     </div>
     <div class="r-qrwrap" style="display:none; text-align:center; padding:4px 0 18px; position:relative; z-index:1;">
