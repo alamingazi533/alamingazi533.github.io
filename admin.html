@@ -3908,5 +3908,201 @@ function insertPostImage(id){
   setInterval(ensureTools2, 1500);
 })();
 </script>
+<script>
+// ============ অ্যাডমিন টুল (৩য় দফা): বাল্ক শিডিউল, বাল্ক ক্যাটাগরি, আজকের কাজ, দ্রুত উত্তর, গুগল সার্চ রিপোর্ট ============
+(function(){
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const plain = t => String(t || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ').replace(/\*\*/g, '').replace(/^##\s+/gm, '').replace(/\s+/g, ' ').trim();
+  const wordsOf = t => { const p = plain(t); return p ? p.split(' ').length : 0; };
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const toast = (m, k) => { try{ __adminToast(m, k); }catch(_){} };
+  const btnSt = 'padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;';
+  const inSt = 'padding:8px; border-radius:8px; border:1.5px solid var(--line); background:var(--card-bg); color:var(--ink); font-family:inherit; font-size:13.5px;';
+  const slug = id => String(id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase();
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  function panelEl(id){ let p = document.getElementById(id); if(p) p.remove(); p = document.createElement('div'); p.id = id; p.style.cssText = 'margin:8px 0 12px; padding:12px; border:1.5px solid var(--forest); border-radius:10px; background:var(--card-bg); color:var(--ink);'; const bt = document.getElementById('bulkTools'); (bt || document.getElementById('postsList')).after(p); return p; }
+  function closeBtn(panel){ setTimeout(function(){ const b = panel.querySelector('.pClose'); if(b) b.onclick = () => panel.remove(); }, 0); return '<div style="margin-top:8px;"><button type="button" class="pClose" style="padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--ink); font-size:12.5px;">✖ বন্ধ করুন</button></div>'; }
+  const selectedPosts = () => { const d = window.__adminPostsData || {}; return Array.from(window.__bulkSel || []).map(r => d[r]).filter(Boolean); };
+  const bdNow = () => new Date(Date.now() + 6 * 3600000); // বাংলাদেশ সময় (UTC+6) হিসাবের জন্য
+  const ymd = d => d.toISOString().slice(0, 10);
+
+  // ---------- বাল্ক শিডিউল ----------
+  window.__schedOpen = function(){
+    const sel = selectedPosts();
+    if(!sel.length) return toast('আগে পোস্ট সিলেক্ট করুন', 'err');
+    const panel = panelEl('schedPanel'), tomorrow = ymd(new Date(bdNow().getTime() + 86400000));
+    panel.innerHTML = '<b>📅 বাল্ক শিডিউল — ' + sel.length + 'টি পোস্ট</b>' +
+      '<div style="font-size:12px; color:var(--muted); margin:4px 0 10px;">সিলেক্ট করা পোস্টগুলো দিনে নির্দিষ্ট সংখ্যায়, নির্দিষ্ট সময়ে নিজে নিজে পাবলিক হবে। (সব সময় বাংলাদেশ সময়ে)</div>' +
+      '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">' +
+      '<label style="font-size:12.5px;">দিনে কয়টা<input type="number" id="scPer" value="3" min="1" max="10" style="width:100%; ' + inSt + '"></label>' +
+      '<label style="font-size:12.5px;">শুরুর তারিখ<input type="date" id="scDate" value="' + tomorrow + '" style="width:100%; ' + inSt + '"></label></div>' +
+      '<label style="font-size:12.5px; display:block; margin-top:8px;">সময় (কমা দিয়ে, ২৪ ঘণ্টা)<input type="text" id="scTimes" value="09:00, 14:00, 20:00" style="width:100%; ' + inSt + '"></label>' +
+      '<label style="font-size:12.5px; display:block; margin-top:8px;">ক্রম<select id="scOrder" style="width:100%; ' + inSt + '"><option value="long">বড় লেখা আগে</option><option value="row">সিলেক্টের ক্রমে (পুরোনো আগে)</option></select></label>' +
+      '<label style="display:flex; gap:8px; align-items:center; font-size:12.5px; margin-top:8px;"><input type="checkbox" id="scSilent" checked> নোটিফিকেশন ও ইমেইল পাঠাবেন না</label>' +
+      '<div id="scPrev" style="margin-top:10px; font-size:12.5px; line-height:1.6; max-height:220px; overflow:auto;"></div>' +
+      '<div style="margin-top:10px;"><button type="button" id="scGo" style="padding:9px 16px; border:0; border-radius:8px; background:var(--forest); color:#fff; font-weight:700;">✅ শিডিউল করুন</button></div>' + closeBtn(panel);
+    const plan = function(){
+      const per = Math.max(1, Math.min(10, parseInt(document.getElementById('scPer').value, 10) || 3));
+      const times = document.getElementById('scTimes').value.split(',').map(s => s.trim()).filter(s => /^\d{1,2}:\d{2}$/.test(s)).map(s => { const a = s.split(':'); return ('0' + a[0]).slice(-2) + ':' + a[1]; });
+      const date = document.getElementById('scDate').value;
+      if(!times.length || !date) return null;
+      const order = document.getElementById('scOrder').value;
+      const list = sel.slice().sort(order === 'long' ? (a, b) => wordsOf(b.content) - wordsOf(a.content) : (a, b) => a.rowIndex - b.rowIndex);
+      const out = []; let day = new Date(date + 'T00:00:00Z');
+      for(let i = 0; i < list.length; i++){
+        const dIdx = Math.floor(i / per), slot = i % per, t = times[Math.min(slot, times.length - 1)];
+        const d = new Date(day.getTime() + dIdx * 86400000), ds = ymd(d);
+        out.push({p: list[i], ds: ds, t: t, iso: new Date(ds + 'T' + t + ':00+06:00').toISOString()});
+      }
+      return out;
+    };
+    const show = function(){
+      const pl = plan(), pv = document.getElementById('scPrev'); if(!pl){ pv.textContent = 'তারিখ ও সময় ঠিকভাবে দিন (যেমন 09:00)'; return; }
+      const small = pl.filter(x => wordsOf(x.p.content) < 400).length;
+      pv.innerHTML = (small ? '<div style="color:#8a6100; margin-bottom:4px;">⚠️ ' + small + 'টি পোস্ট ৪০০ শব্দের কম।</div>' : '') + pl.map(x => '<div>' + esc(x.ds) + ' ' + esc(x.t) + ' — ' + esc(String(x.p.title).slice(0, 55)) + ' <span style="color:var(--muted);">(' + wordsOf(x.p.content) + ' শব্দ)</span></div>').join('');
+    };
+    ['scPer', 'scDate', 'scTimes', 'scOrder'].forEach(id => { document.getElementById(id).addEventListener('input', show); document.getElementById(id).addEventListener('change', show); });
+    show();
+    document.getElementById('scGo').onclick = async function(){
+      const pl = plan(); if(!pl) return toast('তারিখ ও সময় ঠিকভাবে দিন', 'err');
+      if(!confirm(pl.length + 'টি পোস্ট শিডিউল করবেন?\nপ্রথমটা: ' + pl[0].ds + ' ' + pl[0].t + '\nশেষটা: ' + pl[pl.length - 1].ds + ' ' + pl[pl.length - 1].t)) return;
+      const silent = document.getElementById('scSilent').checked; let ok = 0, bad = 0;
+      document.getElementById('scGo').disabled = true;
+      for(let i = 0; i < pl.length; i++){
+        toast('⏳ শিডিউল হচ্ছে… ' + (i + 1) + '/' + pl.length + ' (পাতা বন্ধ করবেন না)', 'work');
+        try{
+          const url = SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + pl[i].p.rowIndex + '&status=&publishAt=' + encodeURIComponent(pl[i].iso) + '&silent=1' + (silent ? '&nonotify=1' : '') + '&_=' + Date.now();
+          const d = await (await fetch(url, {cache: 'no-store'})).json();
+          if(d && d.success) ok++; else bad++;
+        }catch(_){ bad++; }
+      }
+      window.__bulkSel.clear(); try{ __bulkBarUpdate(); }catch(_){}
+      toast((bad ? '⚠️ ' : '✅ ') + ok + 'টি শিডিউল হয়েছে' + (bad ? ', ' + bad + 'টি হয়নি' : '') + '। সময় হলে নিজে নিজে প্রকাশ হবে।', bad ? 'err' : 'ok');
+      panel.remove(); try{ loadAdminPosts(); }catch(_){}
+    };
+  };
+  // ---------- বাল্ক ক্যাটাগরি ----------
+  window.__catOpen = function(){
+    const sel = selectedPosts(); if(!sel.length) return toast('আগে পোস্ট সিলেক্ট করুন', 'err');
+    const src = document.getElementById('newPostCategory'); const cats = src ? Array.from(src.options).map(o => o.value) : ['রিকভারি', 'মনিটাইজেশন', 'টিপস', 'সতর্কতা', 'সাধারণ আপডেট'];
+    const panel = panelEl('catPanel');
+    panel.innerHTML = '<b>🏷 ক্যাটাগরি বদলান — ' + sel.length + 'টি পোস্ট</b><div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;"><select id="catSel" style="' + inSt + ' flex:1; min-width:150px;">' + cats.map(c => '<option>' + esc(c) + '</option>').join('') + '</select><button type="button" id="catGo" style="padding:9px 16px; border:0; border-radius:8px; background:var(--forest); color:#fff; font-weight:700;">✅ প্রয়োগ করুন</button></div>' + closeBtn(panel);
+    document.getElementById('catGo').onclick = async function(){
+      const c = document.getElementById('catSel').value; if(!confirm(sel.length + 'টি পোস্টের ক্যাটাগরি "' + c + '" করবেন?')) return;
+      let ok = 0, bad = 0; document.getElementById('catGo').disabled = true;
+      for(let i = 0; i < sel.length; i++){
+        toast('⏳ চলছে… ' + (i + 1) + '/' + sel.length, 'work');
+        try{ const d = await (await fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + sel[i].rowIndex + '&category=' + encodeURIComponent(c) + '&silent=1&_=' + Date.now(), {cache: 'no-store'})).json(); if(d && d.success) ok++; else bad++; }catch(_){ bad++; }
+      }
+      window.__bulkSel.clear(); try{ __bulkBarUpdate(); }catch(_){}
+      toast((bad ? '⚠️ ' : '✅ ') + ok + 'টি বদলেছে' + (bad ? ', ' + bad + 'টি হয়নি' : ''), bad ? 'err' : 'ok'); panel.remove(); try{ loadAdminPosts(); }catch(_){}
+    };
+  };
+  function ensureBar(){
+    const bar = document.getElementById('bulkBar'); if(!bar || document.getElementById('bulkSched')) return;
+    const mk = (id, label, bg, fn) => { const b = document.createElement('button'); b.type = 'button'; b.id = id; b.textContent = label; b.style.cssText = 'padding:8px 12px; border:0; border-radius:8px; font-weight:700; font-size:13px; background:' + bg + '; color:#fff;'; b.onclick = fn; return b; };
+    const first = document.getElementById('bulkPriv') || bar.firstChild;
+    bar.insertBefore(mk('bulkSched', '📅 শিডিউল', '#8a5a00', window.__schedOpen), first);
+    bar.insertBefore(mk('bulkCat', '🏷 ক্যাটাগরি', '#00695c', window.__catOpen), first);
+  }
+
+  // ---------- আজকের কাজ ----------
+  function todayRender(){
+    const ps = posts(); if(!ps.length) return;
+    const anchor = document.getElementById('goalCard') || document.getElementById('bulkTools'); if(!anchor) return;
+    let card = document.getElementById('todayCard');
+    if(!card){ card = document.createElement('div'); card.id = 'todayCard'; card.style.cssText = 'margin:6px 0 10px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--card-bg); color:var(--ink); font-size:13px; line-height:1.8;'; anchor.before(card); }
+    const today = ymd(bdNow()), isTodayBD = iso => iso && ymd(new Date(new Date(iso).getTime() + 6 * 3600000)) === today;
+    const pub = ps.filter(p => !p.private && !p.draft && !(p.publishAt && p.published === false));
+    const todayCount = ps.filter(p => !p.private && !p.draft && isTodayBD(p.publishAt)).length;
+    const upcoming = ps.filter(p => !p.draft && p.publishAt && p.published === false).length;
+    const priv = ps.filter(p => p.private).length;
+    const small = pub.filter(p => wordsOf(p.content) < 400).length;
+    const gs = window.__googleStatus || {};
+    const notIdx = pub.filter(p => wordsOf(p.content) >= 50 && gs[slug(p.id)] !== 'indexed').length;
+    let pend = null, fu = null;
+    try{ if(Array.isArray(allRows) && allRows.length){ pend = allRows.filter(r => r.status === 'অপেক্ষমান').length; const t0 = new Date(); t0.setHours(23, 59, 59, 999); fu = allRows.filter(r => r.followupDate && r.status !== 'সম্পন্ন' && r.status !== 'বাতিল' && new Date(r.followupDate) <= t0).length; } }catch(_){}
+    const row = (ok, txt) => '<div>' + (ok ? '✅' : '⬜') + ' ' + txt + '</div>';
+    card.innerHTML = '<div style="font-weight:700;">📅 আজকের কাজ</div>' +
+      row(todayCount >= 3, 'আজ প্রকাশ/শিডিউল: <b>' + todayCount + '/৩</b> পোস্ট' + (upcoming ? ' · সামনে শিডিউল করা আছে ' + upcoming + 'টি' : '')) +
+      row(priv === 0, 'আনপাবলিক পড়ে আছে: <b>' + priv + 'টি</b>' + (priv ? ' — বড় করে প্রকাশ বা শিডিউল করুন' : '')) +
+      row(small === 0, '৪০০ শব্দের কম পাবলিক পোস্ট: <b>' + small + 'টি</b>') +
+      row(notIdx === 0, 'গুগলে ইনডেক্স হয়নি এমন পাবলিক পোস্ট: <b>' + notIdx + 'টি</b>' + (Object.keys(gs).length ? '' : ' (আগে "গুগল স্ট্যাটাস চেক" চালান)')) +
+      (pend === null ? '' : row(pend === 0, 'অপেক্ষমান আবেদন: <b>' + pend + 'টি</b>' + (fu ? ' · আজ ফলো-আপ বাকি <b>' + fu + 'টি</b>' : ''))) ;
+  }
+  (function(){ const o = window.__renderAdminPostsData; if(typeof o === 'function') window.__renderAdminPostsData = function(){ const r = o.apply(this, arguments); setTimeout(todayRender, 120); return r; }; })();
+
+  // ---------- দ্রুত উত্তরের টেমপ্লেট ----------
+  const QR_DEF = [
+    ['প্রাথমিক উত্তর', 'আসসালামু আলাইকুম {নাম}, আপনার বার্তার জন্য ধন্যবাদ। আপনার সমস্যাটা একটু বিস্তারিত লিখে জানাবেন? কোন প্ল্যাটফর্ম, কী এরর বা বার্তা দেখাচ্ছে, কবে থেকে হচ্ছে — আর সম্ভব হলে স্ক্রিনশট দিন। পাসওয়ার্ড বা OTP কখনও পাঠাবেন না।'],
+    ['আবেদন করার নিয়ম', 'আমাদের সাইটের "আবেদন করুন" ফর্মটি পূরণ করুন: https://alamingazi533.github.io/?form=1 — আবেদন করার পর একটা আবেদন নম্বর পাবেন, সেটা দিয়ে সাইট থেকেই অবস্থা দেখতে পারবেন।'],
+    ['আবেদন পেয়েছি', 'আপনার আবেদন {আবেদন নম্বর} পেয়েছি। তথ্য যাচাই করে আপনার সাথে যোগাযোগ করব। কিছুটা সময় লাগতে পারে, অনুগ্রহ করে অপেক্ষা করুন।'],
+    ['আরও তথ্য লাগবে', 'কাজ এগিয়ে নিতে এই তথ্যগুলো পাঠান: ১) অ্যাকাউন্ট বা পেজের লিংক (পাসওয়ার্ড নয়), ২) সমস্যার স্ক্রিনশট, ৩) কবে থেকে সমস্যা হচ্ছে।'],
+    ['নিশ্চয়তা নেই (স্পষ্ট করা)', 'জানিয়ে রাখি, অ্যাকাউন্ট ফেরত পাওয়া বা অনুমোদনের সিদ্ধান্ত সংশ্লিষ্ট প্ল্যাটফর্ম নেয়। আমরা ধাপগুলো বুঝতে ও সঠিকভাবে আবেদন করতে সহায়তা করি, ফলাফলের নিশ্চয়তা দিতে পারি না।'],
+    ['পাসওয়ার্ড/OTP সতর্কতা', 'দয়া করে আপনার পাসওয়ার্ড, OTP বা লগইন কোড আমাদের বা অন্য কাউকে দেবেন না। আমরা কখনও এগুলো চাই না।'],
+    ['ফি ও নীতি', 'আমাদের সেবার ফি ও ফেরত নীতি এখানে দেখুন: https://alamingazi533.github.io/terms.html — পেমেন্ট শুধু সাইটে দেখানো অফিসিয়াল নম্বরেই করবেন।'],
+    ['কাজ সম্পন্ন', 'আলহামদুলিল্লাহ, আপনার {আবেদন নম্বর} আবেদনের কাজ সম্পন্ন হয়েছে। এখন ২-ধাপ যাচাই (Two-Factor) চালু করে নিন এবং পাসওয়ার্ড বদলে ফেলুন। পরে কোনো সমস্যা হলে জানাবেন।'],
+  ];
+  const qrGet = () => { try{ const a = JSON.parse(localStorage.getItem('adminQuickReplies') || 'null'); if(Array.isArray(a) && a.length) return a; }catch(_){} return QR_DEF.map(x => x.slice()); };
+  const qrSet = a => { try{ localStorage.setItem('adminQuickReplies', JSON.stringify(a)); }catch(_){} };
+  function qrRender(card){
+    const a = qrGet(), box = card.querySelector('#qrBody');
+    box.innerHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;"><input id="qrName" placeholder="{নাম}" style="' + inSt + '"><input id="qrApp" placeholder="{আবেদন নম্বর} APP-XXXXXXXX" style="' + inSt + '"></div>' +
+      a.map((x, i) => '<div style="border-top:1px solid var(--line); padding:8px 0;"><input data-t="' + i + '" value="' + esc(x[0]) + '" style="width:100%; font-weight:700; border:0; background:transparent; color:var(--ink); font-family:inherit; font-size:13.5px; padding:2px 0;"><textarea data-b="' + i + '" rows="3" style="width:100%; ' + inSt + ' resize:vertical;">' + esc(x[1]) + '</textarea><div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap;"><button type="button" data-c="' + i + '" style="' + btnSt + '">📋 কপি</button><button type="button" data-w="' + i + '" style="' + btnSt + '">💬 WhatsApp</button><button type="button" data-d="' + i + '" style="padding:7px 12px; border:1px solid #b3261e; border-radius:6px; background:var(--card-bg); color:#b3261e; font-size:12.5px;">🗑</button></div></div>').join('') +
+      '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;"><button type="button" id="qrAdd" style="' + btnSt + '">➕ নতুন টেমপ্লেট</button><button type="button" id="qrReset" style="' + btnSt + '">↺ ডিফল্ট ফিরিয়ে আনুন</button></div><div style="font-size:11.5px; color:var(--muted); margin-top:6px;">লেখা বদলালে নিজে নিজে সেভ হয় (শুধু এই ডিভাইসের ব্রাউজারে)। {নাম} ও {আবেদন নম্বর} উপরের ঘর থেকে বসে যাবে।</div>';
+    const fill = t => t.replace(/\{নাম\}/g, (document.getElementById('qrName').value || '').trim() || 'ভাই/আপু').replace(/\{আবেদন নম্বর\}/g, (document.getElementById('qrApp').value || '').trim() || '(আবেদন নম্বর)');
+    const save = () => { qrSet(Array.from(box.querySelectorAll('textarea[data-b]')).map(t => [box.querySelector('input[data-t="' + t.getAttribute('data-b') + '"]').value, t.value])); };
+    box.oninput = e => { if(e.target.matches('textarea[data-b], input[data-t]')) save(); };
+    box.onclick = e => {
+      const t = e.target; if(!t.closest) return; const b = t.closest('button'); if(!b) return;
+      const get = i => box.querySelector('textarea[data-b="' + i + '"]').value;
+      if(b.hasAttribute('data-c')){ try{ __copyText(fill(get(b.getAttribute('data-c'))), '📋 কপি হয়েছে'); }catch(_){} }
+      else if(b.hasAttribute('data-w')){ window.open('https://wa.me/?text=' + encodeURIComponent(fill(get(b.getAttribute('data-w')))), '_blank'); }
+      else if(b.hasAttribute('data-d')){ if(!confirm('এই টেমপ্লেট মুছবেন?')) return; const arr = qrGet(); arr.splice(Number(b.getAttribute('data-d')), 1); qrSet(arr); qrRender(card); }
+      else if(b.id === 'qrAdd'){ const arr = qrGet(); arr.push(['নতুন টেমপ্লেট', '']); qrSet(arr); qrRender(card); }
+      else if(b.id === 'qrReset'){ if(!confirm('সব টেমপ্লেট ডিফল্টে ফিরবে। নিজের লেখা মুছে যাবে।')) return; qrSet(QR_DEF.map(x => x.slice())); qrRender(card); }
+    };
+  }
+  function qrEnsure(){
+    if(document.getElementById('qrCard')) return;
+    const anchor = document.getElementById('postsListStandalone'); if(!anchor) return;
+    const card = document.createElement('details'); card.id = 'qrCard'; card.style.cssText = 'margin:0 0 12px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--card-bg); color:var(--ink);';
+    card.innerHTML = '<summary style="cursor:pointer; font-weight:700; color:var(--forest);">💬 দ্রুত উত্তরের টেমপ্লেট (WhatsApp-এর জন্য)</summary><div id="qrBody" style="margin-top:10px;"></div>';
+    anchor.before(card);
+    card.addEventListener('toggle', () => { if(card.open && !card.__done){ card.__done = 1; qrRender(card); } });
+  }
+
+  // ---------- গুগল সার্চ রিপোর্ট ----------
+  const pct = x => (x * 100).toFixed(1) + '%';
+  window.__srRun = async function(fresh){
+    const panel = panelEl('srPanel'); panel.innerHTML = '<b>📊 গুগল সার্চ রিপোর্ট</b><div style="margin-top:6px;">⏳ আনা হচ্ছে… (একটু সময় লাগতে পারে)</div>';
+    let d = null;
+    try{ d = await (await fetch(SCRIPT_URL + '?action=getSearchReport&password=' + encodeURIComponent(pwd()) + (fresh ? '&fresh=1' : '') + '&_=' + Date.now(), {cache: 'no-store'})).json(); }catch(e){ d = {success: false, error: 'নেটওয়ার্ক সমস্যা'}; }
+    if(!d || !d.success){ panel.innerHTML = '<b>📊 গুগল সার্চ রিপোর্ট</b><div style="margin-top:6px; color:#b3261e;">❌ ' + esc((d && d.error) || 'আনা যায়নি') + '</div><div style="font-size:12px; color:var(--muted); margin-top:6px;">চেকার স্ক্রিপ্টে নতুন কোড (checker.gs) বসিয়ে New version ডিপ্লয় করেছেন কিনা দেখুন।</div>' + closeBtn(panel); return; }
+    const t = d.total || {c: 0, i: 0, ctr: 0, pos: 0}, byTitle = {}; posts().forEach(p => { byTitle[slug(p.id)] = p.title; });
+    const qs = d.queries || [], top = qs.slice().sort((a, b) => b.c - a.c || b.i - a.i).slice(0, 15);
+    const near = qs.filter(x => x.i >= 3 && x.pos >= 8 && x.pos <= 25).sort((a, b) => b.i - a.i).slice(0, 10);
+    const nocl = qs.filter(x => x.c === 0 && x.i >= 5).sort((a, b) => b.i - a.i).slice(0, 8);
+    const days = (d.days || []).slice().sort((a, b) => a.k < b.k ? -1 : 1), mx = Math.max(1, ...days.map(x => x.i));
+    const tr = days.length ? '<div style="display:flex; align-items:flex-end; gap:2px; height:56px; margin:8px 0;">' + days.map(x => '<div title="' + esc(x.k) + ': ' + x.c + ' ক্লিক, ' + x.i + ' ইমপ্রেশন" style="flex:1; background:#4a90d9; opacity:.75; height:' + Math.max(3, Math.round(x.i * 100 / mx)) + '%;"></div>').join('') + '</div><div style="font-size:11px; color:var(--muted);">প্রতিটি দাগ = একদিনের ইমপ্রেশন</div>' : '';
+    const qRow = x => '<div style="font-size:12.5px; padding:2px 0;"><b>' + esc(x.k) + '</b> <span style="color:var(--muted);">— ক্লিক ' + x.c + ', ইমপ্রেশন ' + x.i + ', গড় অবস্থান ' + x.pos.toFixed(1) + '</span></div>';
+    const pRow = x => { const m = String(x.k).match(/\/p\/([a-z0-9]{8})\.html/), ti = m && byTitle[m[1]]; return '<div style="font-size:12.5px; padding:2px 0;">' + esc(ti ? String(ti).slice(0, 60) : String(x.k).replace('https://alamingazi533.github.io', '') || '/') + ' <span style="color:var(--muted);">— ক্লিক ' + x.c + ', ইমপ্রেশন ' + x.i + '</span></div>'; };
+    panel.innerHTML = '<b>📊 গুগল সার্চ রিপোর্ট</b> <span style="font-size:12px; color:var(--muted);">(' + esc((d.range || {}).start) + ' থেকে ' + esc((d.range || {}).end) + (d.cached ? ', সেভ করা ডেটা' : '') + ')</span>' +
+      '<div style="margin:8px 0; font-size:13px;">মোট ক্লিক <b>' + t.c + '</b> · ইমপ্রেশন <b>' + t.i + '</b> · CTR <b>' + pct(t.ctr) + '</b> · গড় অবস্থান <b>' + (t.pos || 0).toFixed(1) + '</b></div>' + tr +
+      (qs.length ? '<div style="font-weight:700; margin-top:8px;">🔍 মানুষ যা লিখে আপনাকে পাচ্ছে (শীর্ষ ' + top.length + ')</div>' + top.map(qRow).join('') : '<div style="margin-top:8px; color:var(--muted);">এখনো কোনো সার্চ ডেটা নেই। নতুন সাইটে কিছুদিন লাগে।</div>') +
+      (near.length ? '<div style="font-weight:700; margin-top:10px;">🚀 প্রথম পাতার কাছাকাছি (অবস্থান ৮–২৫) — এই বিষয়ে লেখা আরও ভালো করুন</div>' + near.map(qRow).join('') : '') +
+      (nocl.length ? '<div style="font-weight:700; margin-top:10px;">👀 দেখা যাচ্ছে কিন্তু ক্লিক নেই — শিরোনাম ভালো করুন</div>' + nocl.map(qRow).join('') : '') +
+      ((d.pages || []).length ? '<div style="font-weight:700; margin-top:10px;">📄 সবচেয়ে চলা পেজ</div>' + d.pages.slice(0, 10).map(pRow).join('') : '') +
+      '<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button type="button" id="srFresh" style="' + btnSt + '">🔄 নতুন করে আনুন</button><button type="button" id="srCopy" style="' + btnSt + '">📋 সার্চ শব্দ কপি</button></div>' + closeBtn(panel);
+    document.getElementById('srFresh').onclick = () => window.__srRun(true);
+    document.getElementById('srCopy').onclick = () => { try{ __copyText(qs.slice(0, 40).map(x => x.k).join('\n'), '📋 ' + Math.min(40, qs.length) + 'টি সার্চ শব্দ কপি হয়েছে'); }catch(_){} };
+  };
+  function ensureToolBtn(){
+    const bt = document.getElementById('bulkTools'); if(!bt || document.getElementById('xtSr')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'xtSr'; b.style.cssText = btnSt; b.textContent = '📊 গুগল সার্চ রিপোর্ট'; b.onclick = () => window.__srRun(false); bt.appendChild(b);
+  }
+  setInterval(function(){ ensureBar(); ensureToolBtn(); qrEnsure(); if(document.getElementById('bulkTools') && !document.getElementById('todayCard')) todayRender(); }, 1500);
+})();
+</script>
 </body>
 </html>

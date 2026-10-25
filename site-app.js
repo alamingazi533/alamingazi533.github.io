@@ -2743,6 +2743,7 @@ document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('.fs-btn') : null;
   if(!b) return;
   if(b.classList.contains('pr-btn')){ try{ window.print(); }catch(_){} return; }
+  if(b.classList.contains('sv-btn')){ const on = svToggle(b.getAttribute('data-u'), b.getAttribute('data-t')); b.textContent = on ? '✅' : '🔖'; return; }
   let idx = 2;
   try{ const v = parseInt(localStorage.getItem('blogFontIdx'), 10); if(v >= 0 && v < BLOG_FONT_SIZES.length) idx = v; }catch(_){}
   idx = Math.min(BLOG_FONT_SIZES.length - 1, Math.max(0, idx + parseInt(b.getAttribute('data-fs'), 10)));
@@ -2778,7 +2779,7 @@ function blogShareRowHtml(post){
     b('wa', 'https://wa.me/?text=' + t + '%20' + url, 'WhatsApp-এ শেয়ার', svg('M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.6 12.4c-.2.5-1.1 1-1.5 1-.4.1-.9.1-2.9-.7-2.4-1-3.9-3.5-4-3.6-.1-.2-1-1.3-1-2.5s.6-1.7.8-2c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .5.4l.8 1.9c.1.1.1.3 0 .4l-.3.5-.4.4c-.1.1-.3.3-.1.5.2.3.7 1.2 1.5 1.9 1 .9 1.900 1.200 2.200 1.300.3.1.4.1.5-.1l.7-.9c.2-.2.3-.2.5-.1l1.800.9c.2.1.4.2.4.3.1.2.1.700-.1 1.200z')) +
     b('tg', 'https://t.me/share/url?url=' + url + '&text=' + t, 'Telegram-এ শেয়ার', svg('M20.7 4.3 3.4 11c-.8.3-.8.8-.1 1l4.400 1.400 1.700 5.200c.2.600.4.700.9.400l2.500-2 4.600 3.400c.8.5 1.400.2 1.600-.8l3-14.300c.3-1.200-.4-1.700-1.300-1.300zM9 13.200l8.600-5.400c.4-.3.800-.1.500.2l-7 6.300-.3 3-1.800-4.100z')) +
     b('x', 'https://twitter.com/intent/tweet?url=' + url + '&text=' + t, 'X-এ শেয়ার', svg('M17.800 3h3l-6.600 7.500L22 21h-6.100l-4.800-6.200L5.600 21h-3l7.100-8.100L2.200 3h6.200l4.300 5.700L17.800 3zm-1 16.200h1.700L7.400 4.700H5.600l11.200 14.500z')) +
-    '<span class="fs-wrap"><button type="button" class="fs-btn pr-btn" aria-label="প্রিন্ট বা PDF" style="font-size:15px">🖨</button><button type="button" class="fs-btn" data-fs="-1" aria-label="লেখা ছোট করুন" style="font-size:14px">অ</button><button type="button" class="fs-btn" data-fs="1" aria-label="লেখা বড় করুন" style="font-size:21px">অ</button></span>' +
+    '<span class="fs-wrap"><button type="button" class="fs-btn sv-btn" data-u="' + blogEscape(blogPostShareUrl(post)) + '" data-t="' + blogEscape(String(post.title || '').replace(/<[^>]*>/g, '')) + '" aria-label="পরে পড়ব" style="font-size:15px">' + (svHas(blogPostShareUrl(post)) ? '✅' : '🔖') + '</button><button type="button" class="fs-btn pr-btn" aria-label="প্রিন্ট বা PDF" style="font-size:15px">🖨</button><button type="button" class="fs-btn" data-fs="-1" aria-label="লেখা ছোট করুন" style="font-size:14px">অ</button><button type="button" class="fs-btn" data-fs="1" aria-label="লেখা বড় করুন" style="font-size:21px">অ</button></span>' +
   '</div>';
 }
 
@@ -2836,8 +2837,55 @@ function helpGuideCss(){
     '.hg-chips{display:flex;flex-wrap:wrap;gap:8px}.hg-plats{margin-bottom:8px}.hg-plats .hg-chip{padding:5px 12px;font-size:13.5px}.hg-chip{border:1px solid #DED0AE;background:#F2EBDA;color:#1F3B2C;border-radius:20px;padding:8px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}' +
     '.hg-chip.on{background:#1F3B2C;color:#fff}.hg-res{margin-top:12px}.hg-res a,.pop-posts a{display:block;padding:9px 0;border-top:1px solid #DED0AE;color:#22281F;text-decoration:none;font-weight:600}' +
     '.hg-cta{display:inline-block;margin-top:10px;background:#25D366;color:#fff!important;padding:10px 18px!important;border:0!important;border-radius:10px;font-weight:700}' +
-    '.pop-posts ol{margin:0;padding:0;list-style:none}.pop-posts small{color:#6B6752;font-weight:400}';
+    '.pop-posts ol{margin:0;padding:0;list-style:none}.pop-posts small{color:#6B6752;font-weight:400}' +
+    '.tools-strip,.saved-posts{max-width:760px;margin:18px auto;padding:16px;background:var(--card-bg,#fff);color:var(--ink,#22281F);border:1px solid var(--line,#DED0AE);border-radius:16px;box-sizing:border-box}' +
+    '.tools-strip h2,.saved-posts h2{margin:0 0 10px;font-size:20px;color:var(--forest,#1F3B2C)}' +
+    '.ts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.ts-grid a{display:block;padding:11px 12px;border:1px solid var(--line,#DED0AE);border-radius:12px;color:inherit;text-decoration:none;line-height:1.45}.ts-grid a b{display:block;color:var(--forest,#1F3B2C);font-size:15px}.ts-grid a small{color:var(--muted,#6B6752);font-size:12.5px}' +
+    '.sv-row{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line,#DED0AE);padding:8px 0}.sv-row a{flex:1;color:inherit;text-decoration:none;font-weight:600}.sv-row button{border:0;background:transparent;color:var(--muted,#6B6752);font-size:18px;cursor:pointer;padding:2px 8px}' +
+    '@media(max-width:520px){.ts-grid{grid-template-columns:1fr}}';
   document.head.appendChild(st);
+}
+// ============ "পরে পড়ব" তালিকা (ব্রাউজারেই থাকে) ============
+function svGet(){ try{ const a = JSON.parse(localStorage.getItem('savedPosts') || '[]'); return Array.isArray(a) ? a : []; }catch(_){ return []; } }
+function svSet(a){ try{ localStorage.setItem('savedPosts', JSON.stringify(a.slice(0, 50))); }catch(_){} }
+function svHas(u){ return svGet().some(x => x && x.u === u); }
+function svToggle(u, t){
+  const a = svGet(), i = a.findIndex(x => x && x.u === u);
+  if(i >= 0) a.splice(i, 1); else a.unshift({ u: u, t: t });
+  svSet(a); renderSavedPosts();
+  return i < 0;
+}
+function renderSavedPosts(){
+  try{
+    const anchor = document.getElementById('servicesSection');
+    if(!anchor || !anchor.parentNode) return;
+    helpGuideCss();
+    const a = svGet();
+    let el = document.getElementById('savedPosts');
+    if(!a.length){ if(el) el.remove(); return; }
+    if(!el){ el = document.createElement('section'); el.id = 'savedPosts'; el.className = 'saved-posts'; anchor.parentNode.insertBefore(el, anchor); }
+    el.innerHTML = '<h2>🔖 আমার সেভ করা পোস্ট</h2>' + a.slice(0, 6).map((x, i) =>
+      '<div class="sv-row"><a href="' + blogEscape(x.u) + '">' + blogEscape(String(x.t || '').replace(/<[^>]*>/g, '')) + '</a><button type="button" data-sv="' + i + '" aria-label="সরান">✖</button></div>').join('') +
+      (a.length > 6 ? '<div style="font-size:12.5px;color:var(--muted,#6B6752);padding-top:6px">আরও ' + (a.length - 6) + 'টি সেভ করা আছে</div>' : '');
+    el.onclick = e => {
+      const b = e.target.closest ? e.target.closest('button[data-sv]') : null; if(!b) return;
+      const cur = svGet(); cur.splice(Number(b.getAttribute('data-sv')), 1); svSet(cur); renderSavedPosts();
+    };
+  }catch(_){}
+}
+function renderToolsStrip(){
+  try{
+    const anchor = document.getElementById('servicesSection');
+    if(!anchor || !anchor.parentNode || document.getElementById('toolsStrip')) return;
+    helpGuideCss();
+    const s = document.createElement('section'); s.id = 'toolsStrip'; s.className = 'tools-strip';
+    s.innerHTML = '<h2>🛠 কাজের টুলস</h2><div class="ts-grid">' +
+      '<a href="safety-check.html"><b>🛡 নিরাপত্তা কুইজ</b><small>১ মিনিটে জানুন অ্যাকাউন্ট কতটা নিরাপদ</small></a>' +
+      '<a href="scam-check.html"><b>⚠️ প্রতারণা চেকার</b><small>মেসেজ বা অফার প্রতারণা কিনা যাচাই করুন</small></a>' +
+      '<a href="checklist-hacked.html"><b>✅ হ্যাক চেকলিস্ট</b><small>আইডি হ্যাক হলে প্রথম ১০ মিনিটে কী করবেন</small></a>' +
+      '<a href="glossary.html"><b>📖 শব্দকোষ</b><small>কঠিন ইংরেজি শব্দের সহজ বাংলা মানে</small></a></div>';
+    anchor.parentNode.insertBefore(s, anchor);
+  }catch(_){}
 }
 function renderHelpGuide(){
   try{
@@ -2884,6 +2932,8 @@ function renderHelpGuide(){
         '<li><a href="' + blogEscape(blogPostShareUrl(p)) + '">' + blogEscape(String(p.title).replace(/<[^>]*>/g, '')) +
         ' <small>(' + (Number(p.views) || 0) + ' বার পড়া)</small></a></li>').join('') + '</ol>';
     }
+    renderToolsStrip();
+    renderSavedPosts();
   }catch(_){}
 }
 
