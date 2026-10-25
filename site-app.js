@@ -885,7 +885,7 @@ downloadBtn.addEventListener('click', async ()=>{
           box.style.cssText = 'position:relative;background:#ffffff;width:' + size + 'px;height:' + size + 'px;';
           for(let r = 0; r < n; r++) for(let k = 0; k < n; k++) if(mx[r][k]){
             const d = document.createElement('div');
-            d.style.cssText = 'position:absolute;background:#1F3B2C;width:' + cell + 'px;height:' + cell + 'px;left:' + ((k + qz) * cell) + 'px;top:' + ((r + qz) * cell) + 'px;';
+            d.style.cssText = 'position:absolute;background:#1F3B2C;width:' + (cell + 0.6) + 'px;height:' + (cell + 0.6) + 'px;left:' + ((k + qz) * cell) + 'px;top:' + ((r + qz) * cell) + 'px;';
             box.appendChild(d);
           }
           qrBox.innerHTML = ''; qrBox.appendChild(box);
