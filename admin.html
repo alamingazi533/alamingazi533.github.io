@@ -4216,5 +4216,98 @@ function insertPostImage(id){
   setInterval(function(){ tplEnsure(); coverEnsure(); qnBtn(); }, 1500);
 })();
 </script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const btn = 'padding:7px 12px; border:1.5px solid var(--line); border-radius:8px; background:transparent; color:var(--ink); font-family:inherit; font-size:13px; cursor:pointer;';
+  const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+  function panel(id){
+    let p = $(id); const bt = $('bulkTools');
+    if(!p){ p = document.createElement('div'); p.id = id; p.style.cssText = 'border:1.5px solid var(--line); border-radius:10px; padding:12px; margin:10px 0; background:var(--card-bg);'; bt.parentNode.insertBefore(p, bt.nextSibling); }
+    ['calPanel','ideaPanel','qnPanel','srPanel'].forEach(o => { if(o !== id && $(o) && o !== 'srPanel' && o !== 'qnPanel') $(o).remove(); });
+    return p;
+  }
+  const close = id => '<button type="button" onclick="document.getElementById(\'' + id + '\').remove()" style="' + btn + ' margin-top:10px;">✖ বন্ধ করুন</button>';
+
+  // ---------- ১. কনটেন্ট ক্যালেন্ডার ----------
+  const dkey = d => d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  const dhaka = d => new Date(d.getTime() + 6 * 3600 * 1000);
+  const wd = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি'];
+  window.__calRun = function(){
+    const p = panel('calPanel'), list = posts();
+    if(!list.length){ p.innerHTML = '<b>🗓️ কনটেন্ট ক্যালেন্ডার</b><div style="margin-top:6px;color:var(--muted);">আগে পোস্টের তালিকা লোড হতে দিন, তারপর আবার চাপুন।</div>' + close('calPanel'); return; }
+    const done = {}, sched = {};
+    list.forEach(x => {
+      if(x.draft || x.private) return;
+      if(x.published){
+        const m = String(x.date || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if(m){ const k = m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); (done[k] = done[k] || []).push(x.title); }
+      } else if(x.publishAt){
+        const dt = new Date(x.publishAt); if(!isNaN(dt)){ const k = dkey(dhaka(dt)); (sched[k] = sched[k] || []).push(x.title); }
+      }
+    });
+    const now = dhaka(new Date()), rows = []; let weekDone = 0, streak = 0;
+    for(let o = -13; o <= 7; o++){
+      const d = new Date(now.getTime() + o * 86400000), k = dkey(d), a = (done[k] || []).length, s = (sched[k] || []).length;
+      rows.push({o, k, d, a, s, t: (done[k] || []).concat((sched[k] || []).map(t => '⏰ ' + t))});
+    }
+    for(let o = 0; o >= -6; o--){ const r = rows.find(x => x.o === o); weekDone += r.a; }
+    for(let o = 0; o >= -13; o--){ const r = rows.find(x => x.o === o); if(o === 0 && r.a === 0) continue; if(r.a >= 1) streak++; else break; }
+    const missed = rows.filter(r => r.o <= 0 && r.a === 0 && r.o > -7).length;
+    p.innerHTML = '<b>🗓️ কনটেন্ট ক্যালেন্ডার</b> <span style="font-size:12px;color:var(--muted);">(গত ১৪ দিন + আগামী ৭ দিন)</span>' +
+      '<div style="margin:8px 0;font-size:13px;">গত ৭ দিনে প্রকাশ: <b>' + bn(weekDone) + '</b> / লক্ষ্য ' + bn(21) + ' (রোজ ৩টা) · টানা পোস্ট দেওয়া দিন: <b>' + bn(streak) + '</b>' + (missed ? ' · পোস্ট ছাড়া দিন (গত ৭ দিন): <b style="color:#b3261e;">' + bn(missed) + '</b>' : '') + '</div>' +
+      rows.map(r => {
+        const col = r.o > 0 ? (r.s ? '#4a90d9' : 'var(--line)') : (r.a >= 3 ? '#2e7d32' : (r.a >= 1 ? '#e0a800' : '#b3261e'));
+        const lbl = r.o === 0 ? ' · আজ' : '';
+        return '<div style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--line);font-size:12.5px;"><div style="flex:none;width:92px;"><b>' + bn(r.d.getUTCDate()) + '/' + bn(r.d.getUTCMonth() + 1) + '</b> ' + wd[r.d.getUTCDay()] + lbl + '</div><div style="flex:none;min-width:26px;text-align:center;border-radius:6px;background:' + col + ';color:#fff;font-weight:700;padding:1px 6px;">' + bn(r.o > 0 ? r.s : r.a) + '</div><div style="flex:1;color:var(--muted);line-height:1.5;">' + (r.t.length ? r.t.slice(0, 3).map(t => esc(String(t).slice(0, 60))).join('<br>') + (r.t.length > 3 ? '<br>+ আরও ' + bn(r.t.length - 3) + 'টি' : '') : (r.o > 0 ? 'কিছু সিডিউল করা নেই' : '—')) + '</div></div>';
+      }).join('') +
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">🟢 ৩+ পোস্ট · 🟡 ১–২ পোস্ট · 🔴 কোনো পোস্ট নেই · 🔵 সিডিউল করা (⏰)। ড্রাফট ও প্রাইভেট পোস্ট গোনা হয় না।</div>' + close('calPanel');
+  };
+
+  // ---------- ২. পোস্টের আইডিয়া (সার্চে খোঁজে, কিন্তু পোস্ট নেই) ----------
+  const STOP = new Set(['meaning','bengali','bangla','in','the','a','an','is','to','of','and','for','এর','কি','কী','মানে','বাংলা','বাংলায়','কেন','how','what','why','does','do','my','you','your','can','cant','can\'t','not','এ','ও','হলে','করব','করবো','korbo']);
+  const toks = s => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w));
+  const plain = t => String(t || '').replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/<[^>]*>/g, ' ').toLowerCase();
+  window.__ideaRun = async function(){
+    const p = panel('ideaPanel'); p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b><div style="margin-top:6px;">⏳ গুগল সার্চের শব্দ আনা হচ্ছে…</div>';
+    let d; try{ d = await (await fetch(SCRIPT_URL + '?action=getSearchReport&password=' + encodeURIComponent(pwd()) + '&_=' + Date.now(), {cache: 'no-store'})).json(); }catch(e){ d = null; }
+    if(!d || !d.success){ p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b><div style="margin-top:6px;color:#b3261e;">❌ সার্চ ডেটা আনা যায়নি। "📊 গুগল সার্চ রিপোর্ট" বাটন কাজ করছে কিনা আগে দেখুন (checker.gs রিডেপ্লয় করা লাগে)।</div>' + close('ideaPanel'); return; }
+    const list = posts(), titles = list.map(x => toks(x.title)), bodies = list.map(x => plain(x.content));
+    const ideas = [], covered = [];
+    (d.queries || []).filter(q => q.i >= 2).forEach(q => {
+      const t = toks(q.k), phrase = String(q.k).toLowerCase().trim();
+      if(!t.length) return;
+      const need = Math.max(1, Math.ceil(t.length * 0.6));
+      const byTitle = titles.some(pt => t.filter(w => pt.some(x => x.indexOf(w) > -1 || w.indexOf(x) > -1)).length >= need);
+      const byBody = bodies.some(b => b.indexOf(phrase) > -1);
+      (byTitle || byBody ? covered : ideas).push(q);
+    });
+    ideas.sort((a, b) => b.i - a.i);
+    p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b> <span style="font-size:12px;color:var(--muted);">(মানুষ গুগলে যা খুঁজে আপনাকে পেয়েছে, কিন্তু সেই নামে পোস্ট নেই)</span>' +
+      (ideas.length ? ideas.slice(0, 20).map((q, i) => '<div data-i="' + i + '" style="border-top:1px solid var(--line);padding:8px 0;font-size:13px;"><div><b>' + esc(q.k) + '</b></div><div style="font-size:12px;color:var(--muted);margin:2px 0 6px;">ইমপ্রেশন ' + bn(q.i) + ' · ক্লিক ' + bn(q.c) + ' · গড় অবস্থান ' + (q.pos || 0).toFixed(1) + '</div><button type="button" class="idUse" style="' + btn + '">✍️ নতুন পোস্টের শিরোনামে বসান</button> <button type="button" class="idCp" style="' + btn + '">📋 কপি</button></div>').join('') : '<div style="margin-top:8px;color:var(--muted);">এখন এমন কোনো শব্দ নেই যার জন্য আপনার পোস্ট নেই। বা এখনো যথেষ্ট সার্চ ডেটা জমেনি।</div>') +
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">মিলানো হয় শিরোনাম ও লেখার শব্দ দিয়ে, তাই কিছু আইডিয়া ভুলে আসতে পারে, বসানোর আগে একবার দেখে নিন। যেসব শব্দের পোস্ট আছে বলে ধরা হয়েছে: ' + bn(covered.length) + 'টি।</div>' + close('ideaPanel');
+    p.querySelectorAll('[data-i]').forEach(el => {
+      const q = ideas[+el.getAttribute('data-i')];
+      el.querySelector('.idCp').onclick = () => { try{ __copyText(q.k, '📋 কপি হয়েছে'); }catch(_){ navigator.clipboard && navigator.clipboard.writeText(q.k); } };
+      el.querySelector('.idUse').onclick = () => {
+        const t = $('newPostTitle'); if(!t){ alert('"নতুন পোস্ট" ফর্ম খুঁজে পাওয়া গেল না।'); return; }
+        t.value = q.k; t.dispatchEvent(new Event('input', {bubbles: true}));
+        const det = t.closest('details'); if(det) det.open = true;
+        try{ t.scrollIntoView({behavior: 'smooth', block: 'center'}); t.focus(); }catch(_){}
+        (window.__adminToast || (()=>{}))('✅ শিরোনামে বসেছে। এবার লেখা লিখুন।', 'ok');
+      };
+    });
+  };
+  function ensure(){
+    const bt = $('bulkTools'); if(!bt) return;
+    if(!$('xtCal')){ const b = document.createElement('button'); b.type = 'button'; b.id = 'xtCal'; b.style.cssText = btn; b.textContent = '🗓️ কনটেন্ট ক্যালেন্ডার'; b.onclick = () => window.__calRun(); bt.appendChild(b); }
+    if(!$('xtIdea')){ const b = document.createElement('button'); b.type = 'button'; b.id = 'xtIdea'; b.style.cssText = btn; b.textContent = '💡 পোস্টের আইডিয়া'; b.onclick = () => window.__ideaRun(); bt.appendChild(b); }
+  }
+  setInterval(ensure, 1500);
+})();
+</script>
 </body>
 </html>
