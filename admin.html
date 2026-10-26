@@ -4275,6 +4275,7 @@ function insertPostImage(id){
     const p = panel('ideaPanel'); p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b><div style="margin-top:6px;">⏳ গুগল সার্চের শব্দ আনা হচ্ছে…</div>';
     let d; try{ d = await (await fetch(SCRIPT_URL + '?action=getSearchReport&password=' + encodeURIComponent(pwd()) + '&_=' + Date.now(), {cache: 'no-store'})).json(); }catch(e){ d = null; }
     if(!d || !d.success){ p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b><div style="margin-top:6px;color:#b3261e;">❌ সার্চ ডেটা আনা যায়নি। "📊 গুগল সার্চ রিপোর্ট" বাটন কাজ করছে কিনা আগে দেখুন (checker.gs রিডেপ্লয় করা লাগে)।</div>' + close('ideaPanel'); return; }
+    if(!Array.isArray(d.queries)){ p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b><div style="margin-top:6px;color:#b3261e;">❌ সার্চ ডেটায় শব্দের তালিকা নেই। চেকার স্ক্রিপ্ট (checker.gs) পুরোনো সংস্করণে আছে। নতুন কোড বসিয়ে New version করুন, তারপর আবার চাপুন।</div>' + close('ideaPanel'); return; }
     const list = posts(), titles = list.map(x => toks(x.title)), bodies = list.map(x => plain(x.content));
     const ideas = [], covered = [];
     (d.queries || []).filter(q => q.i >= 2).forEach(q => {
@@ -4288,7 +4289,7 @@ function insertPostImage(id){
     ideas.sort((a, b) => b.i - a.i);
     p.innerHTML = '<b>💡 নতুন পোস্টের আইডিয়া</b> <span style="font-size:12px;color:var(--muted);">(মানুষ গুগলে যা খুঁজে আপনাকে পেয়েছে, কিন্তু সেই নামে পোস্ট নেই)</span>' +
       (ideas.length ? ideas.slice(0, 20).map((q, i) => '<div data-i="' + i + '" style="border-top:1px solid var(--line);padding:8px 0;font-size:13px;"><div><b>' + esc(q.k) + '</b></div><div style="font-size:12px;color:var(--muted);margin:2px 0 6px;">ইমপ্রেশন ' + bn(q.i) + ' · ক্লিক ' + bn(q.c) + ' · গড় অবস্থান ' + (q.pos || 0).toFixed(1) + '</div><button type="button" class="idUse" style="' + btn + '">✍️ নতুন পোস্টের শিরোনামে বসান</button> <button type="button" class="idCp" style="' + btn + '">📋 কপি</button></div>').join('') : '<div style="margin-top:8px;color:var(--muted);">এখন এমন কোনো শব্দ নেই যার জন্য আপনার পোস্ট নেই। বা এখনো যথেষ্ট সার্চ ডেটা জমেনি।</div>') +
-      '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">মিলানো হয় শিরোনাম ও লেখার শব্দ দিয়ে, তাই কিছু আইডিয়া ভুলে আসতে পারে, বসানোর আগে একবার দেখে নিন। যেসব শব্দের পোস্ট আছে বলে ধরা হয়েছে: ' + bn(covered.length) + 'টি।</div>' + close('ideaPanel');
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;">গুগল থেকে মোট ' + bn((d.queries || []).length) + 'টি সার্চ শব্দ এসেছে (গত ২৮ দিন)। মিলানো হয় শিরোনাম ও লেখার শব্দ দিয়ে, তাই কিছু আইডিয়া ভুলে আসতে পারে, বসানোর আগে একবার দেখে নিন। যেসব শব্দের পোস্ট আছে বলে ধরা হয়েছে: ' + bn(covered.length) + 'টি।</div>' + close('ideaPanel');
     p.querySelectorAll('[data-i]').forEach(el => {
       const q = ideas[+el.getAttribute('data-i')];
       el.querySelector('.idCp').onclick = () => { try{ __copyText(q.k, '📋 কপি হয়েছে'); }catch(_){ navigator.clipboard && navigator.clipboard.writeText(q.k); } };
