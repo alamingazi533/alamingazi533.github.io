@@ -4370,7 +4370,7 @@ function insertPostImage(id){
     const hasNew = items.some(it => !it.key);
     p.innerHTML = '<b>📥 একসাথে পোস্ট ইমপোর্ট</b> <span style="font-size:12px;color:var(--muted);">(' + bn(items.length) + 'টা পোস্ট পাওয়া গেছে, বর্তমানে সাইটে ' + bn(posts.length) + 'টা)</span>' + rows +
       '<div style="margin-top:10px;display:grid;gap:8px;font-size:13px;">' +
-      '<label>নতুন পোস্ট কীভাবে যাবে? <select id="impMode" style="padding:7px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font-family:inherit;width:100%;margin-top:4px;"><option value="draft">📝 খসড়া — সাইটে দেখাবে না, আমি পরে নিজে প্রকাশ করব (নিরাপদ)</option><option value="sched">🗓️ সিডিউল — প্রতিদিন ১টা করে, কাল সকাল ১০টা থেকে</option><option value="now">🌐 এখনই পাবলিক (সাবস্ক্রাইবারদের নোটিফিকেশন যাবে)</option></select></label>' +
+      '<label>নতুন পোস্ট কীভাবে যাবে? <select id="impMode" style="padding:7px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font-family:inherit;width:100%;margin-top:4px;"><option value="private">🔒 আনপাবলিক — শুধু আমি দেখব, সাইটে দেখাবে না (নিরাপদ)</option><option value="draft">📝 খসড়া — সাইটে দেখাবে না, আমি পরে নিজে প্রকাশ করব (নিরাপদ)</option><option value="sched">🗓️ সিডিউল — প্রতিদিন ১টা করে, কাল সকাল ১০টা থেকে</option><option value="now">🌐 এখনই পাবলিক (সাবস্ক্রাইবারদের নোটিফিকেশন যাবে)</option></select></label>' +
       '<label><input type="checkbox" id="impCover" checked> 🎨 ছবি না থাকলে শিরোনাম থেকে কভার ছবি বানিয়ে বসাও</label>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="impGo" style="' + btn + 'background:var(--forest);color:#fff;border-color:var(--forest);">▶ নির্বাচিত পোস্টগুলো করুন</button><button type="button" id="impClose" style="' + btn + '">✖ বন্ধ করুন</button></div>' +
       '<div id="impLog" style="font-size:12.5px;line-height:1.7;"></div></div>';
@@ -4391,7 +4391,7 @@ function insertPostImage(id){
     if(!sel.length){ alert('কিছু নির্বাচন করা নেই।'); return; }
     const mode = $('impMode').value, cover = $('impCover').checked;
     const nNew = sel.filter(it => !it.key).length, nOld = sel.length - nNew;
-    if(!confirm(bn(nNew) + 'টা নতুন পোস্ট ও ' + bn(nOld) + 'টা পুরোনো পোস্ট আপডেট হবে' + (nNew ? (mode === 'now' ? '। নতুনগুলো এখনই পাবলিক হবে এবং নোটিফিকেশন যাবে।' : mode === 'sched' ? '। নতুনগুলো সিডিউল হবে।' : '। নতুনগুলো খসড়া থাকবে।') : '।') + ' এগোবেন?')) return;
+    if(!confirm(bn(nNew) + 'টা নতুন পোস্ট ও ' + bn(nOld) + 'টা পুরোনো পোস্ট আপডেট হবে' + (nNew ? (mode === 'private' ? '। নতুনগুলো আনপাবলিক থাকবে, সাইটে দেখাবে না।' : mode === 'now' ? '। নতুনগুলো এখনই পাবলিক হবে এবং নোটিফিকেশন যাবে।' : mode === 'sched' ? '। নতুনগুলো সিডিউল হবে।' : '। নতুনগুলো খসড়া থাকবে।') : '।') + ' এগোবেন?')) return;
     $('impGo').disabled = true; $('impLog').innerHTML = '';
     const d0 = new Date(); d0.setDate(d0.getDate() + 1); d0.setHours(10, 0, 0, 0); let day = 0;
     for(const it of sel){
@@ -4408,12 +4408,12 @@ function insertPostImage(id){
           }
           logf('✅ আপডেট: ' + label + imgNote, 'var(--ok)');
         } else {
-          const body = {action:'addPost', password: pwd(), title: it.title, content: it.content, category: cat(it.title), publishAt: '', status: mode === 'draft' ? 'draft' : ''};
+          const body = {action:'addPost', password: pwd(), title: it.title, content: it.content, category: cat(it.title), publishAt: '', status: mode === 'draft' ? 'draft' : (mode === 'private' ? 'private' : '')};
           if(mode === 'sched'){ const d = new Date(d0.getTime()); d.setDate(d.getDate() + day); day++; body.publishAt = d.toISOString(); }
           if(cover){ const du = await dataUrl(it.title); if(du){ body.imageBase64 = du; body.imageName = 'cover-' + Date.now() + '.jpg'; body.imageType = 'image/jpeg'; } }
           let r = await post(body);
           if(r && r.error === 'duplicate_image'){ body.allowDupImage = true; r = await post(body); }
-          if(r && r.success) logf('✅ নতুন: ' + label + (mode === 'draft' ? ' (খসড়া)' : mode === 'sched' ? ' (সিডিউল)' : ''), 'var(--ok)');
+          if(r && r.success) logf('✅ নতুন: ' + label + (mode === 'private' ? ' (আনপাবলিক)' : mode === 'draft' ? ' (খসড়া)' : mode === 'sched' ? ' (সিডিউল)' : ''), 'var(--ok)');
           else logf('❌ ' + label + ' — ' + (r && r.error === 'duplicate' ? 'আগে থেকেই আছে' : ((r && r.error) || 'হয়নি')), 'var(--maroon)');
         }
       }catch(e){ logf('❌ ' + label + ' — সংযোগে সমস্যা (হয়ে থাকতে পারে, তালিকা দেখে নিন)', 'var(--maroon)'); }
