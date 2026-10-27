@@ -4167,6 +4167,7 @@ function insertPostImage(id){
     x.font = '600 26px ' + ff; x.fillStyle = 'rgba(255,255,255,.8)'; x.fillText('সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা', 90, 545);
     return c;
   }
+  window.__coverMake = coverMake;
   function coverEnsure(){
     const inp = $('newPostImage'); if(!inp || $('coverGen')) return;
     const b = document.createElement('button'); b.type = 'button'; b.id = 'coverGen'; b.style.cssText = btn + ' margin:0 0 8px;'; b.textContent = '🎨 শিরোনাম থেকে কভার ছবি বানান';
@@ -4307,6 +4308,139 @@ function insertPostImage(id){
     const bt = $('bulkTools'); if(!bt) return;
     if(!$('xtCal')){ const b = document.createElement('button'); b.type = 'button'; b.id = 'xtCal'; b.style.cssText = btn; b.textContent = '🗓️ কনটেন্ট ক্যালেন্ডার'; b.onclick = () => window.__calRun(); bt.appendChild(b); }
     if(!$('xtIdea')){ const b = document.createElement('button'); b.type = 'button'; b.id = 'xtIdea'; b.style.cssText = btn; b.textContent = '💡 পোস্টের আইডিয়া'; b.onclick = () => window.__ideaRun(); bt.appendChild(b); }
+  }
+  setInterval(ensure, 1500);
+})();
+</script>
+<script>
+// ============ 📥 একসাথে পোস্ট ইমপোর্ট (নতুন পোস্ট + আইডি মিলিয়ে পুরোনো পোস্ট আপডেট, কভার ছবি সহ) ============
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  const btn = 'padding:7px 12px; border:1.5px solid var(--line); border-radius:8px; background:transparent; color:var(--ink); font-family:inherit; font-size:13px; cursor:pointer;';
+  const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+  const words = t => (String(t||'').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/^##\s+/gm,'').match(/\S+/g) || []).length;
+  const norm = s => String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+  let items = [], posts = [];
+  function cat(t){
+    if(/মনিটাইজ|আয়|ইনকাম|monetiz|earn/i.test(t)) return 'মনিটাইজেশন';
+    if(/প্রতারণা|সতর্ক|স্ক্যাম|ভুয়া|scam/i.test(t)) return 'সতর্কতা';
+    if(/হ্যাক|রিকভার|ফিরে|চেকপয়েন্ট|disabled|restricted|বন্ধ/i.test(t)) return 'রিকভারি';
+    return 'টিপস';
+  }
+  function parse(txt){
+    txt = String(txt||'').replace(/\r/g,'');
+    const parts = txt.split(/^={8,}[ \t]*\n([^\n]*)\n={8,}[ \t]*\n/m);
+    const out = [];
+    for(let i = 1; i < parts.length; i += 2){
+      const head = parts[i], body = parts[i+1] || '';
+      const mt = body.match(/(?:^|\n)শিরোনাম:[ \t]*\n?([\s\S]*?)\n[ \t]*\nলেখা:[ \t]*\n([\s\S]*)$/);
+      if(!mt) continue;
+      const title = mt[1].trim().replace(/\s*\n\s*/g,' ');
+      const content = mt[2].trim();
+      if(!title || !content) continue;
+      const idm = head.match(/\[([0-9a-fA-F]{8})\]/);
+      out.push({key: idm ? idm[1].toLowerCase() : '', title, content, head, on: true});
+    }
+    return out;
+  }
+  async function getPosts(){
+    try{ const d = await (await fetch(SCRIPT_URL + '?action=listPosts&password=' + encodeURIComponent(pwd()) + '&_=' + Date.now(), {cache:'no-store'})).json(); if(d && d.posts) return d.posts; }catch(e){}
+    return [];
+  }
+  function panel(){
+    let p = $('impPanel'); if(p){ p.remove(); }
+    p = document.createElement('div'); p.id = 'impPanel';
+    p.style.cssText = 'border:1.5px solid var(--line); border-radius:10px; padding:12px; margin:10px 0; background:var(--card-bg);';
+    const bt = $('bulkTools'); if(bt) bt.after(p); else document.body.prepend(p);
+    return p;
+  }
+  function render(p){
+    const rows = items.map((it, i) => {
+      const old = it.key ? posts.find(x => String(x.id).toLowerCase().indexOf(it.key) === 0) : null;
+      it.old = old || null;
+      const w = words(it.content);
+      const dup = !old && posts.some(x => norm(x.title) === norm(it.title));
+      const mode = it.key ? (old ? '✏️ পুরোনো পোস্ট আপডেট' : '⚠️ আইডি মেলেনি') : (dup ? '⚠️ একই শিরোনাম আছে' : '🆕 নতুন পোস্ট');
+      it.ok = it.key ? !!old : !dup;
+      return '<label style="display:block;border-top:1px solid var(--line);padding:8px 0;font-size:13px;cursor:pointer;"><input type="checkbox" data-i="' + i + '"' + (it.on && it.ok ? ' checked' : '') + (it.ok ? '' : ' disabled') + '> <b>' + esc(it.title) + '</b>' +
+        '<div style="font-size:12px;color:var(--muted);margin:2px 0 0 22px;">' + mode + ' · ' + bn(w) + ' শব্দ' + (w < 400 ? ' · ⚠️ ৪০০-র কম' : '') + (old ? ' · বর্তমান: ' + esc(String(old.title).slice(0,50)) : '') + ' · বিভাগ: ' + cat(it.title) + '</div></label>';
+    }).join('');
+    const hasNew = items.some(it => !it.key);
+    p.innerHTML = '<b>📥 একসাথে পোস্ট ইমপোর্ট</b> <span style="font-size:12px;color:var(--muted);">(' + bn(items.length) + 'টা পোস্ট পাওয়া গেছে, বর্তমানে সাইটে ' + bn(posts.length) + 'টা)</span>' + rows +
+      '<div style="margin-top:10px;display:grid;gap:8px;font-size:13px;">' +
+      '<label>নতুন পোস্ট কীভাবে যাবে? <select id="impMode" style="padding:7px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font-family:inherit;width:100%;margin-top:4px;"><option value="draft">📝 খসড়া — সাইটে দেখাবে না, আমি পরে নিজে প্রকাশ করব (নিরাপদ)</option><option value="sched">🗓️ সিডিউল — প্রতিদিন ১টা করে, কাল সকাল ১০টা থেকে</option><option value="now">🌐 এখনই পাবলিক (সাবস্ক্রাইবারদের নোটিফিকেশন যাবে)</option></select></label>' +
+      '<label><input type="checkbox" id="impCover" checked> 🎨 ছবি না থাকলে শিরোনাম থেকে কভার ছবি বানিয়ে বসাও</label>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="impGo" style="' + btn + 'background:var(--forest);color:#fff;border-color:var(--forest);">▶ নির্বাচিত পোস্টগুলো করুন</button><button type="button" id="impClose" style="' + btn + '">✖ বন্ধ করুন</button></div>' +
+      '<div id="impLog" style="font-size:12.5px;line-height:1.7;"></div></div>';
+    p.querySelectorAll('input[data-i]').forEach(c => c.onchange = () => { items[+c.getAttribute('data-i')].on = c.checked; });
+    $('impClose').onclick = () => p.remove();
+    $('impGo').onclick = () => run(p);
+  }
+  function logf(t, c){ const l = $('impLog'); if(!l) return; const d = document.createElement('div'); d.textContent = t; if(c) d.style.color = c; l.appendChild(d); }
+  function dataUrl(title){
+    return new Promise(res => {
+      const go = () => { try{ res(window.__coverMake(title).toDataURL('image/jpeg', 0.9)); }catch(e){ res(''); } };
+      (document.fonts && document.fonts.load) ? document.fonts.load("700 40px 'Noto Serif Bengali'", title).then(go, go) : go();
+    });
+  }
+  async function post(body){ return await (await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body)})).json(); }
+  async function run(p){
+    const sel = items.filter(it => it.on && it.ok);
+    if(!sel.length){ alert('কিছু নির্বাচন করা নেই।'); return; }
+    const mode = $('impMode').value, cover = $('impCover').checked;
+    const nNew = sel.filter(it => !it.key).length, nOld = sel.length - nNew;
+    if(!confirm(bn(nNew) + 'টা নতুন পোস্ট ও ' + bn(nOld) + 'টা পুরোনো পোস্ট আপডেট হবে' + (nNew ? (mode === 'now' ? '। নতুনগুলো এখনই পাবলিক হবে এবং নোটিফিকেশন যাবে।' : mode === 'sched' ? '। নতুনগুলো সিডিউল হবে।' : '। নতুনগুলো খসড়া থাকবে।') : '।') + ' এগোবেন?')) return;
+    $('impGo').disabled = true; $('impLog').innerHTML = '';
+    const d0 = new Date(); d0.setDate(d0.getDate() + 1); d0.setHours(10, 0, 0, 0); let day = 0;
+    for(const it of sel){
+      const label = it.title.slice(0, 40);
+      try{
+        if(it.key){
+          const row = it.old.rowIndex;
+          const r = await post({__get: true, params: {action:'editPost', password: pwd(), row: String(row), title: it.title, content: it.content, category: it.old.category || cat(it.title)}});
+          if(!r.success){ logf('❌ ' + label + ' — ' + (r.error || 'হয়নি'), 'var(--maroon)'); continue; }
+          let imgNote = '';
+          if(cover && !it.old.imageUrl){
+            const du = await dataUrl(it.title);
+            if(du){ const ri = await post({action:'updatePostImage', password: pwd(), row: row, imageBase64: du, imageName: 'cover-' + Date.now() + '.jpg', imageType: 'image/jpeg'}); imgNote = ri && ri.success ? ' + কভার ছবি' : ' (ছবি বসেনি)'; }
+          }
+          logf('✅ আপডেট: ' + label + imgNote, 'var(--ok)');
+        } else {
+          const body = {action:'addPost', password: pwd(), title: it.title, content: it.content, category: cat(it.title), publishAt: '', status: mode === 'draft' ? 'draft' : ''};
+          if(mode === 'sched'){ const d = new Date(d0.getTime()); d.setDate(d.getDate() + day); day++; body.publishAt = d.toISOString(); }
+          if(cover){ const du = await dataUrl(it.title); if(du){ body.imageBase64 = du; body.imageName = 'cover-' + Date.now() + '.jpg'; body.imageType = 'image/jpeg'; } }
+          let r = await post(body);
+          if(r && r.error === 'duplicate_image'){ body.allowDupImage = true; r = await post(body); }
+          if(r && r.success) logf('✅ নতুন: ' + label + (mode === 'draft' ? ' (খসড়া)' : mode === 'sched' ? ' (সিডিউল)' : ''), 'var(--ok)');
+          else logf('❌ ' + label + ' — ' + (r && r.error === 'duplicate' ? 'আগে থেকেই আছে' : ((r && r.error) || 'হয়নি')), 'var(--maroon)');
+        }
+      }catch(e){ logf('❌ ' + label + ' — সংযোগে সমস্যা (হয়ে থাকতে পারে, তালিকা দেখে নিন)', 'var(--maroon)'); }
+    }
+    logf('শেষ। পোস্ট তালিকা রিফ্রেশ হচ্ছে। সাইটে আসতে ১–২ মিনিট লাগতে পারে।');
+    try{ loadAdminPosts(); }catch(e){}
+    $('impGo').disabled = false;
+  }
+  window.__impRun = async function(){
+    const p = panel();
+    p.innerHTML = '<b>📥 একসাথে পোস্ট ইমপোর্ট</b><div style="font-size:12.5px;color:var(--muted);margin:6px 0;">আমার দেওয়া পোস্টের ফাইল (posts3.txt বা expand.txt) এখানে পেস্ট করুন, অথবা ফাইল বেছে নিন।</div>' +
+      '<textarea id="impTxt" style="width:100%;min-height:120px;padding:8px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:13px;background:transparent;color:var(--ink);"></textarea>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><input type="file" id="impFile" accept=".txt,text/plain" style="font-size:12.5px;max-width:100%;"><button type="button" id="impPrev" style="' + btn + '">👁 প্রিভিউ দেখুন</button><button type="button" id="impX" style="' + btn + '">✖</button></div><div id="impMsg" style="font-size:12.5px;margin-top:6px;"></div>';
+    $('impX').onclick = () => p.remove();
+    $('impFile').onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { $('impTxt').value = String(r.result || ''); }; r.readAsText(f, 'utf-8'); };
+    $('impPrev').onclick = async () => {
+      items = parse($('impTxt').value);
+      if(!items.length){ $('impMsg').textContent = '❌ কোনো পোস্ট পাওয়া যায়নি। ফাইলের পুরো লেখা পেস্ট করেছেন কি?'; $('impMsg').style.color = 'var(--maroon)'; return; }
+      $('impMsg').textContent = '⏳ সাইটের বর্তমান পোস্ট মেলানো হচ্ছে…'; $('impMsg').style.color = '';
+      posts = await getPosts();
+      if(!posts.length){ $('impMsg').textContent = '❌ বর্তমান পোস্টের তালিকা আনা যায়নি। লগইন আছে কিনা দেখে আবার চেষ্টা করুন।'; $('impMsg').style.color = 'var(--maroon)'; return; }
+      render(p);
+    };
+  };
+  function ensure(){
+    const bt = $('bulkTools'); if(!bt || $('xtImp')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'xtImp'; b.style.cssText = btn; b.textContent = '📥 একসাথে পোস্ট ইমপোর্ট'; b.onclick = () => window.__impRun(); bt.appendChild(b);
   }
   setInterval(ensure, 1500);
 })();
