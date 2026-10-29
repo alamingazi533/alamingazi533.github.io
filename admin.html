@@ -4654,5 +4654,56 @@ function insertPostImage(id){
   setInterval(ensure,1500);
 })();
 </script>
+<script>
+// Search Console CSV বিশ্লেষণ: কোন পোস্টে ইম্প্রেশন বেশি কিন্তু ক্লিক কম
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function parseCsv(t){
+    t=String(t||'').replace(/^﻿/,''); var rows=[],r=[],c='',q=false;
+    for(var i=0;i<t.length;i++){ var ch=t[i];
+      if(q){ if(ch==='"'){ if(t[i+1]==='"'){c+='"';i++;} else q=false; } else c+=ch; }
+      else if(ch==='"') q=true; else if(ch===','){ r.push(c); c=''; }
+      else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n') i++; r.push(c); c=''; if(r.length>1||r[0]!=='') rows.push(r); r=[]; }
+      else c+=ch; }
+    if(c!==''||r.length){ r.push(c); rows.push(r); } return rows;
+  }
+  function num(v){ return parseFloat(String(v||'').replace(/[%,\s]/g,''))||0; }
+  function postBySlug(){ var m={}; Object.values(window.__adminPostsData||{}).forEach(function(p){ if(p&&p.id) m[String(p.id).replace(/[^a-zA-Z0-9]/g,'').slice(0,8).toLowerCase()]=p; }); return m; }
+  function run(text){
+    var rows=parseCsv(text); if(rows.length<2){ alert('ফাইলটা খালি বা ভুল ফরম্যাটের।'); return; }
+    var h=rows[0].map(function(x){return x.trim().toLowerCase();});
+    function col(re){ for(var i=0;i<h.length;i++) if(re.test(h[i])) return i; return -1; }
+    var kC=col(/quer|page|পৃষ্ঠা|প্রশ্ন|url/), cl=col(/click|ক্লিক/), im=col(/impress|ইম্প্রেশন/), po=col(/position|অবস্থান/);
+    if(kC<0||cl<0||im<0){ alert('কলাম পাওয়া যায়নি। Search Console থেকে "Queries" বা "Pages" ট্যাবের Export → CSV ডাউনলোড করে দিন।'); return; }
+    var isPage=/page|url|পৃষ্ঠা/.test(h[kC]), by=postBySlug();
+    var list=rows.slice(1).map(function(r){ return {k:r[kC]||'',c:num(r[cl]),i:num(r[im]),p:po>=0?num(r[po]):0}; }).filter(function(x){return x.k&&x.i>0;});
+    list.forEach(function(x){ x.ctr=x.i?x.c/x.i*100:0; var m=x.k.match(/\/p\/([a-z0-9]{8})\.html/i); x.post=m?by[m[1].toLowerCase()]:null; });
+    var tot=list.reduce(function(a,x){a.c+=x.c;a.i+=x.i;return a;},{c:0,i:0});
+    var low=list.filter(function(x){return x.i>=10&&x.ctr<3;}).sort(function(a,b){return b.i-a.i;}).slice(0,25);
+    var near=list.filter(function(x){return x.p>=8&&x.p<=20&&x.i>=5;}).sort(function(a,b){return b.i-a.i;}).slice(0,20);
+    var old=document.getElementById('gscPanel'); if(old) old.remove();
+    var p=document.createElement('div'); p.id='gscPanel'; p.style.cssText='margin:8px 0 12px;padding:12px;border:1.5px solid var(--forest);border-radius:10px;background:var(--card-bg);color:var(--ink);font-size:13px;line-height:1.55;';
+    function row(x){ var name=isPage?(x.post?x.post.title:x.k):x.k; return '<div style="border-bottom:1px solid var(--line);padding:6px 0;"><div style="font-weight:700;word-break:break-word;">'+esc(name)+'</div><div style="color:var(--muted);font-size:12px;">ইম্প্রেশন '+x.i+' · ক্লিক '+x.c+' · CTR '+x.ctr.toFixed(1)+'%'+(x.p?' · অবস্থান '+x.p.toFixed(1):'')+'</div></div>'; }
+    p.innerHTML='<b>📈 Search Console বিশ্লেষণ ('+(isPage?'পেজ':'সার্চ শব্দ')+')</b>'
+      +'<div style="margin:6px 0;">মোট ইম্প্রেশন <b>'+tot.i+'</b> · ক্লিক <b>'+tot.c+'</b> · গড় CTR <b>'+(tot.i?(tot.c/tot.i*100).toFixed(1):0)+'%</b></div>'
+      +'<div style="margin-top:8px;font-weight:800;color:#8a5a00;">⚠️ ইম্প্রেশন বেশি, ক্লিক কম ('+low.length+')</div><div style="font-size:12px;color:var(--muted);">এগুলোর শিরোনাম বদলান: ইংরেজি এরর টেক্সট + "বাংলায় মানে/সমাধান" যোগ করুন।</div>'+(low.map(row).join('')||'<div>নেই।</div>')
+      +'<div style="margin-top:10px;font-weight:800;color:#1e6b34;">🎯 পেজ ১-এর কাছে (অবস্থান ৮–২০) ('+near.length+')</div><div style="font-size:12px;color:var(--muted);">লেখা আরও বড় ও পরিষ্কার করলে প্রথম পাতায় উঠতে পারে।</div>'+(near.map(row).join('')||'<div>নেই।</div>')
+      +'<div style="margin-top:8px;"><button type="button" id="gscX" style="padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card-bg);color:var(--ink);font-size:12.5px;">✖ বন্ধ করুন</button></div>';
+    var bt=document.getElementById('bulkTools'); (bt||document.getElementById('postsList')).after(p);
+    p.querySelector('#gscX').onclick=function(){p.remove();}; p.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function ensure(){
+    var bt=document.getElementById('bulkTools'); if(!bt||document.getElementById('xtGsc')) return;
+    var b=document.createElement('button'); b.type='button'; b.id='xtGsc';
+    var ref=document.getElementById('xtDup'); b.style.cssText=ref?ref.style.cssText:'padding:8px 12px;border:1px solid var(--forest);border-radius:8px;background:var(--card-bg);color:var(--forest);font-weight:700;font-size:13px;';
+    b.textContent='📊 Search Console CSV';
+    var f=document.createElement('input'); f.type='file'; f.accept='.csv,text/csv'; f.style.display='none';
+    f.onchange=function(){ var fl=f.files&&f.files[0]; if(!fl) return; var r=new FileReader(); r.onload=function(){ run(r.result); }; r.readAsText(fl); f.value=''; };
+    b.onclick=function(){ f.click(); };
+    bt.appendChild(b); bt.appendChild(f);
+  }
+  setInterval(ensure,1500);
+})();
+</script>
 </body>
 </html>
