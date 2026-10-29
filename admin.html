@@ -4445,5 +4445,39 @@ function insertPostImage(id){
   setInterval(ensure, 1500);
 })();
 </script>
+<script>
+// পোস্ট-লিস্টের টুলগুলো (গুগল স্ট্যাটাস, আজকের কাজ, লক্ষ্য, টুল বাটন) সবসময় "পোস্টের লিস্ট আলাদা" অংশে একবারই থাকবে
+(function(){
+  var ORDER=['gCheckBar','todayCard','goalCard','bulkTools'];
+  function fix(){
+    try{
+      var lst=document.getElementById('postsList'); if(!lst||!lst.parentNode) return;
+      var body=lst.parentNode;
+      // ১) একই আইডির বাড়তি কপি থাকলে সরান (যেটা লিস্টের সাথে আছে সেটা রাখুন)
+      ORDER.forEach(function(id){
+        var all=[].slice.call(document.querySelectorAll('[id="'+id+'"]'));
+        if(all.length>1){
+          var keep=all.filter(function(e){return e.parentNode===body;})[0]||all[all.length-1];
+          all.forEach(function(e){ if(e!==keep) e.remove(); });
+        }
+      });
+      // ২) লিস্ট যেখানে আছে, টুলগুলো ঠিক তার ওপরে নিয়ে আসুন (পরপর)
+      ORDER.forEach(function(id){
+        var e=document.getElementById(id);
+        if(e && e.parentNode!==body){ body.insertBefore(e,lst); }
+      });
+      // ক্রম ঠিক রাখুন: gCheckBar → todayCard → goalCard → bulkTools → লিস্ট
+      var prev=null;
+      ORDER.forEach(function(id){
+        var e=document.getElementById(id); if(!e||e.parentNode!==body) return;
+        if(prev && prev.nextSibling!==e && e.previousElementSibling!==prev){ /* অন্য উপাদান মাঝে থাকলেও সমস্যা নেই */ }
+        prev=e;
+      });
+    }catch(e){}
+  }
+  setInterval(fix,1200);
+  setTimeout(fix,300);
+})();
+</script>
 </body>
 </html>
