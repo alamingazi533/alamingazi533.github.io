@@ -4479,5 +4479,83 @@ function insertPostImage(id){
   setTimeout(fix,300);
 })();
 </script>
+<style id="tabsCss">
+#adminTabs{position:sticky;top:0;z-index:60;display:flex;gap:6px;overflow-x:auto;padding:8px 2px;margin:0 0 10px;background:var(--bg,#faf6ee);border-bottom:1px solid var(--line,#ddd);-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#adminTabs::-webkit-scrollbar{display:none}
+#adminTabs button{flex:0 0 auto;padding:9px 14px;border:1.5px solid var(--line,#ddd);border-radius:999px;background:var(--card-bg,#fff);color:var(--ink,#222);font:700 13.5px/1 inherit;font-family:inherit;white-space:nowrap;cursor:pointer}
+#adminTabs button.on{background:var(--forest,#1f4d3a);border-color:var(--forest,#1f4d3a);color:#fff}
+#adminTabs button .tb{display:inline-block;min-width:18px;padding:2px 6px;margin-left:6px;border-radius:99px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;line-height:1.2}
+.tabHide{display:none !important}
+#panel main > details,#panel main > div[class=""]{border-radius:14px}
+</style>
+<script>
+// অ্যাডমিন প্যানেলকে ৫টা ট্যাবে ভাগ করা (কোনো টুল বা ডেটা বদলায়নি, শুধু কোনটা কখন দেখা যাবে)
+(function(){
+  var TABS=[['apps','📋 আবেদন'],['posts','✍️ পোস্ট'],['inbox','💬 গ্রাহক'],['stats','📊 আয় ও রিপোর্ট'],['set','⚙️ সেটিংস']];
+  var cur='apps';
+  try{ var sv=localStorage.getItem('adminTab'); if(sv && TABS.some(function(t){return t[0]===sv;})) cur=sv; }catch(e){}
+  var byId={dashboard:'apps',filterRow:'apps',dateFilterRow:'apps',workflowPatchFilters:'apps',bulkActionBar:'apps',qrCard:'apps',summary:'apps',lastUpdated:'apps',loadingMsg:'apps',emptyMsg:'apps',list:'apps',
+    postQuickActions:'hide',postsListStandalone:'posts',scheduledPostsStandalone:'posts',privatePostsStandalone:'posts',
+    verifiedRevenueCard:'stats',snapshotCard:'set',appsManagerSection:'set'};
+  var byText=[[/ভিজিটর অ্যানালিটিক্স|Verified Payment|আয়ের হিসাব/,'stats'],[/গ্রাহক রিভিউ|পোস্ট কমেন্ট|ব্লগ সাবস্ক্রাইবার/,'inbox'],[/নতুন পোস্ট/,'posts'],
+    [/সাইট সেটিংস|একই ছবি|ডেটা ব্যাকআপ|নিরাপত্তা ও রিকভারি|Apps \/ Download/,'set'],[/CSV ডাউনলোড/,'apps']];
+  function classify(el,prevTab){
+    if(el.id==='adminTabs') return 'keep';
+    if(el.id && byId[el.id]) return byId[el.id];
+    var t=((el.innerText||el.textContent||'').trim()).slice(0,120);
+    for(var i=0;i<byText.length;i++) if(byText[i][0].test(t)) return byText[i][1];
+    return prevTab||'apps';
+  }
+  function main(){ return document.querySelector('#panel main'); }
+  function apply(){
+    var m=main(); if(!m) return;
+    var prev=null;
+    [].slice.call(m.children).forEach(function(el,i){
+      var tab=el.getAttribute('data-tab');
+      if(!tab){ tab=classify(el,prev); if(tab==='keep') return; el.setAttribute('data-tab',tab); }
+      if(tab==='keep') return;
+      prev=tab;
+      var show=(tab===cur);
+      if(tab==='hide') show=false;
+      el.classList.toggle('tabHide',!show);
+    });
+    var bar=document.getElementById('adminTabs');
+    if(bar) [].forEach.call(bar.querySelectorAll('button'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===cur); });
+  }
+  function setTab(t,noScroll){
+    cur=t; try{ localStorage.setItem('adminTab',t); }catch(e){}
+    apply();
+    if(!noScroll){ var bar=document.getElementById('adminTabs'); if(bar) bar.scrollIntoView({block:'start'}); }
+  }
+  function build(){
+    var m=main(); if(!m) return;
+    if(document.getElementById('adminTabs')){ apply(); return; }
+    var bar=document.createElement('div'); bar.id='adminTabs';
+    TABS.forEach(function(t){ var b=document.createElement('button'); b.type='button'; b.setAttribute('data-t',t[0]); b.textContent=t[1]; b.onclick=function(){ setTab(t[0]); }; bar.appendChild(b); });
+    m.insertBefore(bar,m.firstChild);
+    apply();
+  }
+  // অন্য জায়গা থেকে কোনো লুকানো অংশে স্ক্রল করলে আপনা আপনি সেই ট্যাবে চলে যাবে
+  var sv=Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView=function(){
+    try{ var a=this; while(a && a!==document.body){ if(a.getAttribute && a.getAttribute('data-tab') && a.classList.contains('tabHide')){ setTab(a.getAttribute('data-tab'),true); break; } a=a.parentElement; } }catch(e){}
+    return sv.apply(this,arguments);
+  };
+  // আবেদন ট্যাবে অপেক্ষমান সংখ্যা দেখান
+  function badge(){
+    try{
+      var d=document.getElementById('dashboard'); if(!d) return;
+      var cells=d.querySelectorAll('div'); var n=0;
+      var txt=(d.innerText||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+      var i=txt.indexOf('অপেক্ষমান'); if(i>0 && /^\d+$/.test(txt[i-1])) n=parseInt(txt[i-1],10);
+      var b=document.querySelector('#adminTabs button[data-t="apps"]'); if(!b) return;
+      var old=b.querySelector('.tb'); if(old) old.remove();
+      if(n>0){ var s=document.createElement('span'); s.className='tb'; s.textContent=n; b.appendChild(s); }
+    }catch(e){}
+  }
+  setInterval(function(){ build(); apply(); badge(); },1200);
+  setTimeout(function(){ build(); },200);
+})();
+</script>
 </body>
 </html>
