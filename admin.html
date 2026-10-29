@@ -4153,18 +4153,61 @@ function insertPostImage(id){
     if(line) lines.push(line); return lines;
   }
   function coverMake(title){
+    title = String(title || '').replace(/\s+/g, ' ').trim();
     const c = document.createElement('canvas'); c.width = 1200; c.height = 630; const x = c.getContext('2d');
-    let col = ['#1F3B2C', '#2E5A43'], tag = '';
-    for(const p of PLAT){ if(p[0].test(title)){ col = p[1]; tag = p[2]; break; } }
-    const g = x.createLinearGradient(0, 0, 1200, 630); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]); x.fillStyle = g; x.fillRect(0, 0, 1200, 630);
-    x.fillStyle = 'rgba(255,255,255,.08)'; x.beginPath(); x.arc(1050, 90, 220, 0, 7); x.fill(); x.beginPath(); x.arc(120, 600, 180, 0, 7); x.fill();
+    let col = ['#1F3B2C', '#2E5A43'], tag = '', key = '';
+    for(const p of PLAT){ if(p[0].test(title)){ col = p[1]; tag = p[2]; key = p[2]; break; } }
+    const hasBn = /[ঀ-৿]/.test(title);
     const ff = "'Noto Serif Bengali','Noto Sans Bengali','Hind Siliguri',FreeSans,sans-serif";
-    let size = 68, lines; x.fillStyle = '#fff'; x.textBaseline = 'top';
-    for(; size >= 40; size -= 4){ x.font = '700 ' + size + 'px ' + ff; lines = wrap(x, title, 1020); if(lines.length <= 4) break; }
-    lines = lines.slice(0, 4); const lh = size * 1.4, top = (630 - lines.length * lh) / 2 - 10;
-    lines.forEach((l, i) => x.fillText(l, 90, top + i * lh));
-    if(tag){ x.font = '700 30px ' + ff; x.fillStyle = 'rgba(255,255,255,.85)'; x.fillText(tag, 90, 70); }
-    x.font = '600 26px ' + ff; x.fillStyle = 'rgba(255,255,255,.8)'; x.fillText('সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা', 90, 545);
+    // ব্যাকগ্রাউন্ড: গ্রেডিয়েন্ট + হালকা কোনাকুনি দাগ + বড় বৃত্ত
+    const g = x.createLinearGradient(0, 0, 1200, 630); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]); x.fillStyle = g; x.fillRect(0, 0, 1200, 630);
+    x.save(); x.strokeStyle = 'rgba(255,255,255,.05)'; x.lineWidth = 2;
+    for(let i = -700; i < 1300; i += 46){ x.beginPath(); x.moveTo(i, 630); x.lineTo(i + 630, 0); x.stroke(); }
+    x.restore();
+    x.fillStyle = 'rgba(255,255,255,.09)'; x.beginPath(); x.arc(1090, 70, 230, 0, 7); x.fill();
+    x.fillStyle = 'rgba(0,0,0,.14)'; x.beginPath(); x.arc(80, 640, 210, 0, 7); x.fill();
+    // প্ল্যাটফর্ম ব্যাজ (ওপরে বাঁয়ে)
+    const bx = 80, by = 58, bs = 84;
+    x.fillStyle = '#fff'; x.beginPath(); x.roundRect ? x.roundRect(bx, by, bs, bs, 22) : x.rect(bx, by, bs, bs); x.fill();
+    x.fillStyle = col[0]; x.textBaseline = 'middle'; x.textAlign = 'center';
+    if(key === 'Instagram'){
+      x.strokeStyle = col[0]; x.lineWidth = 7; x.beginPath(); x.roundRect ? x.roundRect(bx + 20, by + 20, 44, 44, 12) : x.rect(bx + 20, by + 20, 44, 44); x.stroke();
+      x.beginPath(); x.arc(bx + 42, by + 42, 11, 0, 7); x.stroke(); x.beginPath(); x.arc(bx + 56, by + 28, 3.5, 0, 7); x.fill();
+    } else {
+      const glyph = {Facebook: 'f', YouTube: '▶', TikTok: '♪', WhatsApp: 'W', Google: 'G'}[key] || '✦';
+      x.font = '800 ' + (glyph === '▶' ? 40 : 58) + 'px Arial,sans-serif'; x.fillText(glyph, bx + bs / 2, by + bs / 2 + 3);
+    }
+    x.textAlign = 'left';
+    if(tag){ x.font = '700 34px ' + ff; x.fillStyle = 'rgba(255,255,255,.95)'; x.textBaseline = 'middle'; x.fillText(tag, bx + bs + 22, by + bs / 2); }
+    // টাইপ-চিপ (ওপরে ডানে)
+    let kind = '';
+    if(/প্রতারণা|ভুয়া|স্ক্যাম|scam|phishing|সাবধান/i.test(title)) kind = hasBn ? 'সতর্কতা' : 'ALERT';
+    else if(/কী করবেন|ঠিক করবেন|সমাধান|fix|what to do|how to fix|can.?t|couldn.?t|not working|failed/i.test(title)) kind = hasBn ? 'সমাধান' : 'FIX';
+    else if(/নিয়ম|গাইড|কীভাবে|কিভাবে|how to|guide|setup|steps?/i.test(title)) kind = hasBn ? 'গাইড' : 'GUIDE';
+    if(kind){ x.font = '700 26px ' + ff; const w = x.measureText(kind).width + 44; const cx = 1200 - 80 - w; x.fillStyle = '#FFC857'; x.beginPath(); x.roundRect ? x.roundRect(cx, 74, w, 52, 26) : x.rect(cx, 74, w, 52); x.fill(); x.fillStyle = '#2b2100'; x.textBaseline = 'middle'; x.fillText(kind, cx + 22, 101); }
+    // শিরোনাম: মূল অংশ বড়, " — " এর পরের অংশ ছোট
+    let main = title, sub = '';
+    const m = title.match(/^(.+?)\s+[—–-]\s+(.+)$/);
+    if(m && m[1].length >= 12){ main = m[1]; sub = m[2]; }
+    main = main.replace(/^["“]|["”]$/g, '');
+    x.textBaseline = 'top'; x.fillStyle = '#fff';
+    let size = 76, lines;
+    for(; size >= 42; size -= 4){ x.font = '800 ' + size + 'px ' + ff; lines = wrap(x, main, 1010); if(lines.length <= 3) break; }
+    lines = lines.slice(0, 3);
+    let subLines = [], ssize = 34;
+    if(sub){ x.font = '600 ' + ssize + 'px ' + ff; subLines = wrap(x, sub, 1010).slice(0, 2); }
+    const lh = size * 1.32, slh = ssize * 1.4, blockH = lines.length * lh + (subLines.length ? 18 + subLines.length * slh : 0);
+    const top = Math.max(165, 150 + (330 - blockH) / 2);
+    x.fillStyle = '#FFC857'; x.fillRect(80, top + 6, 9, blockH - 8);
+    x.save(); x.shadowColor = 'rgba(0,0,0,.28)'; x.shadowBlur = 8; x.shadowOffsetY = 3;
+    x.font = '800 ' + size + 'px ' + ff; x.fillStyle = '#fff'; lines.forEach((l, i) => x.fillText(l, 112, top + i * lh));
+    x.restore();
+    if(subLines.length){ x.font = '600 ' + ssize + 'px ' + ff; x.fillStyle = 'rgba(255,255,255,.88)'; subLines.forEach((l, i) => x.fillText(l, 112, top + lines.length * lh + 18 + i * slh)); }
+    // নিচের পট্টি
+    x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(0, 548, 1200, 82);
+    x.textBaseline = 'middle'; x.font = '600 26px ' + ff; x.fillStyle = 'rgba(255,255,255,.92)';
+    x.fillText(hasBn ? 'সোশ্যাল মিডিয়া সমস্যা সমাধান সেবা' : 'Social media problem solving', 80, 589);
+    x.textAlign = 'right'; x.font = '600 24px Arial,sans-serif'; x.fillStyle = 'rgba(255,255,255,.75)'; x.fillText('alamingazi533.github.io', 1120, 589); x.textAlign = 'left';
     return c;
   }
   window.__coverMake = coverMake;
@@ -4555,6 +4598,60 @@ function insertPostImage(id){
   }
   setInterval(function(){ build(); apply(); badge(); },1200);
   setTimeout(function(){ build(); },200);
+})();
+</script>
+<script>
+// "গুগলে জমা দিন" তালিকার জন্য এক-এক-করে জমা দেওয়ার সহায়ক (Search Console একসাথে অনেক URL নেয় না)
+(function(){
+  function titleOf(id){ var all=window.__adminPostsData||{},t=''; Object.keys(all).forEach(function(k){ if(String(all[k].id)===String(id)) t=all[k].title; }); return t||''; }
+  function toast(m){ try{ if(typeof __adminToast==='function') __adminToast(m,'ok'); }catch(e){} }
+  function copy(t){ try{ if(navigator.clipboard&&navigator.clipboard.writeText){ return navigator.clipboard.writeText(t); } }catch(e){} var ta=document.createElement('textarea'); ta.value=t; ta.style.cssText='position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); return Promise.resolve(); }
+  function openQueue(items){
+    var old=document.getElementById('gQueue'); if(old) old.remove();
+    var i=0, done=0;
+    var box=document.createElement('div'); box.id='gQueue';
+    box.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9999;background:var(--card-bg,#fff);color:var(--ink,#222);border-top:3px solid var(--forest,#1f4d3a);box-shadow:0 -6px 24px rgba(0,0,0,.25);padding:14px 14px 18px;max-height:70vh;overflow:auto;';
+    document.body.appendChild(box);
+    var bst='padding:10px 14px;border-radius:8px;font-weight:700;font-size:14px;font-family:inherit;border:1.5px solid var(--forest,#1f4d3a);background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);margin:4px 6px 0 0;';
+    function render(){
+      if(i>=items.length){ box.innerHTML='<div style="font-weight:800;font-size:15px;">🎉 তালিকা শেষ। জমা দেওয়া: '+done+'টি</div><button type="button" id="gqClose" style="'+bst+'">বন্ধ করুন</button>'; box.querySelector('#gqClose').onclick=function(){ box.remove(); }; return; }
+      var it=items[i];
+      box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;font-weight:800;"><span>🔍 জমা দিন — '+(i+1)+' / '+items.length+'</span><button type="button" id="gqX" style="border:0;background:transparent;font-size:20px;color:inherit;">✕</button></div>'
+        +'<div style="margin:8px 0 6px;font-size:14px;line-height:1.5;font-weight:700;"></div>'
+        +'<div id="gqUrl" style="font-size:12px;word-break:break-all;color:var(--muted,#666);margin-bottom:8px;"></div>'
+        +'<div style="font-size:12.5px;line-height:1.6;background:rgba(138,97,0,.1);border-radius:8px;padding:8px 10px;margin-bottom:6px;">ধাপ: ১) লিংক কপি → ২) Search Console খুলে ওপরের সার্চ বক্সে পেস্ট করে Enter → ৩) "Request indexing" চাপুন → ৪) ফিরে এসে "জমা দিয়েছি" চাপুন। গুগল দিনে মোটামুটি ১০টার মতো অনুরোধ নেয়, তাই আজ ১০টা করে থামুন।</div>'
+        +'<button type="button" id="gqCopy" style="'+bst+'">📋 লিংক কপি</button><button type="button" id="gqOpen" style="'+bst+'">🔎 Search Console খুলুন</button><button type="button" id="gqDone" style="'+bst+'background:var(--forest,#1f4d3a);color:#fff;">✅ জমা দিয়েছি → পরেরটা</button><button type="button" id="gqSkip" style="'+bst+'border-color:var(--line,#ccc);color:var(--muted,#666);">⏭ বাদ দিন</button>';
+      box.children[1].textContent=it.title||it.slug; box.querySelector('#gqUrl').textContent=it.url;
+      box.querySelector('#gqX').onclick=function(){ box.remove(); };
+      box.querySelector('#gqCopy').onclick=function(){ copy(it.url).then(function(){ toast('📋 লিংক কপি হয়েছে'); }); };
+      box.querySelector('#gqOpen').onclick=function(){ copy(it.url); window.open('https://search.google.com/search-console','_blank'); };
+      box.querySelector('#gqDone').onclick=function(){ try{ __gSetStatus(it.slug,'submitted'); }catch(e){} done++; i++; render(); };
+      box.querySelector('#gqSkip').onclick=function(){ i++; render(); };
+    }
+    render();
+  }
+  function collect(group){
+    var items=[];
+    group.querySelectorAll('.gstat').forEach(function(sp){
+      var id=sp.getAttribute('data-id'); if(!id) return;
+      var slug=(typeof __gSlug==='function')?__gSlug(id):String(id).replace(/[^a-zA-Z0-9]/g,'').slice(0,8).toLowerCase();
+      items.push({id:id,slug:slug,title:titleOf(id),url:'https://alamingazi533.github.io/p/'+slug+'.html'});
+    });
+    return items;
+  }
+  function ensure(){
+    document.querySelectorAll('.gGroup').forEach(function(g){
+      var head=g.firstElementChild; if(!head||head.querySelector('.gQueueBtn')) return;
+      if((head.textContent||'').indexOf('গুগলে জমা দিন')===-1) return;
+      var arrow=head.querySelector('.gArrow'); if(!arrow) return;
+      var b=document.createElement('button'); b.type='button'; b.className='gQueueBtn';
+      b.style.cssText='padding:4px 9px;border:1px solid #8a5a00;border-radius:6px;background:#8a5a00;color:#fff;font-size:12px;font-weight:700;';
+      b.textContent='▶ এক এক করে জমা';
+      b.addEventListener('click',function(ev){ ev.stopPropagation(); var it=collect(g); if(!it.length){ alert('এই তালিকায় জমা দেওয়ার মতো পোস্ট নেই।'); return; } openQueue(it); });
+      arrow.parentNode.insertBefore(b,arrow);
+    });
+  }
+  setInterval(ensure,1500);
 })();
 </script>
 </body>
