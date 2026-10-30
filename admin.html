@@ -3745,8 +3745,17 @@ function insertPostImage(id){
     if(!gs.length){ panel.innerHTML = '<b>🔍 ডুপ্লিকেট খোঁজা</b><div style="margin-top:6px; color:#1e6b34;">✓ প্রায় একই শিরোনাম বা একই লেখার কোনো পোস্ট পাওয়া যায়নি।</div>' + closeBtn(panel); return; }
     panel.innerHTML = '<b>🔍 ' + gs.length + 'টি দলে একই ধরনের পোস্ট পাওয়া গেছে</b><div style="font-size:12px; color:var(--muted); margin:4px 0 8px;">প্রতিটি দলে সবচেয়ে বড় লেখাটা রাখুন, বাকিগুলো সিলেক্ট করে 🔒 আনপাবলিক বা 🗑️ মুছুন। (সবগুলো সত্যিই ডুপ্লিকেট নাও হতে পারে — নিজে দেখে নিন।)</div>' +
       gs.map((g, gi) => { const best = g.slice().sort((a, b) => wordsOf(b.content) - wordsOf(a.content))[0];
-        return '<div style="border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px;">' + g.map(p => '<div style="font-size:13px; line-height:1.6;' + (p === best ? 'font-weight:700; color:#1e6b34;' : '') + '">' + (p === best ? '✅ রাখুন: ' : '• ') + esc(p.title) + ' <span style="color:var(--muted); font-weight:400;">(' + wordsOf(p.content) + ' শব্দ, 👁 ' + (p.views || 0) + ')</span></div>').join('') +
+        return '<div style="border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px;">' + g.map(p => '<div style="font-size:13px; line-height:1.6;' + (p === best ? 'font-weight:700; color:#1e6b34;' : '') + '">' + (p === best ? '✅ রাখুন: ' : '• ') + esc(p.title) + ' <span style="color:var(--muted); font-weight:400;">(' + wordsOf(p.content) + ' শব্দ, 👁 ' + (p.views || 0) + ')</span> <button type="button" data-ddel="' + p.rowIndex + '" style="padding:3px 9px; border:1px solid #b3261e; border-radius:6px; background:var(--card-bg); color:#b3261e; font-size:12px; font-weight:700; margin-left:4px;">🗑️ মুছুন</button></div>').join('') +
           '<button type="button" data-dg="' + gi + '" style="' + btnSt + ' margin-top:6px;">☑ বাকিগুলো সিলেক্ট করুন</button></div>'; }).join('') + closeBtn(panel);
+    panel.querySelectorAll('button[data-ddel]').forEach(b => { b.onclick = () => {
+      const row = b.getAttribute('data-ddel'), p = posts().find(x => String(x.rowIndex) === String(row)); if(!p) return;
+      if(!confirm('এই পোস্টটি মুছে ফেলবেন? (আর ফেরানো যাবে না)\n\n' + p.title)) return;
+      b.disabled = true; b.textContent = '⏳...';
+      fetch(SCRIPT_URL + '?action=deletePost&password=' + encodeURIComponent(sessionStorage.getItem('adminPw') || '') + '&row=' + encodeURIComponent(row)).then(r => r.json()).then(d => {
+        if(d && d.success){ __toast('🗑️ মুছে ফেলা হয়েছে', 'ok'); try{ loadAdminPosts(); }catch(_){} setTimeout(() => { try{ __dupRun(); }catch(_){} }, 3000); }
+        else { b.disabled = false; b.textContent = '🗑️ মুছুন'; __toast('মুছতে সমস্যা হয়েছে', 'err'); }
+      }).catch(() => { b.disabled = false; b.textContent = '🗑️ মুছুন'; __toast('সংযোগে সমস্যা হয়েছে', 'err'); });
+    }; });
     panel.querySelectorAll('button[data-dg]').forEach(b => { b.onclick = () => { const g = gs[Number(b.getAttribute('data-dg'))], best = g.slice().sort((x, y) => wordsOf(y.content) - wordsOf(x.content))[0]; g.forEach(p => { if(p === best) return; const c = document.querySelector('.bulkCb[data-row="' + p.rowIndex + '"]'); if(c) c.checked = true; }); if(window.__bulkSync) __bulkSync(); __toast('☑ সিলেক্ট হয়েছে — নিচের বারে 🔒 বা 🗑️ চাপুন', 'ok'); }; });
   };
 
