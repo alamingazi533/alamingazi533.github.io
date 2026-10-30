@@ -357,6 +357,7 @@
       <input type="text" id="newPostTitle" placeholder="পোস্টের শিরোনাম" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
       <select id="newPostCategory" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--line); font-family:inherit; font-size:14px; margin-bottom:8px;">
         <option value="সাধারণ আপডেট">সাধারণ আপডেট</option>
+        <option value="আয়কর ও টিআইএন">আয়কর ও টিআইএন</option>
         <option value="রিকভারি">রিকভারি</option>
         <option value="মনিটাইজেশন">মনিটাইজেশন</option>
         <option value="টিপস">টিপস</option>
@@ -1490,7 +1491,7 @@ function startEditPost(rowIndex){
   const viewEl = viewEls[0];
   if(!viewEl.dataset.originalHtml) viewEl.dataset.originalHtml = viewEl.innerHTML;
 
-  const categories = ['সাধারণ আপডেট', 'রিকভারি', 'মনিটাইজেশন', 'টিপস', 'সতর্কতা'];
+  const categories = ['সাধারণ আপডেট', 'রিকভারি', 'মনিটাইজেশন', 'টিপস', 'সতর্কতা', 'আয়কর ও টিআইএন'];
   const catOptions = categories.map(c =>
     '<option value="' + c + '"' + (c === (p.category || 'সাধারণ আপডেট') ? ' selected' : '') + '>' + c + '</option>'
   ).join('');
@@ -4376,6 +4377,7 @@ function insertPostImage(id){
   const norm = s => String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
   let items = [], posts = [];
   function cat(t){
+    if(/টিআইএন|আয়কর|রিটার্ন|ই-?টিআইএন|\bTIN\b|income tax/i.test(t)) return 'আয়কর ও টিআইএন';
     if(/মনিটাইজ|আয়|ইনকাম|monetiz|earn/i.test(t)) return 'মনিটাইজেশন';
     if(/প্রতারণা|সতর্ক|স্ক্যাম|ভুয়া|scam/i.test(t)) return 'সতর্কতা';
     if(/হ্যাক|রিকভার|ফিরে|চেকপয়েন্ট|disabled|restricted|বন্ধ/i.test(t)) return 'রিকভারি';

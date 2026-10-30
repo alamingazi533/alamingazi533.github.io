@@ -1846,7 +1846,7 @@ function blogExcerpt(text, len){
   return t.slice(0, len).trim() + '…';
 }
 
-const BLOG_CATEGORIES = ['রিকভারি','মনিটাইজেশন','টিপস','সতর্কতা','সাধারণ আপডেট'];
+const BLOG_CATEGORIES = ['রিকভারি','মনিটাইজেশন','টিপস','সতর্কতা','আয়কর ও টিআইএন','সাধারণ আপডেট'];
 
 function renderCategoryNav(activeCat){
   const nav = document.getElementById('blogCatNav');
