@@ -4714,5 +4714,52 @@ function insertPostImage(id){
   setInterval(ensure,1500);
 })();
 </script>
+<script>
+// সব টুল-প্যানেলে (ডুপ্লিকেট, রিপোর্ট, ছবি ছাড়া ইত্যাদি) প্রতিটা পোস্টের পাশে ✏️ এডিট ও 🗑️ মুছুন বাটন
+(function(){
+  var PANELS=['dupPanel','reportPanel','noImgPanel','schedPanel','catPanel','srPanel','linkPanel'];
+  var busy=false;
+  function norm(t){ return String(t||'').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); }
+  function posts(){ return (window.__adminPostsLast&&window.__adminPostsLast.posts)||[]; }
+  function toast(m,k){ try{ __adminToast(m,k); }catch(e){} }
+  function findPost(text){
+    var best=null,bl=0; posts().forEach(function(p){ var t=norm(p.title); if(t.length<12) return; var k=t.slice(0,Math.min(40,t.length)); if(text.indexOf(k)!==-1&&k.length>bl){ best=p; bl=k.length; } });
+    return best;
+  }
+  var bs='padding:3px 9px;border-radius:6px;background:var(--card-bg);font-size:12px;font-weight:700;margin-left:4px;';
+  function add(div,p,panel){
+    var wrap=document.createElement('span'); wrap.className='pxBtns'; wrap.style.whiteSpace='nowrap';
+    var e=div.querySelector('[data-ddel]')?null:null;
+    var eb=document.createElement('button'); eb.type='button'; eb.textContent='✏️ এডিট'; eb.style.cssText=bs+'border:1px solid var(--forest);color:var(--forest);';
+    eb.onclick=function(ev){ ev.stopPropagation(); var q=findPost(norm(div.textContent)); if(!q) return toast('পোস্ট খুঁজে পাওয়া যায়নি','err'); try{ startEditPost(q.rowIndex); }catch(x){} try{ var t=document.querySelector('#adminTabs [data-tab="posts"], #adminTabs button'); }catch(x){} try{ scrollToId('postsListStandalone'); }catch(x){} };
+    wrap.appendChild(eb);
+    if(!div.querySelector('[data-ddel]')){
+      var db=document.createElement('button'); db.type='button'; db.textContent='🗑️ মুছুন'; db.style.cssText=bs+'border:1px solid #b3261e;color:#b3261e;';
+      db.onclick=function(ev){ ev.stopPropagation();
+        if(busy) return toast('আগের মোছা শেষ হওয়া পর্যন্ত একটু অপেক্ষা করুন','err');
+        var q=findPost(norm(div.textContent)); if(!q) return toast('পোস্ট খুঁজে পাওয়া যায়নি','err');
+        if(!confirm('এই পোস্টটি মুছে ফেলবেন? (আর ফেরানো যাবে না)\n\n'+q.title)) return;
+        busy=true; db.disabled=true; db.textContent='⏳...';
+        fetch(SCRIPT_URL+'?action=deletePost&password='+encodeURIComponent(sessionStorage.getItem('adminPw')||'')+'&row='+encodeURIComponent(q.rowIndex)).then(function(r){return r.json();}).then(function(d){
+          if(d&&d.success){ toast('🗑️ মুছে ফেলা হয়েছে','ok'); div.style.opacity='.4'; div.style.textDecoration='line-through'; wrap.remove(); try{ loadAdminPosts(); }catch(x){} setTimeout(function(){ busy=false; },4000); }
+          else{ busy=false; db.disabled=false; db.textContent='🗑️ মুছুন'; toast('মুছতে সমস্যা হয়েছে','err'); }
+        }).catch(function(){ busy=false; db.disabled=false; db.textContent='🗑️ মুছুন'; toast('সংযোগে সমস্যা হয়েছে','err'); });
+      };
+      wrap.appendChild(db);
+    }
+    div.appendChild(wrap);
+  }
+  function scan(){
+    PANELS.forEach(function(id){ var pn=document.getElementById(id); if(!pn) return;
+      pn.querySelectorAll('div').forEach(function(d){
+        if(d.querySelector('div')||d.querySelector('.pxBtns')||d.querySelector('.pClose')||d.querySelector('button[data-dg]')) return;
+        var p=findPost(norm(d.textContent)); if(p) add(d,p,pn);
+      });
+      // ডুপ্লিকেট প্যানেলে আগের মুছুন বাটনের পাশে এডিট বাটন
+    });
+  }
+  setInterval(scan,1200);
+})();
+</script>
 </body>
 </html>
