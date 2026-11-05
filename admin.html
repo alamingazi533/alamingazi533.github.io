@@ -4174,8 +4174,12 @@ function insertPostImage(id){
     // নির্দিষ্ট শিরোনামে একই ডিজাইন যাতে বারবার একই আসে
     let seed = 0; for(let i = 0; i < title.length; i++) seed = (seed * 31 + title.charCodeAt(i)) >>> 0;
     const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    // প্রতি শিরোনামে আলাদা রঙের ছোঁয়া, যাতে সব কভার একই না দেখায়
+    const shiftHue = (hex, d, ls) => { const n = parseInt(hex.slice(1), 16); let r = (n >> 16) / 255, g2 = ((n >> 8) & 255) / 255, b = (n & 255) / 255; const mx = Math.max(r, g2, b), mn = Math.min(r, g2, b); let h = 0, sl = 0, l = (mx + mn) / 2; const dd = mx - mn; if(dd){ sl = l > .5 ? dd / (2 - mx - mn) : dd / (mx + mn); h = mx === r ? ((g2 - b) / dd + (g2 < b ? 6 : 0)) : mx === g2 ? (b - r) / dd + 2 : (r - g2) / dd + 4; h *= 60; } h = (h + d + 360) % 360; l = Math.min(.45, Math.max(.12, l + ls)); const f = (n2) => { const k = (n2 + h / 30) % 12, aa = sl * Math.min(l, 1 - l); const v = l - aa * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(v * 255).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
+    { const hd = Math.round((rnd() - .5) * 110), ls = (rnd() - .5) * .1; try{ col = [shiftHue(col[0], hd, ls), shiftHue(col[1], hd, ls + .03)]; }catch(e){} }
+    const gAng = rnd();
     // ১. ব্যাকগ্রাউন্ড: গাঢ় গ্রেডিয়েন্ট + আলো + ঝাপসা বৃত্ত (bokeh)
-    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    const g = gAng < .33 ? x.createLinearGradient(0, 0, W, H) : gAng < .66 ? x.createLinearGradient(W, 0, 0, H) : x.createLinearGradient(0, H, W, 0); g.addColorStop(0, col[0]); g.addColorStop(1, col[1]); x.fillStyle = g; x.fillRect(0, 0, W, H);
     const lg = x.createRadialGradient(930, 250, 20, 930, 300, 560); lg.addColorStop(0, 'rgba(255,255,255,.24)'); lg.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = lg; x.fillRect(0, 0, W, H);
     const sw = x.createLinearGradient(0, 0, W, H * 0.6); sw.addColorStop(0, 'rgba(255,255,255,0)'); sw.addColorStop(.45, 'rgba(255,255,255,.07)'); sw.addColorStop(.6, 'rgba(255,255,255,0)'); x.fillStyle = sw; x.fillRect(0, 0, W, H);
     for(let i = 0; i < 12; i++){ const bx = 480 + rnd() * 720, by = 20 + rnd() * 540, br = 20 + rnd() * 70, ba = 0.05 + rnd() * 0.09; const bg2 = x.createRadialGradient(bx, by, br * 0.55, bx, by, br); bg2.addColorStop(0, 'rgba(255,255,255,' + (ba * 0.6).toFixed(3) + ')'); bg2.addColorStop(.88, 'rgba(255,255,255,' + ba.toFixed(3) + ')'); bg2.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = bg2; x.beginPath(); x.arc(bx, by, br, 0, 7); x.fill(); }
