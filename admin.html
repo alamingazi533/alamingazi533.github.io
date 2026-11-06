@@ -4192,8 +4192,39 @@ function insertPostImage(id){
     else if(dv === 1){ x.translate(1000, 320); x.rotate(.35); x.fillStyle = 'rgba(255,255,255,.10)'; rr(-190, -190, 380, 380, 60); x.fill(); x.rotate(.35); x.fillStyle = 'rgba(255,255,255,.08)'; rr(-150, -150, 300, 300, 50); x.fill(); }
     else { x.strokeStyle = 'rgba(255,255,255,.14)'; x.lineWidth = 3; for(let k = 0; k < 9; k++){ x.beginPath(); x.moveTo(760 + k * 55, 548); x.lineTo(1000 + k * 55, 60); x.stroke(); } }
     x.restore();
-    x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 30; x.shadowOffsetY = 16; x.fillStyle = 'rgba(255,255,255,.96)'; rr(880, 190, 230, 230, 46); x.fill(); x.restore();
-    { const glyph0 = {Facebook: 'f', YouTube: '▶', TikTok: '♪', WhatsApp: 'W', Google: 'G', Instagram: '◎'}[key] || '✦'; x.fillStyle = col[0]; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 ' + (glyph0 === '▶' || glyph0 === '◎' ? 130 : 170) + 'px Arial,sans-serif'; x.fillText(glyph0, 995, 308); x.textAlign = 'left'; }
+    // স্ক্রিনে লেখাসহ বড় ফোন
+    {
+      const parts = title.split(/\s+[—–-]\s+/); const sMain = (parts[0] || title).replace(/["“”]/g, ''); const sSub = parts.slice(1).join(' — ');
+      const sKind = /প্রতারণা|ভুয়া|স্ক্যাম|scam|phishing|সাবধান/i.test(title) ? (hasBn ? 'সতর্কতা দেখুন' : 'Stay safe') : /কী করবেন|ঠিক করবেন|সমাধান|fix|can.?t|not working/i.test(title) ? (hasBn ? 'সমাধান দেখুন' : 'See the fix') : (hasBn ? 'ধাপগুলো দেখুন' : 'See the steps');
+      const glyph1 = {Facebook: 'f', YouTube: '▶', TikTok: '♪', WhatsApp: 'W', Google: 'G', Instagram: '◎'}[key] || '✦';
+      const SW = 262, SX = -131;
+      x.save(); x.translate(965, 292); x.rotate(-0.06); x.scale(.92, .92);
+      x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 50; x.shadowOffsetX = 18; x.shadowOffsetY = 28; x.fillStyle = '#0d0f13'; rr(-165, -300, 330, 660, 46); x.fill(); x.restore();
+      const bz = x.createLinearGradient(-165, -300, 165, 360); bz.addColorStop(0, '#4a505b'); bz.addColorStop(.5, '#14161b'); bz.addColorStop(1, '#2b2f37'); x.fillStyle = bz; rr(-165, -300, 330, 660, 46); x.fill();
+      x.fillStyle = '#f4f6f9'; rr(-153, -288, 306, 636, 36); x.fill();
+      x.save(); rr(-153, -288, 306, 636, 36); x.clip();
+      x.fillStyle = col[0]; x.fillRect(-153, -288, 306, 112);
+      x.fillStyle = 'rgba(255,255,255,.14)'; x.beginPath(); x.arc(120, -270, 70, 0, 7); x.fill();
+      x.fillStyle = '#fff'; rr(-131, -238, 52, 52, 14); x.fill();
+      x.fillStyle = col[0]; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 ' + (glyph1 === '▶' || glyph1 === '◎' ? 26 : 34) + 'px Arial,sans-serif'; x.fillText(glyph1, -105, -211);
+      x.textAlign = 'left'; x.fillStyle = '#fff'; x.font = '700 22px ' + ff; x.fillText(key && key !== 'Social' ? key : (hasBn ? 'সহায়তা' : 'Help'), -68, -220);
+      x.fillStyle = 'rgba(255,255,255,.75)'; x.font = '600 15px ' + ff; x.fillText(hasBn ? 'সমস্যা সমাধান গাইড' : 'Step-by-step guide', -68, -197);
+      x.textBaseline = 'top'; x.fillStyle = '#171a21';
+      let fs1 = 34, ml;
+      for(; fs1 >= 20; fs1 -= 2){ x.font = '800 ' + fs1 + 'px ' + ff; ml = wrap(x, sMain, SW); if(ml.length <= 3) break; }
+      ml = ml.slice(0, 3); let ty = -150; ml.forEach((l, k) => x.fillText(l, SX, ty + k * fs1 * 1.28)); ty += ml.length * fs1 * 1.28 + 8;
+      if(sSub){ x.font = '600 18px ' + ff; x.fillStyle = '#5b6472'; const sl = wrap(x, sSub, SW).slice(0, 3); sl.forEach((l, k) => x.fillText(l, SX, ty + k * 25)); ty += sl.length * 25 + 8; }
+      const rowsN = Math.max(0, Math.min(3, Math.floor((205 - (ty + 8)) / 54)));
+      for(let k = 0; k < rowsN; k++){ const ry = ty + 8 + k * 54; x.save(); x.shadowColor = 'rgba(0,0,0,.12)'; x.shadowBlur = 10; x.shadowOffsetY = 3; x.fillStyle = '#fff'; rr(SX, ry, SW, 46, 13); x.fill(); x.restore();
+        x.fillStyle = col[0]; x.beginPath(); x.arc(SX + 24, ry + 23, 12, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); x.moveTo(SX + 18, ry + 23); x.lineTo(SX + 22, ry + 27); x.lineTo(SX + 30, ry + 18); x.stroke();
+        x.fillStyle = '#d5dae1'; rr(SX + 46, ry + 14, 130 - k * 14, 8, 4); x.fill(); x.fillStyle = '#e6eaf0'; rr(SX + 46, ry + 28, 90 - k * 10, 7, 3.5); x.fill(); }
+      x.fillStyle = col[0]; rr(SX, 215, SW, 50, 25); x.fill();
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '700 21px ' + ff; x.fillText(sKind, 0, 241); x.textAlign = 'left';
+      const gl2 = x.createLinearGradient(-153, -288, 153, 80); gl2.addColorStop(0, 'rgba(255,255,255,.22)'); gl2.addColorStop(.4, 'rgba(255,255,255,0)'); x.fillStyle = gl2; x.fillRect(-153, -288, 306, 636);
+      x.restore();
+      x.fillStyle = '#05060a'; rr(-34, -278, 68, 16, 8); x.fill();
+      x.restore();
+    }
     if(false){
     x.save(); x.translate(985, 395); x.rotate(-0.07);
     x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 44; x.shadowOffsetX = 16; x.shadowOffsetY = 26; x.fillStyle = '#0d0f13'; rr(-150, -250, 300, 600, 40); x.fill(); x.restore();
@@ -4299,9 +4330,9 @@ function insertPostImage(id){
     const m = title.match(/^(.+?)\s+[—–-]\s+(.+)$/);
     if(m && m[1].length >= 12){ main = m[1]; sub = m[2]; }
     main = main.replace(/"([^"]+)"/g, '“$1”').replace(/^["“]|["”]$/g, function(q, o, str){ return (o === 0 && str.indexOf('”') < 0) || (o > 0 && str.indexOf('“') < 0) ? '' : q; });
-    const TW = 740;
+    const TW = 600;
     x.textBaseline = 'top'; x.fillStyle = '#fff';
-    let size = 80, lines;
+    let size = 72, lines;
     for(; size >= 40; size -= 3){ x.font = '800 ' + size + 'px ' + ff; lines = wrap(x, main, TW); if(lines.length <= 3) break; }
     lines = lines.slice(0, 3);
     let subLines = [], ssize = 34;
