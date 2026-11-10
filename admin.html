@@ -1645,12 +1645,12 @@ function checkGoogleAll(auto, force){
   const pw = sessionStorage.getItem('adminPw') || '';
   const slugs = Array.from(document.querySelectorAll('.gstat')).map(s => __gSlug(s.getAttribute('data-id'))).filter((v,i,arr) => v && arr.indexOf(v) === i);
   const posts = Object.values(window.__adminPostsData || {});
-  const need = slugs.filter(sl => { const p = posts.find(x => __gSlug(x.id) === sl); if(p && (p.draft || (p.publishAt && p.published === false))) return false; const t = String((p && p.content) || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); return t.length >= 300 && (force || (window.__googleStatus || {})[sl] !== 'indexed'); });
-  if(!need.length){ if(bar) bar.textContent = '✅ সব পোস্টই গুগলে আছে বলে চিহ্নিত। চেক করার মতো নতুন কিছু নেই।'; return; }
+  const need = slugs.filter(sl => { const p = posts.find(x => __gSlug(x.id) === sl); if(p && (p.draft || (p.publishAt && p.published === false))) return false; const t = String((p && p.content) || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); if(t.length < 300) return false; if(!force){ if((window.__googleStatus || {})[sl] === 'indexed') return false; try{ const m = JSON.parse(localStorage.getItem('gChecked') || '{}'); if(m[sl] && Date.now() - m[sl] < 12*3600*1000) return false; }catch(_){} } return true; });
+  if(!need.length){ if(bar) bar.textContent = '✅ চেক করার মতো নতুন কিছু নেই (১২ ঘণ্টার মধ্যে চেক হয়েছে বা গুগলে আছে)। সব আবার চেক চাপলে জোর করে হবে।'; return; }
   if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (0/' + need.length + ')' + (force ? '' : ' — যেগুলো এখনো গুগলে নেই শুধু সেগুলো');
   window.__gQuotaHit = false;
   let done = 0, lastErr = '';
-  const chunks = []; for(let i = 0; i < need.length; i += 25) chunks.push(need.slice(i, i + 25));
+  const chunks = []; for(let i = 0; i < need.length; i += 40) chunks.push(need.slice(i, i + 40));
   let ci = 0;
   const worker = () => {
     if(ci >= chunks.length) return Promise.resolve();
@@ -1661,13 +1661,13 @@ function checkGoogleAll(auto, force){
       .then(d => {
         if(!d.success){ lastErr = d.error === 'network' ? 'সার্ভার ধীর, একটু পরে আবার চেষ্টা করুন' : (d.error || 'ব্যর্থ'); return; }
         if(d.error && /quota/i.test(String(d.error))){ window.__gQuotaHit = true; lastErr = 'Google-এর দৈনিক সীমা শেষ — ২৪ ঘণ্টা পরে চেষ্টা করুন। আগের তথ্য বদলায়নি।'; return; }
-        window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; renderGoogleStatus();
+        window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; try{ const m = JSON.parse(localStorage.getItem('gChecked') || '{}'); ch.forEach(x => m[x] = Date.now()); localStorage.setItem('gChecked', JSON.stringify(m)); }catch(_){} renderGoogleStatus();
         if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (' + done + '/' + need.length + ')';
       })
       .catch(() => { lastErr = 'সংযোগে সমস্যা হয়েছে'; })
       .then(worker);
   };
-  Promise.all([worker(), worker(), worker()]).then(() => {
+  Promise.all([worker(), worker(), worker(), worker()]).then(() => {
     try{ localStorage.setItem('gLastCheck', String(Date.now())); }catch(_){}
     if(bar) bar.textContent = lastErr ? ('⚠️ ' + (lastErr === 'checker not configured' ? 'Checker এখনো সেট করা হয়নি।' : (/internal error/i.test(lastErr) ? 'কিছু পোস্ট এবার Google চেক করতে পারেনি (Google-এর সাময়িক সমস্যা)। একটু পরে আবার চাপুন।' : lastErr))) : ('✓ চেক শেষ (' + done + 'টি)');
   }).catch(() => { if(bar) bar.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
