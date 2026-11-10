@@ -1648,16 +1648,19 @@ function checkGoogleAll(auto, force){
   const need = slugs.filter(sl => { const p = posts.find(x => __gSlug(x.id) === sl); if(p && (p.draft || (p.publishAt && p.published === false))) return false; const t = String((p && p.content) || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); return t.length >= 300 && (force || (window.__googleStatus || {})[sl] !== 'indexed'); });
   if(!need.length){ if(bar) bar.textContent = '✅ সব পোস্টই গুগলে আছে বলে চিহ্নিত। চেক করার মতো নতুন কিছু নেই।'; return; }
   if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (0/' + need.length + ')' + (force ? '' : ' — যেগুলো এখনো গুগলে নেই শুধু সেগুলো');
+  window.__gQuotaHit = false;
   let done = 0, lastErr = '';
   const chunks = []; for(let i = 0; i < need.length; i += 25) chunks.push(need.slice(i, i + 25));
   let ci = 0;
   const worker = () => {
     if(ci >= chunks.length) return Promise.resolve();
+    if(window.__gQuotaHit) return Promise.resolve();
     const ch = chunks[ci++];
     return fetch(SCRIPT_URL + '?action=checkGoogleIndex&password=' + encodeURIComponent(pw) + '&slugs=' + encodeURIComponent(ch.join(',')) + '&_=' + Date.now(), {cache:'no-store'})
       .then(r => r.json())
       .then(d => {
         if(!d.success){ lastErr = d.error === 'network' ? 'সার্ভার ধীর, একটু পরে আবার চেষ্টা করুন' : (d.error || 'ব্যর্থ'); return; }
+        if(d.error && /quota/i.test(String(d.error))){ window.__gQuotaHit = true; lastErr = 'Google-এর দৈনিক সীমা শেষ — ২৪ ঘণ্টা পরে চেষ্টা করুন। আগের তথ্য বদলায়নি।'; return; }
         window.__googleStatus = d.status || {}; done += ch.length; if(d.error) lastErr = d.error; renderGoogleStatus();
         if(bar) bar.textContent = 'গুগল চেক হচ্ছে... (' + done + '/' + need.length + ')';
       })
@@ -1669,6 +1672,26 @@ function checkGoogleAll(auto, force){
     if(bar) bar.textContent = lastErr ? ('⚠️ ' + (lastErr === 'checker not configured' ? 'Checker এখনো সেট করা হয়নি।' : (/internal error/i.test(lastErr) ? 'কিছু পোস্ট এবার Google চেক করতে পারেনি (Google-এর সাময়িক সমস্যা)। একটু পরে আবার চাপুন।' : lastErr))) : ('✓ চেক শেষ (' + done + 'টি)');
   }).catch(() => { if(bar) bar.textContent = 'সংযোগে সমস্যা হয়েছে।'; });
 }
+
+function markAllSubmitted(){
+  const bar = document.getElementById('gCheckMsg');
+  if(!confirm('যেসব পোস্ট এখনো "জমা দিন" তালিকায় আছে সেগুলোকে "জমা হয়েছে" চিহ্নিত করবেন? (গুগল চেক ছাড়াই; সাইটম্যাপ আগেই জমা আছে)')) return;
+  const st = window.__googleStatus || {};
+  const posts = Object.values(window.__adminPostsData || {});
+  const todo = [];
+  posts.forEach(p => { if(!p || p.draft || p.private || (p.publishAt && p.published === false)) return; const sl = __gSlug(p.id); if(sl && !st[sl] && todo.indexOf(sl) === -1) todo.push(sl); });
+  if(!todo.length){ if(bar) bar.textContent = 'চিহ্নিত করার মতো পোস্ট নেই।'; return; }
+  const pw = sessionStorage.getItem('adminPw') || '';
+  let i = 0, done = 0;
+  const run = () => {
+    if(i >= todo.length) return Promise.resolve();
+    const sl = todo[i++];
+    return fetch(SCRIPT_URL + '?action=setGoogleStatus&password=' + encodeURIComponent(pw) + '&slug=' + encodeURIComponent(sl) + '&state=submitted&_=' + Date.now(), {cache:'no-store'})
+      .then(r => r.json()).then(d => { if(d && d.success){ window.__googleStatus = d.status || {}; } done++; if(bar) bar.textContent = 'চিহ্নিত হচ্ছে... (' + done + '/' + todo.length + ')'; })
+      .catch(() => {}).then(run);
+  };
+  Promise.all([run(), run(), run()]).then(() => { renderGoogleStatus(); if(bar) bar.textContent = '✓ ' + done + 'টা পোস্ট "জমা হয়েছে" চিহ্নিত হয়েছে।'; });
+}
 function renderGoogleStatus(){
   const spans = document.querySelectorAll('.gstat');
   if(!spans.length) return;
@@ -1678,7 +1701,7 @@ function renderGoogleStatus(){
       const bar = document.createElement('div');
       bar.id = 'gCheckBar';
       bar.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;';
-      bar.innerHTML = '<button type="button" onclick="checkGoogleAll()" style="padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;">🔄 গুগল স্ট্যাটাস চেক করুন</button><button type="button" onclick="if(confirm(\'সবগুলো পোস্ট আবার চেক হবে, অনেক সময় লাগবে। করবেন?\'))checkGoogleAll(false,true)" style="padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--muted); font-size:12px;">সব আবার চেক</button><span id="gCheckMsg" style="font-size:12px; color:var(--muted);"></span>';
+      bar.innerHTML = '<button type="button" onclick="checkGoogleAll()" style="padding:7px 12px; border:1px solid var(--forest); border-radius:6px; background:var(--card-bg); color:var(--forest); font-weight:700; font-size:12.5px;">🔄 গুগল স্ট্যাটাস চেক করুন</button><button type="button" onclick="if(confirm(\'সবগুলো পোস্ট আবার চেক হবে, অনেক সময় লাগবে। করবেন?\'))checkGoogleAll(false,true)" style="padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--muted); font-size:12px;">সব আবার চেক</button><button type="button" onclick="markAllSubmitted()" style="padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); color:var(--muted); font-size:12px;">সব জমা হয়েছে চিহ্নিত</button><span id="gCheckMsg" style="font-size:12px; color:var(--muted);"></span>';
       lst.parentNode.insertBefore(bar, lst);
     }
   }
