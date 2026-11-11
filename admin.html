@@ -1365,6 +1365,12 @@ function __ensureBulkTools(){
     const t = __titlesOf(rows);
     if(t.length) __copyText(t.join('\n\n'), '📋 ' + t.length + 'টি শিরোনাম কপি হয়েছে');
   };
+  (function(){ const b=document.createElement('button'); b.type='button'; b.id='bulkGeneric'; b.style.cssText=st; b.textContent='🎯 ২৬টা সাধারণ পোস্ট বাছাই'; d.appendChild(b);
+    b.onclick=function(){ const N=["Skype কী", "VPN কী", "Gmail অ্যাকাউন্ট কীভাবে খুলবেন", "Truecaller কী", "Likee কী", "Viber কী", "Quora কী", "Spotify কী", "Canva দিয়ে ছবি ও পোস্টার বানানো", "Reddit কী", "Facebook Dating কী", "YouTube Premium কী", "Google Photos-এ ছবি ব্যাকআপ", "Google Meet কীভাবে ব্যবহার করবেন", "CapCut দিয়ে ভিডিও এডিট", "Discord কী", "Zoom মিটিং কীভাবে যোগ দেবেন ও খুলবেন", "Pinterest কী", "X (আগের Twitter) অ্যাকাউন্ট কীভাবে খুলবেন", "imo কী", "LinkedIn প্রোফাইল কীভাবে বানাবেন", "Snapchat কী", "Telegram কী", "Threads কী", "মনিটাইজেশন কী", "TikTok কী"]; const D=window.__adminPostsData||{}; let c=0;
+      Object.keys(D).forEach(function(r){ const p=D[r]; if(!p||p.private) return; const t=String(p.title||'').replace(/<[^>]*>/g,'').trim();
+        if(N.some(function(n){ return t===n || t.indexOf(n+' —')===0; })){ window.__bulkSel.add(Number(r)); c++; } });
+      document.querySelectorAll('.bulkCb').forEach(function(x){ x.checked=window.__bulkSel.has(Number(x.getAttribute('data-row'))); });
+      __bulkBarUpdate(); __adminToast(c+'টা পোস্ট বাছাই হয়েছে — নিচের 🔒 আনপাবলিক চাপুন','ok'); }; })();
   document.getElementById('bulkNone').onclick = () => { document.querySelectorAll('.bulkCb').forEach(c => { c.checked = false; }); __bulkSync(); };
 }
 document.addEventListener('change', function(e){
