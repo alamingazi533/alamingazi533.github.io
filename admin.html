@@ -1371,6 +1371,12 @@ function __ensureBulkTools(){
         if(N.some(function(n){ return t===n || t.indexOf(n+' —')===0; })){ window.__bulkSel.add(Number(r)); c++; } });
       document.querySelectorAll('.bulkCb').forEach(function(x){ x.checked=window.__bulkSel.has(Number(x.getAttribute('data-row'))); });
       __bulkBarUpdate(); __adminToast(c+'টা পোস্ট বাছাই হয়েছে — নিচের 🔒 আনপাবলিক চাপুন','ok'); }; })();
+  (function(){ const b=document.createElement('button'); b.type='button'; b.id='bulkShort'; b.style.cssText=st; b.textContent='⚠️ ৪০০ শব্দের কম পোস্ট বাছাই'; d.appendChild(b);
+    b.onclick=function(){ const D=window.__adminPostsData||{}; let c=0;
+      Object.keys(D).forEach(function(r){ const p=D[r]; if(!p||p.private||p.draft) return; const t=String(p.content||''); if(!t) return;
+        const w=t.replace(/\*\*/g,'').replace(/^##\s+/gm,'').split(/\s+/).filter(Boolean).length; const en=/^[\x00-\x7F]/.test(String(p.title||'')); if(w<(en?500:400)){ window.__bulkSel.add(Number(r)); c++; } });
+      document.querySelectorAll('.bulkCb').forEach(function(x){ x.checked=window.__bulkSel.has(Number(x.getAttribute('data-row'))); });
+      __bulkBarUpdate(); __adminToast(c+'টা কম শব্দের পোস্ট বাছাই হয়েছে। দেখে নিয়ে দরকার হলে 🔒 আনপাবলিক চাপুন বা উন্নত করুন','ok'); }; })();
   document.getElementById('bulkNone').onclick = () => { document.querySelectorAll('.bulkCb').forEach(c => { c.checked = false; }); __bulkSync(); };
 }
 document.addEventListener('change', function(e){
@@ -4583,8 +4589,10 @@ function insertPostImage(id){
       const dup = !old && posts.some(x => norm(x.title) === norm(it.title));
       const mode = it.key ? (old ? '✏️ পুরোনো পোস্ট আপডেট' : '⚠️ আইডি মেলেনি') : (dup ? '⚠️ একই শিরোনাম আছে' : '🆕 নতুন পোস্ট');
       it.ok = it.key ? !!old : !dup;
-      return '<label style="display:block;border-top:1px solid var(--line);padding:8px 0;font-size:13px;cursor:pointer;"><input type="checkbox" data-i="' + i + '"' + (it.on && it.ok ? ' checked' : '') + (it.ok ? '' : ' disabled') + '> <b>' + esc(it.title) + '</b>' +
-        '<div style="font-size:12px;color:var(--muted);margin:2px 0 0 22px;">' + mode + ' · ' + bn(w) + ' শব্দ' + (w < 400 ? ' · ⚠️ ৪০০-র কম' : '') + (old ? ' · বর্তমান: ' + esc(String(old.title).slice(0,50)) : '') + ' · বিভাগ: ' + cat(it.title) + '</div></label>';
+      const jk = /^\s*(ক্যাটাগরি|টাইটেল|কনটেন্ট)\s*:|লিখে দিলাম|কপি-পেস্ট করে দিলেই|আপনার স্ক্রিনশটে দেখা|অ্যাডমিন প্যানেল থেকে পোস্ট/m.test(it.content);
+      if(jk && !it._jk){ it.on = false; it._jk = 1; }
+      return '<label style="display:block;border-top:1px solid var(--line);padding:8px 0;font-size:13px;cursor:pointer;"><input type="checkbox" data-i="' + i + '"' + (it.on && it.ok && !jk ? ' checked' : '') + (it.ok ? '' : ' disabled') + '> <b>' + esc(it.title) + '</b>' +
+        '<div style="font-size:12px;color:var(--muted);margin:2px 0 0 22px;">' + mode + ' · ' + bn(w) + ' শব্দ' + (w < 400 ? ' · ⚠️ ৪০০-র কম' : '') + (jk ? ' · 🚫 ভুল লাইন আছে (যেমন ক্যাটাগরি: বা চ্যাটের লেখা) — আগে মুছে নিন, তাই টিক খোলা আছে' : '') + (old ? ' · বর্তমান: ' + esc(String(old.title).slice(0,50)) : '') + ' · বিভাগ: ' + cat(it.title) + '</div></label>';
     }).join('');
     const hasNew = items.some(it => !it.key);
     p.innerHTML = '<b>📥 একসাথে পোস্ট ইমপোর্ট</b> <span style="font-size:12px;color:var(--muted);">(' + bn(items.length) + 'টা পোস্ট পাওয়া গেছে, বর্তমানে সাইটে ' + bn(posts.length) + 'টা)</span>' + rows +
