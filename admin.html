@@ -1756,8 +1756,8 @@ function renderGoogleStatus(){
             return [2,0];
           };
           const groups = [
-            {k:'a', t:'🔍 গুগলে জমা দিন', list:[]},
-            {k:'b', t:'✅ গুগলে জমা হয়েছে', list:[]},
+            {k:'a', t:'🆕 নতুন পোস্ট (এখনও জমা হয়নি)', list:[]},
+            {k:'b', t:'📚 সব প্রকাশিত পোস্ট', list:[]},
             {k:'c', t:'📄 অন্যান্য (ড্রাফট / শিডিউল / ছোট পোস্ট)', list:[]},
             {k:'d', t:'🔴 সবচেয়ে ছোট পোস্ট (২৫০ শব্দের কম — আগে বড় করুন)', list:[]},
             {k:'e', t:'🟡 আরও বাড়ান (২৫০–৪০০ শব্দ)', list:[]}
@@ -4068,12 +4068,13 @@ function insertPostImage(id){
     const notIdx = pub.filter(p => wordsOf(p.content) >= 50 && gs[slug(p.id)] !== 'indexed').length;
     let pend = null, fu = null;
     try{ if(Array.isArray(allRows) && allRows.length){ pend = allRows.filter(r => r.status === 'অপেক্ষমান').length; const t0 = new Date(); t0.setHours(23, 59, 59, 999); fu = allRows.filter(r => r.followupDate && r.status !== 'সম্পন্ন' && r.status !== 'বাতিল' && new Date(r.followupDate) <= t0).length; } }catch(_){}
-    const row = (ok, txt) => '<div>' + (ok ? '✅' : '⬜') + ' ' + txt + '</div>';
+    const row = (ok, txt) => ok ? '' : '<div>⬜ ' + txt + '</div>';
     card.innerHTML = '<div style="font-weight:700;">📅 আজকের কাজ</div>' +
       row(todayCount >= 3, 'আজ প্রকাশ/শিডিউল: <b>' + todayCount + '/৩</b> পোস্ট' + (upcoming ? ' · সামনে শিডিউল করা আছে ' + upcoming + 'টি' : '')) +
       row(priv === 0, 'আনপাবলিক পড়ে আছে: <b>' + priv + 'টি</b>' + (priv ? ' — বড় করে প্রকাশ বা শিডিউল করুন' : '')) +
       row(small === 0, '৪০০ শব্দের কম পাবলিক পোস্ট: <b>' + small + 'টি</b>') +
       (pend === null ? '' : row(pend === 0, 'অপেক্ষমান আবেদন: <b>' + pend + 'টি</b>' + (fu ? ' · আজ ফলো-আপ বাকি <b>' + fu + 'টি</b>' : ''))) ;
+    if(card.children.length <= 1) card.innerHTML += '<div>✅ আজকের সব কাজ ঠিক আছে</div>';
   }
   (function(){ const o = window.__renderAdminPostsData; if(typeof o === 'function') window.__renderAdminPostsData = function(){ const r = o.apply(this, arguments); setTimeout(todayRender, 120); return r; }; })();
 
@@ -4975,6 +4976,25 @@ function insertPostImage(id){
     });
   }
   setInterval(scan,1200);
+})();
+</script>
+
+<script>
+(function(){
+  var MAIN=['xtImp','xtBk'], REP=['xtRep','xtSr','xtGsc'], MNT=['xtDup','xtImg','xtLink','xtQn','xtCal','xtIdea','xtCov','xtBt'];
+  var sum='padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;';
+  function box(id,title){ var d=document.createElement('details'); d.id=id; d.style.cssText='width:100%;margin:2px 0;'; var s=document.createElement('summary'); s.style.cssText=sum; s.textContent=title; d.appendChild(s); var w=document.createElement('div'); w.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;'; w.className='grpBody'; d.appendChild(w); return d; }
+  function tidy(){
+    var bt=document.getElementById('bulkTools'); if(!bt) return;
+    var r=document.getElementById('grpRep'), m=document.getElementById('grpMnt');
+    if(!r){ r=box('grpRep','📊 রিপোর্ট'); bt.appendChild(r); }
+    if(!m){ m=box('grpMnt','🔧 রক্ষণাবেক্ষণ'); bt.appendChild(m); }
+    MAIN.forEach(function(id){ var b=document.getElementById(id); if(b&&b.parentNode!==bt) bt.insertBefore(b,bt.firstChild); });
+    REP.forEach(function(id){ var b=document.getElementById(id); var w=r.querySelector('.grpBody'); if(b&&b.parentNode!==w) w.appendChild(b); });
+    MNT.forEach(function(id){ var b=document.getElementById(id); var w=m.querySelector('.grpBody'); if(b&&b.parentNode!==w) w.appendChild(b); });
+    if(r.parentNode===bt&&bt.lastChild!==m){ bt.appendChild(r); bt.appendChild(m); }
+  }
+  setInterval(tidy,1500);
 })();
 </script>
 </body>
