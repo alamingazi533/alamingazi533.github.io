@@ -234,7 +234,7 @@
 <script>try{ var __t = sessionStorage.getItem('adminPw'); if(__t && __t.indexOf('tk_') === 0){ document.documentElement.className += ' has-session'; } }catch(e){}</script>
 <style id="admin-enhancements">.admin-tools-extra{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.admin-tools-extra button{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer}@media(max-width:600px){.admin-tools-extra{grid-template-columns:1fr}}</style><style id="admin-professional-upgrade">
 .admin-quick-nav{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px;padding:8px;background:var(--card-bg);border:1px solid var(--line);border-radius:11px;position:sticky;top:8px;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,.06)}.admin-quick-nav button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 10px;font-size:11.5px;font-weight:700;cursor:pointer}.admin-quick-nav button:hover{border-color:var(--forest);color:var(--forest)}
-</style></head>
+</style><style id="hideOld">#bulkGeneric,#bulkShort,button[onclick*="checkGoogleAll"],button[onclick*="markAllSubmitted"]{display:none!important}</style></head>
 <body>
 
 <div id="sessionLoading">⏳ লোড হচ্ছে...</div>
@@ -4073,7 +4073,6 @@ function insertPostImage(id){
       row(todayCount >= 3, 'আজ প্রকাশ/শিডিউল: <b>' + todayCount + '/৩</b> পোস্ট' + (upcoming ? ' · সামনে শিডিউল করা আছে ' + upcoming + 'টি' : '')) +
       row(priv === 0, 'আনপাবলিক পড়ে আছে: <b>' + priv + 'টি</b>' + (priv ? ' — বড় করে প্রকাশ বা শিডিউল করুন' : '')) +
       row(small === 0, '৪০০ শব্দের কম পাবলিক পোস্ট: <b>' + small + 'টি</b>') +
-      row(notIdx === 0, 'গুগলে ইনডেক্স হয়নি এমন পাবলিক পোস্ট: <b>' + notIdx + 'টি</b>' + (Object.keys(gs).length ? '' : ' (আগে "গুগল স্ট্যাটাস চেক" চালান)')) +
       (pend === null ? '' : row(pend === 0, 'অপেক্ষমান আবেদন: <b>' + pend + 'টি</b>' + (fu ? ' · আজ ফলো-আপ বাকি <b>' + fu + 'টি</b>' : ''))) ;
   }
   (function(){ const o = window.__renderAdminPostsData; if(typeof o === 'function') window.__renderAdminPostsData = function(){ const r = o.apply(this, arguments); setTimeout(todayRender, 120); return r; }; })();
