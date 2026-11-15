@@ -4997,5 +4997,80 @@ function insertPostImage(id){
   setInterval(tidy,1500);
 })();
 </script>
+
+<script>
+(function(){
+  var REPO='alamingazi533/alamingazi533.github.io', BR='main';
+  var FILES=['about.html','contact.html','privacy.html','terms.html','disclaimer.html','editorial.html','author.html','how-we-work.html','glossary.html','guide-download.html','safety-check.html','scam-check.html','checklist-hacked.html','problem-finder.html','404.html','ads.txt','robots.txt','index.html'];
+  var st={sha:null,file:null,orig:''};
+  function $(i){return document.getElementById(i);}
+  function tok(){ try{ return sessionStorage.getItem('ghFeTok')||''; }catch(e){ return ''; } }
+  function say(t,bad){ var m=$('feMsg'); if(!m) return; m.style.color=bad?'#b3261e':'#1e6b34'; m.textContent=t; }
+  function api(path,opt){
+    opt=opt||{}; var h={'Accept':'application/vnd.github+json','Authorization':'Bearer '+tok()};
+    if(opt.body){ h['Content-Type']='application/json'; }
+    return fetch('https://api.github.com/repos/'+REPO+path,{method:opt.method||'GET',headers:h,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'}).then(function(r){ return r.json().then(function(j){ if(!r.ok){ var e=new Error(j&&j.message||('HTTP '+r.status)); e.status=r.status; throw e; } return j; }); });
+  }
+  function dec(b64){ var bin=atob(String(b64).replace(/\s/g,'')); var u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new TextDecoder('utf-8').decode(u); }
+  function enc(str){ var u=new TextEncoder().encode(str), bin='', ch=0x8000; for(var i=0;i<u.length;i+=ch) bin+=String.fromCharCode.apply(null,u.subarray(i,i+ch)); return btoa(bin); }
+  function errText(e){ if(e.status===401) return 'টোকেন ঠিক নয় বা মেয়াদ শেষ।'; if(e.status===403) return 'অনুমতি নেই (টোকেনে Contents: Read and write দিন)।'; if(e.status===404) return 'ফাইল বা রিপোজিটরি পাওয়া যায়নি।'; if(e.status===409||e.status===422) return 'ফাইলটা অন্য কোথাও বদলে গেছে। আবার "খুলুন" চেপে নতুন করে শুরু করুন।'; return 'সমস্যা: '+e.message; }
+  function build(){
+    var anchor=$('appsManagerSection'); if(!anchor||$('fileEditorCard')) return;
+    var c=document.createElement('div'); c.id='fileEditorCard'; c.setAttribute('data-tab','set');
+    c.style.cssText='background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0;';
+    var inp='width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);box-sizing:border-box;background:var(--card-bg);color:var(--ink);';
+    var btn='padding:9px 13px;border:1px solid var(--line);border-radius:8px;background:var(--card-bg);color:var(--ink);font-weight:700;cursor:pointer;';
+    c.innerHTML='<div class="collapseHead" id="feHead" style="font-weight:800;color:var(--forest);cursor:pointer;"><span id="feArr">▸</span> 📝 ফাইল সম্পাদক (সাইটের পাতা সরাসরি বদলান)</div>'
+     +'<div id="feBody" style="display:none;margin-top:10px;">'
+     +'<div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:8px;">About, Contact, Privacy ইত্যাদি পাতা এখান থেকে বদলাতে পারবেন। প্রতিবার সংরক্ষণ GitHub-এ জমা থাকে, তাই ভুল হলে <b>আগের সংস্করণ</b> ফিরিয়ে আনা যায়। পোস্ট, snapshot ও sitemap এখানে নেই, ওগুলো নিজে থেকেই বদলায়।</div>'
+     +'<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-weight:700;">🔑 GitHub টোকেন (একবার, এই সেশনে)</summary><div style="font-size:12px;color:var(--muted);line-height:1.7;margin:6px 0;">GitHub → Settings → Developer settings → Fine-grained tokens → Generate। Repository শুধু <b>alamingazi533.github.io</b> বেছে Permissions-এ <b>Contents: Read and write</b> দিন। মেয়াদ ৩০ দিন রাখুন। টোকেন এই ব্রাউজার ট্যাব বন্ধ করলে মুছে যায়, কারও সাথে শেয়ার করবেন না।</div><input id="feTok" type="password" placeholder="github_pat_..." style="'+inp+'margin-bottom:6px;"><button type="button" id="feTokSave" style="'+btn+'">টোকেন রাখুন</button> <button type="button" id="feTokClear" style="'+btn+'">টোকেন মুছুন</button></details>'
+     +'<select id="feFile" style="'+inp+'margin-bottom:6px;">'+FILES.map(function(f){return '<option>'+f+'</option>';}).join('')+'</select>'
+     +'<div id="feWarn" style="font-size:12px;color:#b3261e;margin-bottom:6px;display:none;">⚠️ index.html হোমপেজ। ভুল হলে পুরো সাইট বিগড়ে যেতে পারে, সাবধানে বদলান।</div>'
+     +'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;"><button type="button" id="feLoad" style="'+btn+'">📂 খুলুন</button><button type="button" id="feHist" style="'+btn+'">🕘 আগের সংস্করণ</button><a id="feView" target="_blank" rel="noopener" style="'+btn+'text-decoration:none;">👁 সাইটে দেখুন</a></div>'
+     +'<textarea id="feText" spellcheck="false" style="'+inp+'min-height:260px;font-family:monospace;font-size:12.5px;line-height:1.5;resize:vertical;" placeholder="ফাইল খুলুন…"></textarea>'
+     +'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;"><button type="button" id="feSave" style="padding:9px 13px;border:1px solid var(--forest);border-radius:8px;background:var(--forest);color:#fff;font-weight:800;cursor:pointer;">💾 সংরক্ষণ</button></div>'
+     +'<div id="feMsg" style="font-size:12.5px;margin-top:6px;"></div><div id="feHistBox" style="margin-top:8px;"></div></div>';
+    anchor.after(c);
+    $('feHead').onclick=function(){ var b=$('feBody'), o=b.style.display==='none'; b.style.display=o?'block':'none'; $('feArr').textContent=o?'▾':'▸'; };
+    $('feFile').onchange=function(){ var f=$('feFile').value; $('feWarn').style.display=f==='index.html'?'block':'none'; $('feView').href='https://alamingazi533.github.io/'+(f==='index.html'?'':f); st.sha=null; $('feText').value=''; $('feHistBox').innerHTML=''; say(''); };
+    $('feView').href='https://alamingazi533.github.io/'+FILES[0];
+    $('feTokSave').onclick=function(){ var v=$('feTok').value.trim(); if(!v) return say('টোকেন লিখুন।',1); try{ sessionStorage.setItem('ghFeTok',v); }catch(e){ return say('এই ব্রাউজারে সেশন সংরক্ষণ হচ্ছে না।',1); } $('feTok').value=''; say('✅ টোকেন রাখা হয়েছে (এই ট্যাবে)।'); };
+    $('feTokClear').onclick=function(){ try{ sessionStorage.removeItem('ghFeTok'); }catch(e){} say('টোকেন মুছে ফেলা হয়েছে।'); };
+    $('feLoad').onclick=function(){
+      if(!tok()) return say('আগে টোকেন দিন।',1);
+      var f=$('feFile').value; say('খোলা হচ্ছে…');
+      api('/contents/'+encodeURIComponent(f)+'?ref='+BR).then(function(j){ st.sha=j.sha; st.file=f; st.orig=dec(j.content); $('feText').value=st.orig; say('✅ খোলা হয়েছে ('+st.orig.length+' অক্ষর)। বদলে "সংরক্ষণ" চাপুন।'); }).catch(function(e){ say(errText(e),1); });
+    };
+    $('feSave').onclick=function(){
+      var f=$('feFile').value; if(!tok()) return say('আগে টোকেন দিন।',1);
+      if(!st.sha||st.file!==f) return say('আগে "খুলুন" চাপুন।',1);
+      var t=$('feText').value;
+      if(!t.trim()) return say('ফাইল ফাঁকা, সংরক্ষণ করা হয়নি।',1);
+      if(t===st.orig) return say('কোনো বদল নেই।',1);
+      if(/\.html$/.test(f)&&(!/<html[\s>]/i.test(t)||!/<\/html>/i.test(t)||!/<\/body>/i.test(t))) return say('HTML ফাইলে <html>, </body> বা </html> নেই, তাই সংরক্ষণ বন্ধ করা হলো। কোথাও কিছু মুছে গেছে কিনা দেখুন।',1);
+      if(f==='ads.txt'&&t.indexOf('pub-')<0) return say('ads.txt-এ pub-... লাইন নেই, সংরক্ষণ বন্ধ।',1);
+      if(f==='robots.txt'&&/Disallow:\s*\/\s*$/m.test(t)) return say('robots.txt-এ "Disallow: /" আছে, এটা পুরো সাইট গুগল থেকে সরিয়ে দেবে। সংরক্ষণ বন্ধ।',1);
+      if(!confirm(f+' ফাইলটা সংরক্ষণ করবেন?')) return;
+      say('সংরক্ষণ হচ্ছে…');
+      api('/contents/'+encodeURIComponent(f),{method:'PUT',body:{message:'admin: edit '+f,content:enc(t),sha:st.sha,branch:BR}}).then(function(j){ st.sha=j.content.sha; st.orig=t; say('✅ সংরক্ষণ হয়েছে। ১–২ মিনিটে সাইটে কার্যকর হবে। ভুল হলে "আগের সংস্করণ" থেকে ফেরান।'); }).catch(function(e){ say(errText(e),1); });
+    };
+    $('feHist').onclick=function(){
+      if(!tok()) return say('আগে টোকেন দিন।',1);
+      var f=$('feFile').value, box=$('feHistBox'); box.textContent='লোড হচ্ছে…';
+      api('/commits?path='+encodeURIComponent(f)+'&sha='+BR+'&per_page=8').then(function(l){
+        if(!l.length){ box.textContent='কোনো ইতিহাস নেই।'; return; }
+        box.innerHTML=''; l.forEach(function(x){
+          var d=document.createElement('div'); d.style.cssText='display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:12px;';
+          var t=document.createElement('span'); t.textContent=new Date(x.commit.author.date).toLocaleString('bn-BD')+' · '+(x.commit.message||'').split('\n')[0].slice(0,50);
+          var b=document.createElement('button'); b.type='button'; b.textContent='এটা খুলুন'; b.style.cssText=btn;
+          b.onclick=function(){ say('পুরোনো সংস্করণ আনা হচ্ছে…'); api('/contents/'+encodeURIComponent(f)+'?ref='+x.sha).then(function(j){ $('feText').value=dec(j.content); say('পুরোনো সংস্করণ বক্সে এসেছে। ঠিক থাকলে "সংরক্ষণ" চাপুন। এখনো কিছু বদলায়নি।'); }).catch(function(e){ say(errText(e),1); }); };
+          d.appendChild(t); d.appendChild(b); box.appendChild(d);
+        });
+      }).catch(function(e){ box.textContent=''; say(errText(e),1); });
+    };
+  }
+  setInterval(build,1500);
+})();
+</script>
 </body>
 </html>
