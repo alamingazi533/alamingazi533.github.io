@@ -3226,7 +3226,7 @@ Tawk_API.onLoad = function(){
   });
   try{
     var st=document.createElement('style');
-    st.textContent='@keyframes msgShake{0%,100%{transform:translateX(0)}15%,55%,90%{transform:translateX(-7px)}35%,75%{transform:translateX(7px)}}.msg-shake{animation:msgShake .55s ease 4 !important}#msgWaitToast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);width:max-content;max-width:86vw;background:#1f3b2c;color:#fff;border:2px solid #25d366;border-radius:14px;padding:11px 16px;z-index:2147482990;font-weight:700;font-size:14px;line-height:1.5;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.4);cursor:pointer;animation:msgShake .55s ease 4}';
+    st.textContent='@keyframes msgShake{0%,100%{transform:translateX(0)}15%,55%,90%{transform:translateX(-7px)}35%,75%{transform:translateX(7px)}}.msg-shake{animation:msgShake .55s ease 4 !important}#msgWaitToast{position:fixed;left:7vw;right:7vw;margin:0 auto;bottom:96px;width:fit-content;max-width:86vw;background:#1f3b2c;color:#fff;border:2px solid #25d366;border-radius:14px;padding:11px 16px;z-index:2147482990;font-weight:700;font-size:14px;line-height:1.5;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.4);cursor:pointer;animation:msgShake .55s ease 4}';
     document.head.appendChild(st);
   }catch(e){}
   function shake(){
@@ -3287,15 +3287,66 @@ Tawk_API.onLoad = function(){
     if(open) return;
     var now=Date.now(); if(now-last<8000) return; last=now;
     shake(); toast(); beep(); speak(); titleBlink();
+    try{window.__chatBubbleReal&&window.__chatBubbleReal();}catch(e){}
   }
   window.__alertNewMsg=alertMsg;
   Tawk_API.onChatMessageAgent=function(){ alertMsg(); };
   Tawk_API.onChatMessageSystem=function(){ alertMsg(); };
   Tawk_API.onUnreadCountChanged=function(c){ if(c>unread) alertMsg(); unread=c||0; };
-  Tawk_API.onChatMaximized=function(){ open=true; var d=document.getElementById('msgWaitToast'); if(d) d.remove(); };
+  Tawk_API.onChatMaximized=function(){ open=true; window.__chatOpened=true; try{window.__hideChatBubble&&window.__hideChatBubble();}catch(e){} var d=document.getElementById('msgWaitToast'); if(d) d.remove(); };
   Tawk_API.onChatMinimized=function(){ open=false; };
   Tawk_API.onChatHidden=function(){ open=false; };
 })();
+// ============ "লাইভ চ্যাট করুন" বাটনে বার্তা-বাবল ও মাঝে মাঝে কাঁপুনি ============
+(function(){
+  var NEED_BN='কোনো সমস্যা? এখনই চ্যাটে জানান', NEED_EN='Need help? Chat with us now';
+  var REAL_BN='আপনার জন্য মেসেজ অপেক্ষা করছে', REAL_EN='A message is waiting for you';
+  var timer=null, bubble=null, btn=null, real=false;
+  try{
+    var st=document.createElement('style');
+    st.textContent='#liveChatBtn{position:relative;overflow:visible}#liveChatBtn.has-bubble{margin-top:56px}'
+      +'@keyframes cbShake{0%,100%{transform:translateX(0) rotate(0)}15%,55%,90%{transform:translateX(-6px) rotate(-1.2deg)}35%,75%{transform:translateX(6px) rotate(1.2deg)}}'
+      +'#liveChatBtn.cb-shake{animation:cbShake .5s ease 3}'
+      +'.chat-btn-bubble{position:absolute;right:14px;top:-44px;background:#fff;color:#1f3b2c;border:2px solid #FF7A00;border-radius:12px;padding:5px 11px;font-size:12.5px;line-height:1.35;font-weight:700;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.25);pointer-events:none;z-index:2;white-space:nowrap;max-width:92%}'
+      +'.chat-btn-bubble small{display:block;font-weight:500;font-size:11px;opacity:.85}'
+      +'.chat-btn-bubble:after{content:"";position:absolute;bottom:-8px;right:22px;width:12px;height:12px;background:#fff;border-right:2px solid #FF7A00;border-bottom:2px solid #FF7A00;transform:rotate(45deg)}'
+      +'.chat-btn-bubble.real{background:#25d366;border-color:#1a9e4b;color:#fff}.chat-btn-bubble.real:after{background:#25d366;border-color:#1a9e4b}'
+      +'.chat-btn-dot{position:absolute;top:-8px;left:-6px;min-width:22px;height:22px;border-radius:11px;background:#e53935;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff}'
+      +'@media (prefers-reduced-motion:reduce){#liveChatBtn.cb-shake{animation:none}}';
+    document.head.appendChild(st);
+  }catch(e){}
+  function render(){
+    if(!bubble) return;
+    bubble.className='chat-btn-bubble'+(real?' real':'');
+    bubble.innerHTML=(real?REAL_BN:NEED_BN)+'<small>'+(real?REAL_EN:NEED_EN)+'</small>';
+  }
+  function shakeBtn(){
+    if(!btn||window.__chatOpened) return;
+    btn.classList.remove('cb-shake'); void btn.offsetWidth; btn.classList.add('cb-shake');
+    setTimeout(function(){btn.classList.remove('cb-shake');},1700);
+  }
+  function hideAll(){
+    clearInterval(timer); timer=null;
+    if(bubble){bubble.remove(); bubble=null;}
+    if(btn) btn.classList.remove('has-bubble');
+    var d=btn&&btn.querySelector('.chat-btn-dot'); if(d) d.remove();
+  }
+  window.__hideChatBubble=hideAll;
+  window.__chatBubbleReal=function(){
+    real=true; render(); shakeBtn();
+  };
+  function start(){
+    btn=document.getElementById('liveChatBtn'); if(!btn||bubble) return;
+    bubble=document.createElement('span'); render(); btn.appendChild(bubble); btn.classList.add('has-bubble');
+    var dot=document.createElement('span'); dot.className='chat-btn-dot'; dot.textContent='1'; btn.appendChild(dot);
+    btn.addEventListener('click',function(){window.__chatOpened=true;hideAll();});
+    shakeBtn();
+    var n=0;
+    timer=setInterval(function(){ n++; shakeBtn(); if(n>=12) clearInterval(timer); },8000);
+  }
+  window.addEventListener('load',function(){setTimeout(start,2500);});
+})();
+
 // ============ মোবাইলে ১৫ সেকেন্ড পর চ্যাট বাটনে পালস অ্যানিমেশন (ফুলস্ক্রিন খুলবে না) ============
 window.addEventListener('load', function(){
   setTimeout(function(){
