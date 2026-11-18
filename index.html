@@ -3216,6 +3216,86 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 Tawk_API.onLoad = function(){
   try { Tawk_API.minimize(); } catch(e){}
 };
+
+// ============ নতুন মেসেজ এলে ভিজিটরের সামনে সংকেত (কাঁপুনি + শব্দ + বার্তা) ============
+(function(){
+  var MSG_BN='আপনার জন্য মেসেজ অপেক্ষা করছে', MSG_EN='A message is waiting for you';
+  var acted=false, open=false, last=0, spoke=false, unread=0, blink=null, hide=null, orig=document.title, ctx=null;
+  ['click','touchstart','keydown','scroll'].forEach(function(e){
+    window.addEventListener(e,function(){acted=true;},{once:true,passive:true});
+  });
+  try{
+    var st=document.createElement('style');
+    st.textContent='@keyframes msgShake{0%,100%{transform:translateX(0)}15%,55%,90%{transform:translateX(-7px)}35%,75%{transform:translateX(7px)}}.msg-shake{animation:msgShake .55s ease 4 !important}#msgWaitToast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);width:max-content;max-width:86vw;background:#1f3b2c;color:#fff;border:2px solid #25d366;border-radius:14px;padding:11px 16px;z-index:2147482990;font-weight:700;font-size:14px;line-height:1.5;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.4);cursor:pointer;animation:msgShake .55s ease 4}';
+    document.head.appendChild(st);
+  }catch(e){}
+  function shake(){
+    try{
+      var els=[document.getElementById('liveChatBtn')];
+      var fr=document.querySelectorAll('iframe[title*="chat" i],iframe[title*="tawk" i]');
+      for(var i=0;i<fr.length;i++) els.push(fr[i]);
+      els.forEach(function(el){
+        if(!el) return;
+        el.classList.remove('msg-shake'); void el.offsetWidth; el.classList.add('msg-shake');
+        setTimeout(function(){el.classList.remove('msg-shake');},2600);
+      });
+    }catch(e){}
+  }
+  function beep(){
+    if(!acted) return;
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      ctx=ctx||new AC(); if(ctx.state==='suspended') ctx.resume();
+      [0,.22].forEach(function(d,i){
+        var o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='sine'; o.frequency.value=i?1046:784;
+        g.gain.setValueAtTime(.0001,ctx.currentTime+d);
+        g.gain.exponentialRampToValueAtTime(.25,ctx.currentTime+d+.03);
+        g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+d+.2);
+        o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime+d); o.stop(ctx.currentTime+d+.22);
+      });
+    }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){}
+  }
+  function speak(){
+    if(spoke||!acted||!window.speechSynthesis) return;
+    spoke=true;
+    try{
+      [[MSG_BN,'bn-BD'],[MSG_EN,'en-US']].forEach(function(m){
+        var u=new SpeechSynthesisUtterance(m[0]); u.lang=m[1]; u.volume=.9; speechSynthesis.speak(u);
+      });
+    }catch(e){}
+  }
+  function toast(){
+    try{
+      var old=document.getElementById('msgWaitToast'); if(old) old.remove();
+      var d=document.createElement('div'); d.id='msgWaitToast'; d.setAttribute('role','alert');
+      d.innerHTML='💬 '+MSG_BN+'<br><span style="font-weight:500;font-size:12.5px;opacity:.9">'+MSG_EN+'</span>';
+      d.onclick=function(){d.remove(); try{Tawk_API.maximize();}catch(e){}};
+      document.body.appendChild(d);
+      clearTimeout(hide); hide=setTimeout(function(){d.remove();},12000);
+    }catch(e){}
+  }
+  function titleBlink(){
+    if(blink) return;
+    var n=0; blink=setInterval(function(){
+      document.title=(n++%2)?orig:'💬 '+MSG_BN;
+      if(n>20||!document.hidden&&n>6){clearInterval(blink);blink=null;document.title=orig;}
+    },1000);
+  }
+  function alertMsg(){
+    if(open) return;
+    var now=Date.now(); if(now-last<8000) return; last=now;
+    shake(); toast(); beep(); speak(); titleBlink();
+  }
+  window.__alertNewMsg=alertMsg;
+  Tawk_API.onChatMessageAgent=function(){ alertMsg(); };
+  Tawk_API.onChatMessageSystem=function(){ alertMsg(); };
+  Tawk_API.onUnreadCountChanged=function(c){ if(c>unread) alertMsg(); unread=c||0; };
+  Tawk_API.onChatMaximized=function(){ open=true; var d=document.getElementById('msgWaitToast'); if(d) d.remove(); };
+  Tawk_API.onChatMinimized=function(){ open=false; };
+  Tawk_API.onChatHidden=function(){ open=false; };
+})();
 // ============ মোবাইলে ১৫ সেকেন্ড পর চ্যাট বাটনে পালস অ্যানিমেশন (ফুলস্ক্রিন খুলবে না) ============
 window.addEventListener('load', function(){
   setTimeout(function(){
