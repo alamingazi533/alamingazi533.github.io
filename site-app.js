@@ -3355,7 +3355,22 @@ function trackVisitWithLocation(){
       .catch(()=>{});
   });
 }
-afterFirstPaint(trackVisitWithLocation,2500);
+// ভিজিট গণনা: বট/প্রিভিউ-স্ক্যানার এবং মালিকের নিজের ডিভাইস বাদ; আসল মানুষ নড়াচড়া (স্ক্রল/টাচ/ক্লিক) করলে তবেই গোনা।
+// নিজের ডিভাইসে একবার সাইটের লিংকের শেষে ?nostat=1 যোগ করে খুললে ওই ডিভাইসের ভিজিট আর গোনা হবে না।
+(function(){
+  try{ if(/[?&#]nostat(=1)?(&|$)/.test(location.search + location.hash)) localStorage.setItem('noTrack','1'); }catch(e){}
+  var ua = navigator.userAgent || '', skip = false;
+  try{ if(localStorage.getItem('noTrack') === '1') skip = true; }catch(e){}
+  if(navigator.webdriver || /bot|crawl|spider|slurp|preview|facebookexternalhit|facebot|headless|lighthouse|pagespeed|gtmetrix|python|curl|wget|httpclient|monitor/i.test(ua)) skip = true;
+  if(skip) return;
+  var evs = ['scroll','touchstart','mousemove','click','keydown'], done = false;
+  function go(){
+    if(done) return; done = true;
+    evs.forEach(function(e){ window.removeEventListener(e, go, true); });
+    afterFirstPaint(trackVisitWithLocation,2500);
+  }
+  evs.forEach(function(e){ window.addEventListener(e, go, {capture:true, passive:true}); });
+})();
 
 // ============ ব্লগ ইমেইল সাবস্ক্রিপশন ============
 function loadBlogSubscriberCount(){
