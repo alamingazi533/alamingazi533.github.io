@@ -2385,7 +2385,13 @@ function resolveShortPostKey(key){
 
 function initBlogRouter(){
   const params = new URLSearchParams(window.location.search);
-  const hash = String(window.location.hash || '').replace(/^#/, '');
+  let hash = String(window.location.hash || '').replace(/^#/, '');
+  // #reviewsSection ইত্যাদি পাতার ভেতরের অংশের লিংক হলে এটাকে পোস্ট-লিংক ধরা হবে না
+  if(hash && document.getElementById(hash)){
+    const secId = hash;
+    hash = '';
+    setTimeout(function(){ const el = document.getElementById(secId); if(el && el.offsetParent !== null) el.scrollIntoView({behavior:'auto', block:'start'}); }, 400);
+  }
   const directPostId = params.get('post');
   const legacyShortKey = params.get('p');
   const blogParam = params.get('blog');
