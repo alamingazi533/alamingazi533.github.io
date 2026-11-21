@@ -192,7 +192,7 @@
       "name": "সেবা নিতে কত টাকা ফি লাগে এবং কিভাবে যোগাযোগ করব?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "আবেদন ফি মাত্র ২০ টাকা (বিকাশ/নগদ/রকেট/উপায়ে পাঠানো যায়)। ফর্ম পূরণ করার পর WhatsApp বাটনে ক্লিক করে সরাসরি যোগাযোগ করতে পারবেন। কাজের চার্জ সমস্যার ধরন অনুযায়ী আলোচনা সাপেক্ষে নির্ধারণ হয়।"
+        "text": "আবেদন করতে কোনো ফি লাগে না। ফর্ম পূরণ করার পর WhatsApp বাটনে ক্লিক করে সরাসরি যোগাযোগ করতে পারবেন। কাজের চার্জ সমস্যার ধরন অনুযায়ী আলোচনা সাপেক্ষে নির্ধারণ হয়।"
       }
     },
     {
@@ -224,7 +224,7 @@
       "name": "সমস্যা সমাধান না হলে কী হবে?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "প্রতিটি আবেদন প্রথমে যাচাই করে দেখা হয়, যাতে কাজ শুরুর আগেই সমাধানের সম্ভাবনা সম্পর্কে স্বচ্ছভাবে জানানো যায়। কাজ চলাকালীন কোনো বাধা এলে তা সাথে সাথে হোয়াটসঅ্যাপে জানিয়ে দেওয়া হয়। এরপরও যদি শেষ পর্যন্ত সমস্যার সমাধান করা সম্ভব না হয়, তাহলে নেওয়া সার্ভিস চার্জ ফেরত দেওয়া হয় (প্রাথমিক আবেদন যাচাই ফি ব্যতীত) — কোনোকিছু গোপন রাখা হয় না।"
+        "text": "প্রতিটি আবেদন প্রথমে যাচাই করে দেখা হয়, যাতে কাজ শুরুর আগেই সমাধানের সম্ভাবনা সম্পর্কে স্বচ্ছভাবে জানানো যায়। কাজ চলাকালীন কোনো বাধা এলে তা সাথে সাথে হোয়াটসঅ্যাপে জানিয়ে দেওয়া হয়। এরপরও যদি শেষ পর্যন্ত সমস্যার সমাধান করা সম্ভব না হয়, তাহলে নেওয়া সার্ভিস চার্জ ফেরত দেওয়া হয় — কোনোকিছু গোপন রাখা হয় না।"
       }
     }
   ]
@@ -2823,7 +2823,7 @@
       <button type="button" id="clearDraftBtn">মুছে নতুন শুরু</button>
     </div>
 
-    <div class="step-progress">
+    <div class="step-progress" style="display:none" aria-hidden="true">
       <div class="step-dot active" id="stepDot1"><span>১</span><label>ব্যক্তিগত</label></div>
       <div class="step-line"></div>
       <div class="step-dot" id="stepDot2"><span>২</span><label>ঠিকানা</label></div>
@@ -2832,18 +2832,21 @@
     </div>
 
     <div class="form-step" id="step1">
-    <div class="section-label" style="margin-top:0;">👤 ব্যক্তিগত তথ্য</div>
+    <div class="section-label" style="margin-top:0;">📝 আবেদন করুন</div>
+    <p class="fee-note" style="margin:0 0 12px;">৫টা ঘর পূরণ করলেই হবে। <strong>আবেদন করতে কোনো ফি লাগে না।</strong> কাজের চার্জ সমস্যা অনুযায়ী আলোচনা করে ঠিক হয়।</p>
+    <div class="trust-box" style="background:rgba(31,77,51,.06); border:1px solid rgba(31,77,51,.25); border-radius:10px; padding:11px 13px; margin:0 0 14px; font-size:13.5px; line-height:1.7;">
+      <div><strong>✅ আমরা যা করি:</strong> ধাপ বলে দিই, আপনি নিজের ফোনে নিজে করেন।</div>
+      <div><strong>🚫 আমরা যা করি না:</strong> পাসওয়ার্ড বা ভেরিফিকেশন কোড চাই না, সমাধানের নিশ্চয়তা দিই না।</div>
+      <div>আবেদন জমা দিলে আমরা আপনার দেওয়া নম্বরে WhatsApp বা ফোনে যোগাযোগ করব।</div>
+      <div style="margin-top:4px;">👤 মোঃ আলামিন ইসলাম, কেশবপুর, যশোর · <a href="#reviewsSection" style="font-weight:700;">গ্রাহকদের রিভিউ দেখুন</a></div>
+    </div>
 
-    <label for="fullName">পূর্ণ নাম <span class="req">*</span></label>
+    <label for="fullName">আপনার নাম <span class="req">*</span></label>
     <input type="text" id="fullName" required placeholder="যেমনঃ মোঃ আলামিন ইসলাম">
 
-    <label for="phone">আন্তর্জাতিক মোবাইল নম্বর <span class="req">*</span></label>
-    <input type="tel" id="phone" required placeholder="যেমনঃ +8801712345678 / +14155552671" inputmode="tel" autocomplete="tel" aria-describedby="phoneHint">
-    <div class="field-hint" id="phoneHint">যেকোনো দেশের নম্বর দিন। সম্ভব হলে দেশের কোডসহ + দিয়ে লিখুন।</div>
-
-    <label for="applicantPhoto">আপনার ছবি আপলোড করুন <span class="req">*</span></label>
-    <input type="file" id="applicantPhoto" accept="image/*" required>
-    <img id="photoPreview" class="photo-preview" alt="ছবি প্রিভিউ" loading="lazy" decoding="async">
+    <label for="phone">মোবাইল / WhatsApp নম্বর <span class="req">*</span></label>
+    <input type="tel" id="phone" required placeholder="যেমনঃ +8801712345678" inputmode="tel" autocomplete="tel" aria-describedby="phoneHint">
+    <div class="field-hint" id="phoneHint">যেকোনো দেশের নম্বর দিন। সম্ভব হলে দেশের কোডসহ + দিয়ে লিখুন।</div>
 
     <label for="platform">কোন প্ল্যাটফর্মের সমস্যা? <span class="req">*</span></label>
     <select id="platform" required>
@@ -2855,101 +2858,31 @@
       <option value="অন্যান্য">অন্যান্য</option>
     </select>
 
-    <label for="idLink">আপনার আইডি / প্রোফাইল / চ্যানেল লিংক (Facebook/Instagram/TikTok/YouTube) <span class="req">*</span></label>
-    <input type="url" id="idLink" required placeholder="https://facebook.com/... বা Instagram/TikTok/YouTube লিংক">
+    <label for="idLink">আইডি / পেজ / চ্যানেলের লিংক বা নাম <span style="font-weight:400;color:#7a6a4a;">(ঐচ্ছিক)</span></label>
+    <input type="text" id="idLink" placeholder="লিংক বা আইডির নাম লিখুন। না থাকলে ফাঁকা রাখুন">
 
-    <div class="row2">
-      <div>
-        <label for="dob">জন্ম তারিখ <span class="req">*</span></label>
-        <input type="date" id="dob" required>
-      </div>
-      <div>
-        <label for="gender">লিঙ্গ <span class="req">*</span></label>
-        <select id="gender" required>
-          <option value="">নির্বাচন করুন</option>
-          <option value="পুরুষ">পুরুষ</option>
-          <option value="মহিলা">মহিলা</option>
-          <option value="অন্যান্য">অন্যান্য</option>
-        </select>
-      </div>
+    <label for="comment">সমস্যাটা সংক্ষেপে লিখুন <span class="req">*</span></label>
+    <textarea id="comment" required placeholder="যেমনঃ আইডি হ্যাক হয়েছে, পেজ ডিজেবল, মনিটাইজেশন বন্ধ ইত্যাদি"></textarea>
+
+    <!-- নিচের ঘরগুলো আর দেখানো হয় না (ফি ও বাড়তি তথ্য বাদ)। কোডের সাথে মিল রাখতে লুকানো অবস্থায় রাখা আছে -->
+    <div id="legacyFields" style="display:none;" aria-hidden="true">
+      <input type="file" id="applicantPhoto" accept="image/*">
+      <img id="photoPreview" class="photo-preview" alt="" loading="lazy" decoding="async">
+      <input type="date" id="dob">
+      <select id="gender"><option value="">-</option></select>
+      <input type="email" id="email">
+      <select id="country"><option value="">-</option></select>
+      <select id="division" disabled><option value="">-</option></select>
+      <select id="district" disabled><option value="">-</option></select>
+      <input type="text" id="upazila" list="upazilaList">
+      <datalist id="upazilaList"></datalist>
+      <input type="text" id="areaDetail">
+      <input type="file" id="screenshot" accept="image/*">
+      <select id="paymentMethod"><option value="">-</option></select>
+      <input type="text" id="txnId">
+      <input type="tel" id="senderNumber">
+      <div id="selectedMethodStatus"></div>
     </div>
-    <div class="field-hint" id="dobHint">আবেদন করতে হলে বয়স কমপক্ষে ১৩ বছর হতে হবে।</div>
-
-    <label for="email">ইমেইল ঠিকানা <span class="req">*</span></label>
-    <input type="email" id="email" required placeholder="example@gmail.com">
-
-    <button type="button" class="step-next-btn" onclick="goToStep(2)">পরবর্তী ধাপ →</button>
-    </div>
-
-    <div class="form-step" id="step2" style="display:none;">
-    <div class="section-label" style="margin-top:0;">📍 ঠিকানা</div>
-
-    <label for="country">দেশ <span class="req">*</span></label>
-    <select id="country" required>
-      <option value="">দেশের তালিকা লোড হচ্ছে…</option>
-    </select>
-
-    <label for="division">বিভাগ / State / Province <span class="req">*</span></label>
-    <select id="division" required disabled>
-      <option value="">প্রথমে দেশ নির্বাচন করুন</option>
-    </select>
-
-    <label for="district">জেলা / City / District <span class="req">*</span></label>
-    <select id="district" required disabled>
-      <option value="">প্রথমে বিভাগ নির্বাচন করুন</option>
-    </select>
-
-    <label for="upazila">থানা / উপজেলা / Locality <span class="req">*</span></label>
-    <input type="text" id="upazila" required list="upazilaList" placeholder="বাংলাদেশে উপজেলা নির্বাচন/লিখুন; বিদেশে Locality/থানা লিখুন" autocomplete="address-level3">
-    <datalist id="upazilaList"></datalist>
-
-    <label for="areaDetail">গ্রাম / এলাকা / Street Address <span class="req">*</span></label>
-    <input type="text" id="areaDetail" required placeholder="গ্রাম, পাড়া, মহল্লা, রাস্তা বা বাড়ির বিস্তারিত ঠিকানা লিখুন" autocomplete="street-address">
-
-    <div class="section-label">⚠️ সমস্যার বিবরণ</div>
-
-    <label for="comment">আপনার ফেসবুক সমস্যার বিবরণ <span class="req">*</span></label>
-    <textarea id="comment" required placeholder="যেমনঃ পেজ হ্যাক হয়ে গেছে, অ্যাকাউন্ট নিষ্ক্রিয় হয়ে গেছে, মনিটাইজেশন বন্ধ হয়ে গেছে ইত্যাদি — বিস্তারিত লিখুন"></textarea>
-
-    <label for="screenshot">সমস্যার স্ক্রিনশট আপলোড করুন <span class="req">*</span></label>
-    <input type="file" id="screenshot" accept="image/*" required>
-
-    <div class="step-btn-row">
-      <button type="button" class="step-back-btn" onclick="goToStep(1)">← আগের ধাপ</button>
-      <button type="button" class="step-next-btn" onclick="goToStep(3)">পরবর্তী ধাপ →</button>
-    </div>
-    </div>
-
-    <div class="form-step" id="step3" style="display:none;">
-    <div class="section-label" style="margin-top:0;">💳 আবেদন ফি</div>
-
-    <div class="fee-box">
-      <p class="fee-amount">আবেদন ফি মাত্র <strong>২০ টাকা</strong></p>
-      <p class="fee-note">এটা করা হয়েছে কারণ, মজা করে যাতে কেউ আবেদন না করতে পারে তার জন্য ফি রাখা হচ্ছে।</p>
-      <div class="fee-methods">
-        <div class="fee-method" id="feeMethod-বিকাশ" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01309519503','বিকাশ')"><span class="fee-method-label"><strong>বিকাশ</strong></span><img class="fee-logo" src="bkash-logo.png" alt="বিকাশ" loading="lazy"><span class="fee-number">01309519503</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01309519503','বিকাশ')">📋 কপি</button></div>
-        <div class="fee-method" id="feeMethod-নগদ" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01764324313','নগদ')"><span class="fee-method-label"><strong>নগদ</strong></span><img class="fee-logo" src="nagad-logo.png" alt="নগদ" loading="lazy"><span class="fee-number">01764324313</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01764324313','নগদ')">📋 কপি</button></div>
-        <div class="fee-method" id="feeMethod-রকেট" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01764324313','রকেট')"><span class="fee-method-label"><strong>রকেট</strong></span><img class="fee-logo" src="rocket-logo.jpg" alt="রকেট" loading="lazy"><span class="fee-number">01764324313</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01764324313','রকেট')">📋 কপি</button></div>
-        <div class="fee-method" id="feeMethod-উপায়" onclick="copyFeeNumber(this.querySelector('.copy-btn'),'01764324313','উপায়')"><span class="fee-method-label"><strong>উপায়</strong></span><img class="fee-logo" src="upay-logo.png" alt="উপায়" loading="lazy"><span class="fee-number">01764324313</span><span class="fee-check">✓</span><button type="button" class="copy-btn" onclick="event.stopPropagation();copyFeeNumber(this,'01764324313','উপায়')">📋 কপি</button></div>
-      </div>
-      <div id="selectedMethodStatus" class="selected-method-status"></div>
-      <p class="fee-note">উপরের যেকোনো একটি নম্বরে ২০ টাকা <strong>Send Money</strong> করে নিচে ট্রানজেকশন আইডি লিখুন।</p>
-      <p class="fee-note fee-highlight">⚠️ সকল সার্ভিসের জন্য আলোচনা সাপেক্ষে টাকা চার্জ করে থাকি। কোনো কাজ ফ্রি করা হয় না। তাই কাজ করানোর আগেই উপরে WhatsApp বাটনে ক্লিক করে কথা বলে নেওয়া ভালো। কাজ ছোট হোক কিংবা বড় সকল কাজের জন্য  চার্জ প্রয়োজ্য।</p>
-    </div>
-
-    <select id="paymentMethod" style="display:none;">
-      <option value="">নির্বাচন করুন</option>
-      <option value="বিকাশ">বিকাশ</option>
-      <option value="নগদ">নগদ</option>
-      <option value="রকেট">রকেট</option>
-      <option value="উপায়">উপায়</option>
-    </select>
-
-    <label for="txnId">ট্রানজেকশন আইডি (Transaction ID) <span class="req">*</span></label>
-    <input type="text" id="txnId" required placeholder="যেমনঃ 8N7A2XXXXX">
-
-    <label for="senderNumber">যে নম্বর থেকে টাকা পাঠিয়েছেন <span class="req">*</span></label>
-    <input type="tel" id="senderNumber" required placeholder="01XXXXXXXXX" pattern="01[0-9]{9}">
 
     <label for="captchaAns">যাচাই করুন <span class="req">*</span></label>
     <div class="captcha-box">
@@ -2963,9 +2896,10 @@
     </label>
 
     <div class="step-btn-row">
-      <button type="button" class="step-back-btn" onclick="goToStep(2)">← আগের ধাপ</button>
-      <button type="submit" id="submitBtn">রেজিস্ট্রেশন সম্পন্ন করুন</button>
+      <button type="submit" id="submitBtn" style="width:100%;">আবেদন জমা দিন</button>
     </div>
+    <p class="field-hint" style="margin-top:10px; text-align:center;">🔒 আপনার তথ্য শুধু যোগাযোগের জন্য ব্যবহার হয়, কারও কাছে বিক্রি বা শেয়ার করা হয় না। <a href="privacy.html">গোপনীয়তা নীতি</a></p>
+    <p style="text-align:center; margin:8px 0 0; font-size:13.5px;">ফর্ম পূরণে সমস্যা হলে বা সরাসরি কথা বলতে চাইলে: <a href="https://wa.me/8801764324313" target="_blank" rel="noopener" style="font-weight:700;">💬 WhatsApp-এ মেসেজ করুন</a></p>
     <div class="status" id="status"></div>
     <div class="app-id-display" id="appIdDisplay">
       <span class="app-id-display-label">আপনার আবেদন নম্বর:</span>
@@ -3025,10 +2959,10 @@
 
     <div class="faq-item">
       <div class="faq-q" onclick="toggleFaq(this)">
-        <span data-i18n="faq.q2">আবেদন ফি কি ফেরতযোগ্য?</span>
+        <span data-i18n="faq.q2">আবেদন করতে কি ফি লাগে?</span>
         <span class="arrow">▾</span>
       </div>
-      <div class="faq-a" data-i18n="faq.a2">আবেদন ফি শুধু আবেদন যাচাইয়ের জন্য নেওয়া হয়, তাই এটি ফেরতযোগ্য নয়। সেবা সংক্রান্ত চার্জ আলাদাভাবে আলোচনা করে নির্ধারণ করা হয়।</div>
+      <div class="faq-a" data-i18n="faq.a2">না, আবেদন করতে কোনো ফি লাগে না। সেবা সংক্রান্ত চার্জ আলাদাভাবে আলোচনা করে নির্ধারণ করা হয়।</div>
     </div>
 
     <div class="faq-item">
@@ -3075,7 +3009,7 @@
         <span data-i18n="faq.q9">সমস্যা সমাধান না হলে কী হবে?</span>
         <span class="arrow">▾</span>
       </div>
-      <div class="faq-a" data-i18n="faq.a9">প্রতিটি আবেদন প্রথমে যাচাই করে দেখা হয়, যাতে কাজ শুরুর আগেই সমাধানের সম্ভাবনা সম্পর্কে স্বচ্ছভাবে জানানো যায়। কাজ চলাকালীন কোনো বাধা এলে তা সাথে সাথে হোয়াটসঅ্যাপে জানিয়ে দেওয়া হয়। এরপরও যদি শেষ পর্যন্ত সমস্যার সমাধান করা সম্ভব না হয়, তাহলে নেওয়া সার্ভিস চার্জ ফেরত দেওয়া হয় (প্রাথমিক আবেদন যাচাই ফি ব্যতীত) — কোনোকিছু গোপন রাখা হয় না।</div>
+      <div class="faq-a" data-i18n="faq.a9">প্রতিটি আবেদন প্রথমে যাচাই করে দেখা হয়, যাতে কাজ শুরুর আগেই সমাধানের সম্ভাবনা সম্পর্কে স্বচ্ছভাবে জানানো যায়। কাজ চলাকালীন কোনো বাধা এলে তা সাথে সাথে হোয়াটসঅ্যাপে জানিয়ে দেওয়া হয়। এরপরও যদি শেষ পর্যন্ত সমস্যার সমাধান করা সম্ভব না হয়, তাহলে নেওয়া সার্ভিস চার্জ ফেরত দেওয়া হয় — কোনোকিছু গোপন রাখা হয় না।</div>
     </div>
 
     <div class="faq-item">
@@ -3085,7 +3019,7 @@
       </div>
       <div class="faq-a privacy-text" data-i18n="faq.a5">
         আপনার দেওয়া নাম, মোবাইল নম্বর, ইমেইল, জন্ম তারিখ, ঠিকানা, ছবি ও আইডি/প্রোফাইল/চ্যানেল লিংক শুধুমাত্র আপনার আবেদন যাচাই ও যোগাযোগের কাজে ব্যবহার করা হয়। এই তথ্য আমাদের নিজস্ব Google Sheet ও Google Drive-এ সংরক্ষিত থাকে এবং তৃতীয় কোনো পক্ষের সাথে শেয়ার বা বিক্রি করা হয় না।<br><br>
-        পেমেন্ট স্ক্রিনশট ও ট্রানজেকশন আইডি শুধু ফি পরিশোধ যাচাইয়ের জন্য রাখা হয়।<br><br>
+        
         নোটিফিকেশন বা লোকেশন পারমিশন সম্পূর্ণ ঐচ্ছিক — অনুমতি না দিলেও ফর্ম পূরণ ও রেজিস্ট্রেশন করা যাবে।<br><br>
         আপনার তথ্য মুছে ফেলতে বা সংক্রান্ত কোনো প্রশ্ন থাকলে উপরের WhatsApp নম্বরে যোগাযোগ করুন।
       </div>
@@ -3209,7 +3143,7 @@
   </div>
 </div>
 
-<script src="site-app.js?v=14" defer></script>
+<script src="site-app.js?v=16" defer></script>
 
 <!-- ============ Tawk.to লাইভ চ্যাট উইজেট ============
      নিচের YOUR_PROPERTY_ID এবং YOUR_WIDGET_ID বদলে আপনার নিজের ভ্যালু বসান।

@@ -172,8 +172,8 @@ const I18N_EN = {
   'faq.heading': 'Frequently Asked Questions',
   'faq.q1': 'How soon will I be contacted after applying?',
   'faq.a1': 'After receiving your application, we verify it and contact you as soon as possible via WhatsApp or phone. We usually respond within 24 hours.',
-  'faq.q2': 'Is the application fee refundable?',
-  'faq.a2': 'The application fee is only for verifying the application, so it is non-refundable. Service charges are determined separately through discussion.',
+  'faq.q2': 'Is there any fee to apply?',
+  'faq.a2': 'No, there is no fee to apply. Service charges are determined separately through discussion.',
   'faq.q3': 'What kind of problems do you solve?',
   'faq.a3': 'We handle Facebook, Instagram, TikTok, and YouTube — full ID/page/channel setup, ID review, payout account creation, payout name correction, fixing any issue, opening TIN certificates, bank account setup, fixing suspended or banned IDs, recovering hacked pages/accounts/channels, restoring disabled IDs or pages, fixing stopped monetization, and other related problems.',
   'faq.q4': 'How much will the service cost in total?',
@@ -185,9 +185,9 @@ const I18N_EN = {
   'faq.q8': 'Can I apply from another country?',
   'faq.a8': 'Yes, people can apply from any country. The form accepts country, state/province, district/city, locality, and village/area details, and verification and communication are handled online and via WhatsApp.',
   'faq.q9': 'What happens if the problem cannot be solved?',
-  'faq.a9': 'Every application is first verified so you get a clear picture of the chances of a solution before work begins. If any obstacle comes up during the process, you are informed right away on WhatsApp. If, despite everything, the problem ultimately cannot be resolved, the service charge you paid will be refunded (excluding the initial application verification fee) — nothing is kept hidden.',
+  'faq.a9': 'Every application is first verified so you get a clear picture of the chances of a solution before work begins. If any obstacle comes up during the process, you are informed right away on WhatsApp. If, despite everything, the problem ultimately cannot be resolved, the service charge you paid will be refunded — nothing is kept hidden.',
   'faq.q5': 'Privacy Policy',
-  'faq.a5': 'The name, mobile number, email, date of birth, address, photo, and ID/profile/channel link you provide are used only to verify your application and to contact you. This information is stored in our own Google Sheet and Google Drive and is not shared or sold to any third party.<br><br>Payment screenshots and transaction IDs are kept only to verify fee payment.<br><br>Notification or location permissions are entirely optional — you can fill out the form and register even without granting permission.<br><br>If you want your information deleted or have any related questions, please contact the WhatsApp number above.',
+  'faq.a5': 'The name, mobile number, email, date of birth, address, photo, and ID/profile/channel link you provide are used only to verify your application and to contact you. This information is stored in our own Google Sheet and Google Drive and is not shared or sold to any third party.<br><br>Notification or location permissions are entirely optional — you can fill out the form and register even without granting permission.<br><br>If you want your information deleted or have any related questions, please contact the WhatsApp number above.',
   'reviews.heading': "Customer Reviews",
   'reviewForm.heading': 'Share Your Experience',
   'reviewForm.rating': 'Give a rating',
@@ -1395,6 +1395,9 @@ draftFieldIds.forEach(id=>{
 
 restoreDraft();
 
+// একধাপের ফর্ম: ফর্মে প্রথম ক্লিক/লেখার সময় যাচাই-প্রশ্ন (captcha) আনা হয়
+(function(){ const f = document.getElementById('regForm'); if(f) f.addEventListener('focusin', function(){ try{ ensureCaptcha(); }catch(e){} }, { once:true }); })();
+
 const clearDraftBtn = document.getElementById('clearDraftBtn');
 if(clearDraftBtn){
   clearDraftBtn.addEventListener('click', ()=>{
@@ -1416,12 +1419,6 @@ form.addEventListener('submit', async (e)=>{
     return;
   }
 
-  if(!document.getElementById('paymentMethod').value){
-    showStatus('err', 'অনুগ্রহ করে উপরের তালিকা থেকে যেকোনো একটি নম্বরের পাশে "কপি" বাটনে ক্লিক করুন — এতে পেমেন্ট মাধ্যম স্বয়ংক্রিয়ভাবে নির্বাচিত হবে।');
-    document.querySelector('.fee-methods').scrollIntoView({ behavior:'smooth', block:'center' });
-    return;
-  }
-
   if(!document.getElementById('confirmCheck').checked){
     showStatus('err', 'সকল তথ্য সঠিক থাকলে চেক বক্সে ক্লিক করুন।');
     return;
@@ -1438,16 +1435,6 @@ form.addEventListener('submit', async (e)=>{
     return;
   }
 
-  const dobVal = document.getElementById('dob').value;
-  if(!dobVal){
-    showStatus('err', 'জন্ম তারিখ দিন।');
-    return;
-  }
-  if(calcAge(dobVal) < 13){
-    showStatus('err', 'দুঃখিত, আবেদন করতে হলে বয়স কমপক্ষে ১৩ বছর হতে হবে।');
-    return;
-  }
-
   let appId = (function(){ try{ const a = new Uint32Array(1); crypto.getRandomValues(a); return 'APP-' + String(a[0] % 100000000).padStart(8,'0'); }catch(e){ return 'APP-' + Date.now().toString().slice(-8); } })();
 
   const payload = {
@@ -1459,15 +1446,15 @@ form.addEventListener('submit', async (e)=>{
     email: document.getElementById('email').value.trim(),
     platform: document.getElementById('platform').value.trim(),
     idLink: document.getElementById('idLink').value.trim(),
-    country: countrySelect.options[countrySelect.selectedIndex]?.text || '',
-    division: divisionSelect.options[divisionSelect.selectedIndex]?.text || '',
-    district: districtSelect.options[districtSelect.selectedIndex]?.text || '',
-    upazila: upazilaInput.value.trim(),
-    areaDetail: document.getElementById('areaDetail').value.trim(),
+    country: '',
+    division: '',
+    district: '',
+    upazila: '',
+    areaDetail: '',
     comment: document.getElementById('comment').value.trim(),
-    paymentMethod: document.getElementById('paymentMethod').value.trim(),
-    txnId: document.getElementById('txnId').value.trim(),
-    senderNumber: document.getElementById('senderNumber').value.trim(),
+    paymentMethod: 'ফি নেই',
+    txnId: 'FREE-' + appId,
+    senderNumber: '',
     submittedAt: new Date().toISOString(),
     captchaA: captchaA,
     captchaB: captchaB,
