@@ -4613,6 +4613,44 @@ function insertPostImage(id){
     });
   }
   async function post(body){ return await (await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body)})).json(); }
+  const imgOk = url => new Promise(res => { const i = new Image(); i.onload = () => res(true); i.onerror = () => res(false); i.src = url + (url.indexOf('?') < 0 ? '?c=' : '&c=') + Date.now(); });
+  async function uploadImgs(sel){
+    const REPO = 'alamingazi533/alamingazi533.github.io';
+    const files = window.__impImgFiles || [];
+    if(files.length){
+      let tk = ''; try{ tk = sessionStorage.getItem('ghFeTok') || ''; }catch(e){}
+      if(!tk){ alert('ছবি জমা দিতে GitHub টোকেন লাগবে। সেটিংস ট্যাবে "ফাইল সম্পাদক" অংশে টোকেন দিয়ে আবার চেষ্টা করুন। (টোকেন ছাড়া ছবি বাদ দিয়ে শুধু পোস্ট করতে চাইলে ছবির ঘর খালি করুন।)'); return false; }
+      const h = {'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + tk};
+      let n = 0, skip = 0, bad = 0;
+      for(const f of files){
+        const name = f.name.replace(/[^A-Za-z0-9._-]/g, '-');
+        const e1 = $('impProg'); if(e1) e1.textContent = '🖼️ ছবি জমা হচ্ছে: ' + bn(n + skip + bad) + ' / ' + bn(files.length);
+        try{
+          const url = 'https://api.github.com/repos/' + REPO + '/contents/post-img/' + encodeURIComponent(name);
+          const g = await fetch(url + '?ref=main', {headers: h, cache: 'no-store'});
+          if(g.status === 200){ skip++; continue; }
+          if(g.status === 401 || g.status === 403){ logf('❌ টোকেন ঠিক নয় বা অনুমতি নেই (Contents: Read and write লাগবে)', 'var(--maroon)'); return false; }
+          const du = await fileToBase64(f);
+          const r = await fetch(url, {method: 'PUT', headers: Object.assign({'Content-Type': 'application/json'}, h), body: JSON.stringify({message: 'admin: add post image ' + name, content: String(du).split(',')[1] || '', branch: 'main'})});
+          if(r.ok) n++; else { bad++; logf('❌ ছবি জমা হয়নি: ' + name, 'var(--maroon)'); }
+        }catch(e){ bad++; logf('❌ ছবি জমা হয়নি: ' + name, 'var(--maroon)'); }
+      }
+      logf('🖼️ ছবি: ' + bn(n) + 'টা নতুন জমা, ' + bn(skip) + 'টা আগে থেকেই ছিল' + (bad ? ', ' + bn(bad) + 'টা ব্যর্থ' : ''), bad ? 'var(--maroon)' : '');
+      if(n){ logf('⏳ সাইটে ছবি আসতে ১–২ মিনিট লাগে। পোস্টগুলো এখনই জমা হবে, ছবি একটু পরে দেখা যাবে।'); }
+    }
+    // লেখায় যেসব ছবির লিংক আছে, সেগুলোর কোনোটা নতুন জমা না হয়ে সাইটেও না থাকলে সতর্ক করা
+    const names = new Set(files.map(f => f.name.replace(/[^A-Za-z0-9._-]/g, '-')));
+    const refs = new Set();
+    sel.forEach(it => { const re = /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g; let m; while((m = re.exec(it.content))) refs.add(m[1]); });
+    const miss = [];
+    for(const u of refs){
+      const nm = decodeURIComponent(u.split('/').pop().split('?')[0]);
+      if(names.has(nm)) continue;
+      if(!(await imgOk(u))) miss.push(nm);
+    }
+    if(miss.length) return confirm('⚠️ এই ' + bn(miss.length) + 'টা ছবি সাইটে এখনও নেই:\n\n' + miss.slice(0, 12).join('\n') + (miss.length > 12 ? '\n…' : '') + '\n\nছবি ছাড়াই পোস্ট করবেন? (পরে ছবি জমা দিলে পোস্টে আপনাআপনি দেখা যাবে)');
+    return true;
+  }
   async function run(p){
     const sel = items.filter(it => it.on && it.ok);
     if(!sel.length){ alert('কিছু নির্বাচন করা নেই।'); return; }
@@ -4620,6 +4658,10 @@ function insertPostImage(id){
     const nNew = sel.filter(it => !it.key).length, nOld = sel.length - nNew;
     if(!confirm(bn(nNew) + 'টা নতুন পোস্ট ও ' + bn(nOld) + 'টা পুরোনো পোস্ট আপডেট হবে' + (nNew ? (mode === 'private' ? '। নতুনগুলো আনপাবলিক থাকবে, সাইটে দেখাবে না।' : mode === 'now' ? '। নতুনগুলো এখনই পাবলিক হবে এবং নোটিফিকেশন যাবে।' : mode === 'sched' ? '। নতুনগুলো সিডিউল হবে।' : '। নতুনগুলো খসড়া থাকবে।') : '।') + ' এগোবেন?')) return;
     $('impGo').disabled = true; $('impLog').innerHTML = '';
+    {
+      const okImg = await uploadImgs(sel);
+      if(!okImg){ $('impGo').disabled = false; return; }
+    }
     let okU = 0, okN = 0, bad = 0, seen = 0;
     const prog = () => { seen++; const e = $('impProg'); if(e) e.textContent = '⏳ ' + bn(seen) + ' / ' + bn(sel.length) + ' সম্পন্ন · ✏️ আপডেট ' + bn(okU) + ' · 🆕 নতুন ' + bn(okN) + (bad ? ' · ❌ ব্যর্থ ' + bn(bad) : ''); const b = $('impBar'); if(b) b.style.width = Math.round(seen / sel.length * 100) + '%'; };
     const d0 = new Date(); d0.setDate(d0.getDate() + 1); d0.setHours(10, 0, 0, 0); let day = 0;
@@ -4656,10 +4698,12 @@ function insertPostImage(id){
     const p = panel();
     p.innerHTML = '<b>📥 একসাথে পোস্ট ইমপোর্ট</b><div style="font-size:12.5px;color:var(--muted);margin:6px 0;">আমার দেওয়া পোস্টের ফাইল (posts3.txt বা expand.txt) এখানে পেস্ট করুন, অথবা ফাইল বেছে নিন।</div>' +
       '<textarea id="impTxt" style="width:100%;min-height:120px;padding:8px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:13px;background:transparent;color:var(--ink);"></textarea>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><input type="file" id="impFile" accept=".txt,text/plain" style="font-size:12.5px;max-width:100%;"><button type="button" id="impPrev" style="' + btn + '">👁 প্রিভিউ দেখুন</button><button type="button" id="impX" style="' + btn + '">✖</button></div><div id="impMsg" style="font-size:12.5px;margin-top:6px;"></div>';
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><input type="file" id="impFile" accept=".txt,text/plain" style="font-size:12.5px;max-width:100%;"><button type="button" id="impPrev" style="' + btn + '">👁 প্রিভিউ দেখুন</button><button type="button" id="impX" style="' + btn + '">✖</button></div>' +
+      '<div style="margin-top:10px;font-size:12.5px;"><b>🖼️ ছবি (থাকলে):</b> পোস্টের ছবিগুলো একসাথে বেছে নিন ("প্রিভিউ" চাপার আগে)। পরে "▶ নির্বাচিত পোস্টগুলো করুন" চাপলে ছবি সাইটে জমা হবে, তারপর পোস্ট যাবে। (আগে একবার ফাইল সম্পাদক অংশে GitHub টোকেন দিতে হবে।)<br><input type="file" id="impImgs" accept="image/*" multiple style="font-size:12.5px;max-width:100%;margin-top:4px;"></div><div id="impMsg" style="font-size:12.5px;margin-top:6px;"></div>';
     $('impX').onclick = () => p.remove();
     $('impFile').onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { $('impTxt').value = String(r.result || ''); }; r.readAsText(f, 'utf-8'); };
     $('impPrev').onclick = async () => {
+      window.__impImgFiles = $('impImgs') && $('impImgs').files ? Array.from($('impImgs').files) : [];
       items = parse($('impTxt').value);
       if(!items.length){ $('impMsg').textContent = '❌ কোনো পোস্ট পাওয়া যায়নি। ফাইলের পুরো লেখা পেস্ট করেছেন কি?'; $('impMsg').style.color = 'var(--maroon)'; return; }
       $('impMsg').textContent = '⏳ সাইটের বর্তমান পোস্ট মেলানো হচ্ছে…'; $('impMsg').style.color = '';
