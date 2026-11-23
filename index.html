@@ -2833,7 +2833,7 @@
 
     <div class="form-step" id="step1">
     <div class="section-label" style="margin-top:0;">📝 আবেদন করুন</div>
-    <p class="fee-note" style="margin:0 0 12px;">৫টা ঘর পূরণ করলেই হবে। <strong>আবেদন করতে কোনো ফি লাগে না।</strong> কাজের চার্জ সমস্যা অনুযায়ী আলোচনা করে ঠিক হয়।</p>
+    <p class="fee-note" style="margin:0 0 12px;">প্রয়োজনীয় ঘরগুলো পূরণ করলেই হবে। <strong>আবেদন করতে কোনো ফি লাগে না।</strong> কাজের চার্জ সমস্যা অনুযায়ী আলোচনা করে ঠিক হয়।</p>
     <div class="trust-box" style="background:rgba(31,77,51,.06); border:1px solid rgba(31,77,51,.25); border-radius:10px; padding:11px 13px; margin:0 0 14px; font-size:13.5px; line-height:1.7;">
       <div><strong>✅ আমরা যা করি:</strong> ধাপ বলে দিই, আপনি নিজের ফোনে নিজে করেন।</div>
       <div><strong>🚫 আমরা যা করি না:</strong> পাসওয়ার্ড বা ভেরিফিকেশন কোড চাই না, সমাধানের নিশ্চয়তা দিই না।</div>
@@ -2864,6 +2864,30 @@
     <label for="comment">সমস্যাটা সংক্ষেপে লিখুন <span class="req">*</span></label>
     <textarea id="comment" required placeholder="যেমনঃ আইডি হ্যাক হয়েছে, পেজ ডিজেবল, মনিটাইজেশন বন্ধ ইত্যাদি"></textarea>
 
+    <div class="section-label">📍 ঠিকানা <span style="font-weight:400;font-size:12px;">(ঐচ্ছিক — ইচ্ছা হলে দিন)</span></div>
+
+    <label for="country">দেশ</label>
+    <select id="country">
+      <option value="">দেশের তালিকা লোড হচ্ছে…</option>
+    </select>
+
+    <label for="division">বিভাগ / State / Province</label>
+    <select id="division" disabled>
+      <option value="">প্রথমে দেশ নির্বাচন করুন</option>
+    </select>
+
+    <label for="district">জেলা / City / District</label>
+    <select id="district" disabled>
+      <option value="">প্রথমে বিভাগ নির্বাচন করুন</option>
+    </select>
+
+    <label for="upazila">থানা / উপজেলা / Locality</label>
+    <input type="text" id="upazila" list="upazilaList" placeholder="বাংলাদেশে উপজেলা নির্বাচন/লিখুন; বিদেশে Locality/থানা লিখুন" autocomplete="address-level3">
+    <datalist id="upazilaList"></datalist>
+
+    <label for="areaDetail">গ্রাম / এলাকা / Street Address</label>
+    <input type="text" id="areaDetail" placeholder="গ্রাম, পাড়া, মহল্লা, রাস্তা বা বাড়ির ঠিকানা" autocomplete="street-address">
+
     <!-- নিচের ঘরগুলো আর দেখানো হয় না (ফি ও বাড়তি তথ্য বাদ)। কোডের সাথে মিল রাখতে লুকানো অবস্থায় রাখা আছে -->
     <div id="legacyFields" style="display:none;" aria-hidden="true">
       <input type="file" id="applicantPhoto" accept="image/*">
@@ -2871,12 +2895,6 @@
       <input type="date" id="dob">
       <select id="gender"><option value="">-</option></select>
       <input type="email" id="email">
-      <select id="country"><option value="">-</option></select>
-      <select id="division" disabled><option value="">-</option></select>
-      <select id="district" disabled><option value="">-</option></select>
-      <input type="text" id="upazila" list="upazilaList">
-      <datalist id="upazilaList"></datalist>
-      <input type="text" id="areaDetail">
       <input type="file" id="screenshot" accept="image/*">
       <select id="paymentMethod"><option value="">-</option></select>
       <input type="text" id="txnId">
