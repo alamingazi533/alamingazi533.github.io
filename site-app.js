@@ -1796,6 +1796,13 @@ let __allPosts = [];
 // বাংলা পোস্ট আগে, ইংরেজি পোস্ট (শিরোনামে বাংলা অক্ষর নেই) পরে — হোমের তালিকায় ভাষা মিশে যাওয়া আটকাতে
 function langOrderPosts(list){
   const arr = Array.isArray(list) ? list : [];
+  // কভার ছবি না থাকলে লেখার ভেতরের প্রথম ছবিটাই কার্ডে কভার হিসেবে দেখানো হয়
+  arr.forEach(p => {
+    if(p && !String(p.imageUrl || '').trim()){
+      const m = /!\[[^\]\n]*\]\((https:\/\/[^\s)]+)\)/.exec(String(p.content || ''));
+      if(m) p.imageUrl = m[1];
+    }
+  });
   const isEn = p => !/[\u0980-\u09FF]/.test(String((p && p.title) || ''));
   return arr.filter(p => !isEn(p)).concat(arr.filter(isEn));
 }
