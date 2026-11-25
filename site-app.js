@@ -1323,8 +1323,29 @@ function hideRegForm(){
 
 window.addEventListener('popstate', function(){
   const params = new URLSearchParams(window.location.search);
+  if(window.__spaBlogNav){
+    // ব্লগ ভিউতে ঢুকেছিলাম পেজ রিলোড ছাড়া; ব্যাক চাপলে (ব্লগ/পোস্ট নেই) পরিষ্কারভাবে রিলোড
+    if(!params.get('blog') && !params.get('post') && !params.get('p')){ window.location.reload(); return; }
+    try{ initBlogRouter(); }catch(e){ window.location.reload(); }
+    return;
+  }
   applyRegFormView(params.get('form') === '1', false);
 });
+
+// "সব পোস্ট দেখুন"/"ব্লগ" লিংকে চাপলে পেজ নতুন করে লোড না করে (২.৬ MB ডেটা আবার না নামিয়ে)
+// আগে থেকে আনা পোস্ট দিয়েই সাথে সাথে ব্লগ দেখানো হয়।
+document.addEventListener('click', function(e){
+  try{
+    if(e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target && e.target.closest ? e.target.closest('a[href^="?blog="]') : null;
+    if(!a || a.target === '_blank') return;
+    if(typeof __allPosts === 'undefined' || !__allPosts.length || typeof initBlogRouter !== 'function') return;
+    e.preventDefault();
+    window.__spaBlogNav = true;
+    history.pushState({blog:1}, '', window.location.pathname + a.getAttribute('href'));
+    initBlogRouter();
+  }catch(err){ /* সমস্যা হলে সাধারণ লিংকের মতোই কাজ করবে */ }
+}, true);
 
 // ============ URL প্যারামিটার (?form=1) দিয়ে সরাসরি রেজিস্ট্রেশন ফর্ম ওপেন করার রাউটার ============
 // এটা থাকলে https://alamingazi533.github.io/?form=1 লিংকে ঢুকলেই
