@@ -1287,6 +1287,18 @@ function __renderAdminPostsData(data, listEl){
 }
 
 
+// ============ আনপাবলিক তালিকার সার্চ ============
+window.__privFilter = function(q){
+  q = String(q || '').toLowerCase().trim();
+  var L = document.getElementById('privatePostsList'); if(!L) return;
+  var n = 0;
+  Array.prototype.forEach.call(L.children, function(c){
+    var ok = !q || String(c.textContent || '').toLowerCase().indexOf(q) > -1;
+    c.style.display = ok ? '' : 'none'; if(ok) n++;
+  });
+  var i = document.getElementById('privSearchInfo'); if(i) i.textContent = q ? (n + 'টা পাওয়া গেছে') : '';
+};
+
 // ============ পোস্ট লেখার বক্সের নিচে লাইভ অক্ষর/শব্দ গণনা ============
 function __wcUpdate(ta){
   try{
@@ -3341,7 +3353,7 @@ if(sessionStorage.getItem('adminPw')){
 
     const scheduledCard=makeSection('⏰ Scheduled Posts','scheduledPostsStandalone','<div id="scheduledPostsList">লোড হচ্ছে...</div>',true);
     postListCard.after(scheduledCard);
-    const privateCard=makeSection('🔒 আনপাবলিক (শুধু আমি দেখব)','privatePostsStandalone','<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">এই পোস্টগুলো সাইটে, সার্চে বা সাইটম্যাপে দেখা যায় না।</div><div id="privatePostsList">লোড হচ্ছে...</div>',true);
+    const privateCard=makeSection('🔒 আনপাবলিক (শুধু আমি দেখব)','privatePostsStandalone','<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">এই পোস্টগুলো সাইটে, সার্চে বা সাইটম্যাপে দেখা যায় না।</div><input type="search" id="privSearchBox" placeholder="🔍 আনপাবলিক পোস্ট খুঁজুন (শিরোনাম বা লেখার অংশ)" autocomplete="off" oninput="__privFilter(this.value)" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--line);font-family:inherit;font-size:14px;margin-bottom:6px;background:var(--card-bg);color:var(--ink);"><div id="privSearchInfo" style="font-size:12.5px;color:var(--muted);margin-bottom:8px;"></div><div id="privatePostsList">লোড হচ্ছে...</div>',true);
     scheduledCard.after(privateCard);
     try{
       if(window.__adminPostsLast && typeof __renderAdminPostsData==='function'){ __renderAdminPostsData(window.__adminPostsLast, document.getElementById('postsList')); }
