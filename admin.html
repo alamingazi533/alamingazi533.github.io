@@ -4816,9 +4816,8 @@ function insertPostImage(id){
 <script>
 // অ্যাডমিন প্যানেলকে ৫টা ট্যাবে ভাগ করা (কোনো টুল বা ডেটা বদলায়নি, শুধু কোনটা কখন দেখা যাবে)
 (function(){
-  var TABS=[['apps','📋 আবেদন'],['posts','✍️ পোস্ট'],['inbox','💬 গ্রাহক'],['stats','📊 আয় ও রিপোর্ট'],['set','⚙️ সেটিংস']];
-  var cur='apps';
-  try{ var sv=localStorage.getItem('adminTab'); if(sv && TABS.some(function(t){return t[0]===sv;})) cur=sv; }catch(e){}
+  var TABS=[['home','🏠 হোম'],['apps','📋 আবেদন'],['posts','✍️ পোস্ট'],['inbox','💬 গ্রাহক'],['stats','📊 আয় ও রিপোর্ট'],['set','⚙️ সেটিংস']];
+  var cur='home';  // প্যানেল খুললে সবসময় সহজ "হোম" পর্দা দিয়ে শুরু
   var byId={dashboard:'apps',filterRow:'apps',dateFilterRow:'apps',workflowPatchFilters:'apps',bulkActionBar:'apps',qrCard:'apps',summary:'apps',lastUpdated:'apps',loadingMsg:'apps',emptyMsg:'apps',list:'apps',
     postQuickActions:'hide',postsListStandalone:'posts',scheduledPostsStandalone:'posts',privatePostsStandalone:'posts',
     verifiedRevenueCard:'stats',snapshotCard:'set',appsManagerSection:'set'};
@@ -4839,7 +4838,7 @@ function insertPostImage(id){
       var tab=el.getAttribute('data-tab');
       if(!tab){ tab=classify(el,prev); if(tab==='keep') return; el.setAttribute('data-tab',tab); }
       if(tab==='keep') return;
-      prev=tab;
+      if(tab!=='home') prev=tab;
       var show=(tab===cur);
       if(tab==='hide') show=false;
       el.classList.toggle('tabHide',!show);
@@ -4852,12 +4851,60 @@ function insertPostImage(id){
     apply();
     if(!noScroll){ var bar=document.getElementById('adminTabs'); if(bar) bar.scrollIntoView({block:'start'}); }
   }
+  window.__adminSetTab=setTab;
+  // ---------- 🏠 সহজ হোম পর্দা: বড় বাটনে রোজকার কাজ ----------
+  function homeGo(tab,fn){
+    setTab(tab,true);
+    setTimeout(function(){ try{ if(fn) fn(); else window.scrollTo({top:0,behavior:'smooth'}); }catch(e){} },150);
+  }
+  function qa(i){ var b=document.querySelectorAll('#postQuickActions button'); return b && b[i]; }
+  var TILES=[
+    ['📋','নতুন আবেদন','ক্লায়েন্টদের আবেদন দেখুন ও উত্তর দিন',function(){ homeGo('apps'); },'cntApps'],
+    ['💬','গ্রাহকের মেসেজ','রিভিউ, কমেন্ট ও সাবস্ক্রাইবার',function(){ homeGo('inbox'); }],
+    ['✍️','নতুন পোস্ট লিখুন','নিজে লিখে পোস্ট দিন',function(){ homeGo('posts',function(){ var f=document.getElementById('postFormBody'); if(!f) return; if(f.style.display==='none'){ var h=f.parentElement.querySelector('div[onclick*="postFormBody"]'); if(h) h.click(); } f.parentElement.scrollIntoView({behavior:'smooth',block:'start'}); }); }],
+    ['📥','ফাইল থেকে পোস্ট আনুন','একসাথে অনেক পোস্ট জমা দিন (ছবিসহ)',function(){ homeGo('posts',function(){ var b=document.getElementById('xtImp'); if(b){ b.click(); try{ b.scrollIntoView({block:'center'}); }catch(e){} } }); }],
+    ['⏰','শিডিউল করা পোস্ট','কোন পোস্ট কবে যাবে দেখুন বা বদলান',function(){ homeGo('posts',function(){ var b=qa(2); if(b) b.click(); }); },'cntSched'],
+    ['🔒','আনপাবলিক পোস্ট','শুধু আপনি দেখেন; খুঁজুন ও প্রকাশ করুন',function(){ homeGo('posts',function(){ var w=document.getElementById('privatePostsStandaloneWrap'); if(w && w.style.display==='none'){ var h=w.previousElementSibling; if(h) h.click(); } var el=document.getElementById('privatePostsStandalone'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }); }],
+    ['📚','সব পোস্ট','খুঁজুন, এডিট করুন বা মুছুন',function(){ homeGo('posts',function(){ var b=qa(1); if(b) b.click(); }); }],
+    ['📊','ভিজিট ও আয়','কতজন এলো, কত আয় হলো',function(){ homeGo('stats'); }],
+    ['⚙️','সব টুল / সেটিংস','ব্যাকআপ, সেটিংস ও অন্য সব',function(){ homeGo('set'); }]
+  ];
+  var HOME_CSS='#simpleHome{margin:0 0 14px}#simpleHome h2{margin:4px 0 4px;font-size:21px}#simpleHome .sub{font-size:13.5px;color:var(--muted,#666);margin:0 0 12px}'+
+    '#simpleHome .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}'+
+    '#simpleHome .tile{position:relative;text-align:left;padding:14px 12px;border:1.5px solid var(--line,#ddd);border-radius:16px;background:var(--card-bg,#fff);color:var(--ink,#222);font-family:inherit;cursor:pointer;min-height:112px;display:flex;flex-direction:column;gap:4px}'+
+    '#simpleHome .tile:active{transform:scale(.98)}#simpleHome .tile .ic{font-size:30px;line-height:1}#simpleHome .tile b{font-size:15.5px}#simpleHome .tile span.d{font-size:12px;color:var(--muted,#666);line-height:1.35}'+
+    '#simpleHome .tile .num{position:absolute;top:8px;right:8px;min-width:22px;padding:2px 8px;border-radius:99px;background:#c0392b;color:#fff;font-size:12.5px;font-weight:700;text-align:center}'+
+    '#simpleHome .tile.wide{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;gap:12px}';
+  function buildHome(){
+    var m=main(); if(!m||document.getElementById('simpleHome')) return;
+    var bar=document.getElementById('adminTabs'); if(!bar) return;
+    if(!document.getElementById('simpleHomeCss')){ var st=document.createElement('style'); st.id='simpleHomeCss'; st.textContent=HOME_CSS; document.head.appendChild(st); }
+    var d=document.createElement('div'); d.id='simpleHome'; d.setAttribute('data-tab','home');
+    var h='<h2>👋 স্বাগতম</h2><p class="sub">আজ কোন কাজটা করবেন? বাটনে চাপুন।</p><div class="grid">';
+    TILES.forEach(function(t,i){ h+='<button type="button" class="tile'+(i===TILES.length-1?' wide':'')+'" data-i="'+i+'"><span class="ic">'+t[0]+'</span><span><b>'+t[1]+'</b><br><span class="d">'+t[2]+'</span></span></button>'; });
+    h+='</div>';
+    d.innerHTML=h;
+    [].forEach.call(d.querySelectorAll('.tile'),function(b){ b.onclick=function(){ TILES[+b.getAttribute('data-i')][3](); }; });
+    m.insertBefore(d,bar.nextSibling);
+  }
+  function homeCounts(){
+    try{
+      var set=function(i,n){ var b=document.querySelector('#simpleHome .tile[data-i="'+i+'"]'); if(!b) return; var o=b.querySelector('.num'); if(o) o.remove(); if(n>0){ var s=document.createElement('span'); s.className='num'; s.textContent=n; b.appendChild(s); } };
+      var d=document.getElementById('dashboard'); var n=0;
+      if(d){ var txt=(d.innerText||'').split('\n').map(function(x){return x.trim();}).filter(Boolean); var i=txt.indexOf('অপেক্ষমান'); if(i>0 && /^\d+$/.test(txt[i-1])) n=parseInt(txt[i-1],10); }
+      set(0,n);
+      var sl=document.getElementById('scheduledPostsList'); var c=0;
+      if(sl) [].forEach.call(sl.querySelectorAll('button'),function(b){ if(/এখনই প্রকাশ/.test(b.textContent)) c++; });
+      set(4,c);
+    }catch(e){}
+  }
   function build(){
     var m=main(); if(!m) return;
     if(document.getElementById('adminTabs')){ apply(); return; }
     var bar=document.createElement('div'); bar.id='adminTabs';
     TABS.forEach(function(t){ var b=document.createElement('button'); b.type='button'; b.setAttribute('data-t',t[0]); b.textContent=t[1]; b.onclick=function(){ setTab(t[0]); }; bar.appendChild(b); });
     m.insertBefore(bar,m.firstChild);
+    buildHome();
     apply();
   }
   // অন্য জায়গা থেকে কোনো লুকানো অংশে স্ক্রল করলে আপনা আপনি সেই ট্যাবে চলে যাবে
@@ -4878,7 +4925,7 @@ function insertPostImage(id){
       if(n>0){ var s=document.createElement('span'); s.className='tb'; s.textContent=n; b.appendChild(s); }
     }catch(e){}
   }
-  setInterval(function(){ build(); apply(); badge(); },1200);
+  setInterval(function(){ build(); buildHome(); apply(); badge(); homeCounts(); },1200);
   setTimeout(function(){ build(); },200);
 })();
 </script>
@@ -5128,5 +5175,211 @@ function insertPostImage(id){
   setInterval(build,1500);
 })();
 </script>
+<script>
+// ============ 🧰 সুবিধা কেন্দ্র (সেটিংস ট্যাব): স্বাস্থ্য পরীক্ষা, শিডিউল নিয়ন্ত্রণ, ব্যাকআপ স্মরণ, সাপ্তাহিক খাতা, উত্তরের নমুনা, নিরাপত্তা ============
+(function(){
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const plain = t => String(t || '').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\*\*/g,'').replace(/^##\s+/gm,'').replace(/\s+/g,' ').trim();
+  const wordsOf = t => { const p = plain(t); return p ? p.split(' ').length : 0; };
+  const hasBn = t => /[ঀ-৿]/.test(String(t || ''));
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const toast = (m,k) => { try{ __adminToast(m,k); }catch(_){} };
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  const LS = { get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(_){ return d; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){} } };
+  const btn = 'padding:9px 13px;border:1.5px solid var(--forest,#1f4d3a);border-radius:9px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:13.5px;font-family:inherit;cursor:pointer;margin:0 6px 6px 0;';
+  const btnOn = btn.replace('background:var(--card-bg,#fff);color:var(--forest,#1f4d3a)','background:var(--forest,#1f4d3a);color:#fff');
+  const inp = 'padding:8px;border-radius:8px;border:1.5px solid var(--line,#ddd);background:var(--card-bg,#fff);color:var(--ink,#222);font-family:inherit;font-size:13.5px;width:100%;box-sizing:border-box;';
+  const isSched = p => p.publishAt && p.published === false && !p.draft;
+  const statusOf = p => p.draft ? 'ড্রাফট' : p.private ? '🔒 আনপাবলিক' : isSched(p) ? '⏰ শিডিউল' : '🌐 প্রকাশিত';
+  const dstr = iso => { try{ return new Date(new Date(iso).getTime() + 6*3600000).toISOString().slice(0,16).replace('T',' '); }catch(_){ return ''; } };
+  const ago = ts => { if(!ts) return null; return Math.floor((Date.now() - ts) / 86400000); };
+
+  // ---------- ৩. ব্যাকআপ স্মরণ: কোন ব্যাকআপ কখন নেওয়া হলো তা মনে রাখা ----------
+  function track(fnName, key){
+    const f = window[fnName]; if(typeof f !== 'function' || f.__tracked) return;
+    const w = function(){ const r = f.apply(this, arguments); LS.set(key, Date.now()); setTimeout(refreshBackupInfo, 300); return r; };
+    w.__tracked = true; window[fnName] = w;
+  }
+  function trackAll(){ track('__backupJson','lastPostsBackup'); track('exportCsv','lastAppsBackup'); }
+  function backupLine(key, label){
+    const d = ago(LS.get(key, 0));
+    if(d === null) return '<div style="color:#b3261e;font-weight:700;">⚠️ ' + label + ': এখনো কোনো ব্যাকআপ নেওয়া হয়নি</div>';
+    if(d > 7) return '<div style="color:#b3261e;font-weight:700;">⚠️ ' + label + ': ' + d + ' দিন আগে (নতুন ব্যাকআপ নিন)</div>';
+    return '<div style="color:#1e7a3c;font-weight:700;">✅ ' + label + ': ' + (d === 0 ? 'আজ' : d + ' দিন আগে') + '</div>';
+  }
+  function refreshBackupInfo(){
+    const el = document.getElementById('fcBackupInfo'); if(el) el.innerHTML = backupLine('lastPostsBackup','পোস্ট ব্যাকআপ') + backupLine('lastAppsBackup','আবেদন ব্যাকআপ (CSV)');
+    // হোম পর্দায় সতর্কতা
+    const h = document.getElementById('simpleHome'); if(!h) return;
+    let n = document.getElementById('homeBackupWarn');
+    const old = (ago(LS.get('lastPostsBackup',0)) === null || ago(LS.get('lastPostsBackup',0)) > 7);
+    if(old && !n){ n = document.createElement('div'); n.id = 'homeBackupWarn'; n.style.cssText = 'margin:0 0 12px;padding:10px 12px;border:1.5px solid #e0a800;background:#fff8e1;color:#7a5a00;border-radius:12px;font-size:13.5px;'; n.innerHTML = '💾 ৭ দিনের বেশি হয়ে গেছে পোস্টের ব্যাকআপ নেওয়া হয়নি। <button type="button" id="homeBackupGo" style="margin-left:6px;padding:5px 10px;border:1px solid #7a5a00;border-radius:7px;background:transparent;color:#7a5a00;font-weight:700;cursor:pointer;">এখনই নিন</button>'; const sub = h.querySelector('.sub'); if(sub) sub.after(n); const g = n.querySelector('#homeBackupGo'); g.onclick = function(){ if(typeof window.__backupJson === 'function') window.__backupJson(); }; }
+    if(!old && n) n.remove();
+  }
+
+  // ---------- ১. স্বাস্থ্য পরীক্ষা ----------
+  const STOP = new Set(['facebook','instagram','whatsapp','meta','google','এর','এই','ও','কী','কি','করবেন','করবে','মানে','থেকে','হলে','এলে','না','যদি','কীভাবে','জন্য','the','a','an','to','your','you','is','of','and','in','on','for','this','that','not','be']);
+  const toks = t => { const s = new Set(); String(t||'').toLowerCase().replace(/[^a-z0-9ঀ-৿\s]/g,' ').split(/\s+/).forEach(w => { if(w.length > 2 && !STOP.has(w)) s.add(w); }); return s; };
+  const quoted = t => { const m = String(t||'').match(/["“]([^"”]{6,})["”]/); return m ? m[1].toLowerCase().replace(/[^a-z0-9]+/g,' ').trim() : ''; };
+  function similar(a,b){
+    const qa = quoted(a.title), qb = quoted(b.title);
+    if(qa && qb && qa === qb) return 'একই ইংরেজি বার্তা';
+    const A = toks(a.title), B = toks(b.title); if(!A.size || !B.size) return '';
+    let i = 0; A.forEach(w => { if(B.has(w)) i++; });
+    const j = i / (A.size + B.size - i);
+    return j >= 0.6 ? 'শিরোনাম প্রায় এক' : '';
+  }
+  function editBtn(p){ return '<button type="button" class="fcEdit" data-row="' + p.rowIndex + '" style="' + btn + 'padding:5px 9px;font-size:12px;">✏️ Edit</button>'; }
+  function runHealth(){
+    const out = document.getElementById('fcHealthOut'); const all = posts().filter(p => !p.draft);
+    if(!all.length){ out.innerHTML = '<div style="color:#b3261e;">আগে "পোস্ট" ট্যাবে পোস্ট লোড হতে দিন, তারপর আবার চাপুন।</div>'; return; }
+    const noImg = all.filter(p => !String(p.imageUrl||'').trim() && !/!\[[^\]]*\]\(https:\/\/[^)\s]+\)/.test(String(p.content||'')));
+    const short = all.filter(p => { const w = wordsOf(p.content); return w < (hasBn(p.title) ? 400 : 500); });
+    const pairs = [];
+    const cand = all.filter(p => !p.private || true);
+    for(let i = 0; i < cand.length && pairs.length < 40; i++) for(let j = i+1; j < cand.length && pairs.length < 40; j++){ const why = similar(cand[i], cand[j]); if(why) pairs.push([cand[i], cand[j], why]); }
+    const sec = (title, n, body) => '<div style="margin:10px 0 4px;font-weight:800;color:' + (n ? '#b3261e' : '#1e7a3c') + ';">' + (n ? '⚠️ ' : '✅ ') + title + ': ' + n + 'টি</div>' + body;
+    const row = p => '<div style="padding:6px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;line-height:1.5;">' + esc(String(p.title).slice(0,90)) + '<div style="font-size:11.5px;color:var(--muted,#666);">' + statusOf(p) + (isSched(p) ? ' · ' + dstr(p.publishAt) : '') + ' · ' + wordsOf(p.content) + ' শব্দ</div>' + editBtn(p) + '</div>';
+    const prow = x => '<div style="padding:8px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;"><div style="font-size:11.5px;color:#8a6100;font-weight:700;">' + x[2] + '</div>' + row(x[0]) + row(x[1]) + '</div>';
+    out.innerHTML = '<div style="font-size:12.5px;color:var(--muted,#666);">মোট ' + all.length + 'টি পোস্ট (ড্রাফট বাদে) পরীক্ষা হয়েছে।</div>' +
+      sec('একই বিষয়ের মনে হচ্ছে এমন জোড়া', pairs.length, pairs.slice(0,15).map(prow).join('') + (pairs.length > 15 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (pairs.length-15) + 'টি আছে</div>' : '')) +
+      sec('কোনো ছবিই নেই', noImg.length, noImg.slice(0,15).map(row).join('') + (noImg.length > 15 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (noImg.length-15) + 'টি</div>' : '')) +
+      sec('শব্দ কম (বাংলা ৪০০ / ইংরেজি ৫০০-র নিচে)', short.length, short.slice(0,15).map(row).join('') + (short.length > 15 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (short.length-15) + 'টি</div>' : ''));
+    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ try{ if(typeof window.__adminSetTab === 'function') window.__adminSetTab('posts', true); startEditPost(+b.getAttribute('data-row')); }catch(e){ toast('Edit খুলতে পারিনি, "পোস্ট" ট্যাবে গিয়ে খুলুন', 'err'); } }; });
+  }
+  async function runImgCheck(){
+    const out = document.getElementById('fcImgOut'); const list = posts().filter(p => !p.draft && /^https:\/\//.test(String(p.imageUrl||'')));
+    if(!list.length){ out.textContent = 'কভার ছবিওয়ালা পোস্ট পাইনি (পোস্ট লোড হয়েছে তো?)'; return; }
+    const bad = []; let done = 0;
+    const test = url => new Promise(res => { const im = new Image(); let fin = false; const f = ok => { if(!fin){ fin = true; res(ok); } }; im.onload = () => f(true); im.onerror = () => f(false); setTimeout(() => f(false), 12000); im.src = url + (url.indexOf('?') > -1 ? '&' : '?') + '_c=' + Date.now(); });
+    let idx = 0;
+    async function worker(){ while(idx < list.length){ const p = list[idx++]; const ok = await test(p.imageUrl); if(!ok) bad.push(p); done++; out.textContent = '⏳ ছবি পরীক্ষা চলছে… ' + done + '/' + list.length; } }
+    await Promise.all([worker(),worker(),worker(),worker(),worker()]);
+    out.innerHTML = (bad.length ? '<div style="color:#b3261e;font-weight:800;">⚠️ ' + bad.length + 'টি পোস্টের কভার ছবি খুলছে না:</div>' : '<div style="color:#1e7a3c;font-weight:800;">✅ ' + list.length + 'টি কভার ছবিই ঠিক আছে</div>') + bad.slice(0,30).map(p => '<div style="padding:5px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;">' + esc(String(p.title).slice(0,80)) + '<div>' + editBtn(p) + '</div></div>').join('');
+    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ try{ if(typeof window.__adminSetTab === 'function') window.__adminSetTab('posts', true); startEditPost(+b.getAttribute('data-row')); }catch(e){} }; });
+  }
+
+  // ---------- ২. শিডিউল নিয়ন্ত্রণ ----------
+  function schedList(){ return posts().filter(isSched).sort((a,b) => new Date(a.publishAt) - new Date(b.publishAt)); }
+  function renderSched(){
+    const box = document.getElementById('fcSchedInfo'); if(!box) return;
+    const l = schedList();
+    if(!l.length){ box.innerHTML = 'এখন কোনো শিডিউল করা পোস্ট নেই।'; return; }
+    const days = {}; l.forEach(p => { const d = dstr(p.publishAt).slice(0,10); days[d] = (days[d]||0) + 1; });
+    const ds = Object.keys(days).sort();
+    box.innerHTML = '<b>' + l.length + 'টি পোস্ট শিডিউলে</b> · প্রথম: ' + dstr(l[0].publishAt) + ' · শেষ: ' + dstr(l[l.length-1].publishAt) + '<div style="margin-top:4px;font-size:12px;color:var(--muted,#666);">দিনে গড়ে ' + (l.length/ds.length).toFixed(1) + 'টি, মোট ' + ds.length + ' দিন</div>';
+  }
+  async function bulkEdit(list, urlFor, label){
+    let ok = 0, bad = 0;
+    for(let i = 0; i < list.length; i++){
+      toast('⏳ ' + label + '… ' + (i+1) + '/' + list.length + ' (পাতা বন্ধ করবেন না)', 'work');
+      try{ const d = await (await fetch(urlFor(list[i], i) + '&_=' + Date.now(), {cache:'no-store'})).json(); if(d && d.success) ok++; else bad++; }catch(_){ bad++; }
+    }
+    toast((bad ? '⚠️ ' : '✅ ') + ok + 'টি হয়েছে' + (bad ? ', ' + bad + 'টি হয়নি' : ''), bad ? 'err' : 'ok');
+    try{ loadAdminPosts(); }catch(_){}
+    setTimeout(renderSched, 2500);
+  }
+  async function pauseAll(){
+    const l = schedList(); if(!l.length) return toast('শিডিউলে কোনো পোস্ট নেই', 'err');
+    if(!confirm(l.length + 'টি শিডিউল করা পোস্ট আনপাবলিকে নেবেন?\n(কোনো পোস্ট মুছবে না। পরে আবার শিডিউল করা যাবে।)')) return;
+    await bulkEdit(l, p => SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + p.rowIndex + '&status=private&publishAt=&silent=1', 'আনপাবলিক করা হচ্ছে');
+  }
+  function openResched(){
+    const l = schedList(); const box = document.getElementById('fcReschedBox'); if(!l.length){ box.innerHTML = 'শিডিউলে কোনো পোস্ট নেই।'; return; }
+    const tmr = new Date(Date.now() + 6*3600000 + 86400000).toISOString().slice(0,10);
+    box.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><label style="font-size:12.5px;">দিনে কয়টা<input type="number" id="fcPer" value="1" min="1" max="10" style="' + inp + '"></label><label style="font-size:12.5px;">শুরুর তারিখ<input type="date" id="fcStart" value="' + tmr + '" style="' + inp + '"></label></div><label style="font-size:12.5px;display:block;margin-top:8px;">সময় (কমা দিয়ে, ২৪ ঘণ্টা)<input type="text" id="fcTimes" value="09:00, 14:00, 20:00" style="' + inp + '"></label><div id="fcPrev" style="margin-top:8px;font-size:12.5px;max-height:180px;overflow:auto;"></div><button type="button" id="fcGo" style="' + btnOn + 'margin-top:8px;">✅ নতুন করে সাজান</button>';
+    const plan = () => { const per = Math.max(1, Math.min(10, parseInt(document.getElementById('fcPer').value,10) || 1)); const times = document.getElementById('fcTimes').value.split(',').map(s => s.trim()).filter(s => /^\d{1,2}:\d{2}$/.test(s)).map(s => { const a = s.split(':'); return ('0'+a[0]).slice(-2) + ':' + a[1]; }); const date = document.getElementById('fcStart').value; if(!times.length || !date) return null; return l.map((p,i) => { const d = new Date(new Date(date + 'T00:00:00Z').getTime() + Math.floor(i/per)*86400000).toISOString().slice(0,10); const t = times[Math.min(i % per, times.length-1)]; return {p, ds:d, t, iso:new Date(d + 'T' + t + ':00+06:00').toISOString()}; }); };
+    const show = () => { const pl = plan(), pv = document.getElementById('fcPrev'); if(!pl){ pv.textContent = 'তারিখ ও সময় ঠিকভাবে দিন (যেমন 09:00)'; return; } pv.innerHTML = pl.map(x => '<div>' + x.ds + ' ' + x.t + ' — ' + esc(String(x.p.title).slice(0,50)) + '</div>').join(''); };
+    ['fcPer','fcStart','fcTimes'].forEach(id => { const e = document.getElementById(id); e.addEventListener('input', show); e.addEventListener('change', show); }); show();
+    document.getElementById('fcGo').onclick = async function(){ const pl = plan(); if(!pl) return toast('তারিখ ও সময় ঠিকভাবে দিন','err'); if(!confirm(pl.length + 'টি পোস্টের তারিখ বদলাবেন?\nপ্রথম: ' + pl[0].ds + ' ' + pl[0].t + '\nশেষ: ' + pl[pl.length-1].ds + ' ' + pl[pl.length-1].t)) return; this.disabled = true; await bulkEdit(pl, x => SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + x.p.rowIndex + '&status=&publishAt=' + encodeURIComponent(x.iso) + '&silent=1&nonotify=1', 'তারিখ বদলানো হচ্ছে'); box.innerHTML = ''; };
+  }
+
+  // ---------- ৪. সাপ্তাহিক খাতা ----------
+  function renderLog(){
+    const box = document.getElementById('fcLogList'); if(!box) return;
+    const log = LS.get('weeklyLog', []).sort((a,b) => a.date < b.date ? -1 : 1);
+    if(!log.length){ box.innerHTML = '<div style="color:var(--muted,#666);font-size:13px;">এখনো কিছু লেখা হয়নি।</div>'; return; }
+    const W = 300, H = 110, P = 18; const mx = Math.max.apply(null, log.map(x => x.imp || 0), 1), mc = Math.max.apply(null, log.map(x => x.clicks || 0), 1);
+    const pt = (v, m, i) => [P + (log.length === 1 ? (W-2*P)/2 : i*(W-2*P)/(log.length-1)), H - P - (v/m)*(H-2*P)];
+    const line = (key, m, col) => '<polyline fill="none" stroke="' + col + '" stroke-width="2" points="' + log.map((x,i) => pt(x[key]||0, m, i).join(',')).join(' ') + '"/>' + log.map((x,i) => { const p = pt(x[key]||0, m, i); return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="3" fill="' + col + '"/>'; }).join('');
+    box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:420px;background:var(--card-bg,#fff);border:1px solid var(--line,#ddd);border-radius:10px;">' + line('imp', mx, '#6a3fb5') + line('clicks', mc, '#1a73e8') + '</svg><div style="font-size:11.5px;color:var(--muted,#666);margin:4px 0 8px;"><span style="color:#1a73e8;">● ক্লিক</span> &nbsp; <span style="color:#6a3fb5;">● ইমপ্রেশন</span> (দুটোর স্কেল আলাদা)</div>' +
+      log.slice().reverse().map(x => '<div style="display:flex;justify-content:space-between;gap:6px;padding:6px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;"><span>' + esc(x.date) + ' — ক্লিক <b>' + (x.clicks||0) + '</b>, ইমপ্রেশন <b>' + (x.imp||0) + '</b>, পাবলিক পোস্ট ' + (x.pub||'-') + (x.note ? '<br><span style="color:var(--muted,#666);">' + esc(x.note) + '</span>' : '') + '</span><button type="button" class="fcLogDel" data-d="' + esc(x.date) + '" style="border:0;background:transparent;color:#b3261e;font-size:16px;cursor:pointer;">✕</button></div>').join('');
+    [].forEach.call(box.querySelectorAll('.fcLogDel'), b => { b.onclick = function(){ if(!confirm('এই লাইনটা মুছবেন?')) return; LS.set('weeklyLog', LS.get('weeklyLog', []).filter(x => x.date !== b.getAttribute('data-d'))); renderLog(); }; });
+  }
+  function saveLog(){
+    const date = document.getElementById('fcLDate').value, c = parseInt(document.getElementById('fcLClicks').value,10), im = parseInt(document.getElementById('fcLImp').value,10);
+    if(!date || isNaN(c)) return toast('তারিখ আর ক্লিক সংখ্যা দিন', 'err');
+    const pub = posts().filter(p => !p.private && !p.draft && !isSched(p)).length || '';
+    const log = LS.get('weeklyLog', []).filter(x => x.date !== date); log.push({date, clicks:c, imp:isNaN(im)?0:im, pub, note:document.getElementById('fcLNote').value.trim()});
+    LS.set('weeklyLog', log); ['fcLClicks','fcLImp','fcLNote'].forEach(i => document.getElementById(i).value = ''); renderLog(); toast('✅ খাতায় লেখা হয়েছে', 'ok');
+  }
+
+  // ---------- ৫. উত্তরের নমুনা ----------
+  const DEF_T = [
+    ['আবেদন পেয়েছি','আসসালামু আলাইকুম। আপনার আবেদন পেয়েছি। আমি বিষয়টা দেখে শিগগির আপনাকে জানাচ্ছি। এর মধ্যে সমস্যার একটা স্ক্রিনশট পাঠালে সুবিধা হবে। (দয়া করে কখনো পাসওয়ার্ড বা OTP কোড কাউকে দেবেন না, আমাকেও না।)'],
+    ['আরও তথ্য চাই','ধন্যবাদ। সমস্যাটা ভালোভাবে বুঝতে আমার আরও কিছু তথ্য লাগবে: ১) যে বার্তাটা দেখাচ্ছে তার স্ক্রিনশট ২) কবে থেকে সমস্যা হচ্ছে ৩) আগে কী চেষ্টা করেছেন। পাসওয়ার্ড বা OTP পাঠাবেন না।'],
+    ['কাজ চলছে','আপনার বিষয়টা নিয়ে কাজ করছি। কিছুটা সময় লাগতে পারে। আপডেট হলেই জানাব। ধৈর্য ধরার জন্য ধন্যবাদ।'],
+    ['সমাধান হয়েছে','আলহামদুলিল্লাহ, আপনার সমস্যার সমাধানের ধাপগুলো পাঠালাম। ঠিকমতো কাজ করলে জানাবেন। চাইলে সাইটে একটা রিভিউ দিয়ে সাহায্য করতে পারেন। ধন্যবাদ।'],
+    ['সব কিছু আমার হাতে নেই','দুঃখিত, এই বিষয়টা সরাসরি ফেসবুক বা মেটার সিদ্ধান্তের ওপর নির্ভর করে। আমি ঠিক পদ্ধতিগুলো দেখিয়ে দিতে পারি, কিন্তু ফল নিশ্চিত করে বলতে পারি না। আমি মেটার প্রতিনিধি নই।']
+  ];
+  const getT = () => { const t = LS.get('replyTemplates', null); return Array.isArray(t) && t.length ? t : DEF_T; };
+  function renderT(){
+    const box = document.getElementById('fcTList'); if(!box) return; const t = getT();
+    box.innerHTML = t.map((x,i) => '<div style="border:1px solid var(--line,#ddd);border-radius:10px;padding:9px;margin-bottom:8px;"><div style="font-weight:800;font-size:13.5px;">' + esc(x[0]) + '</div><div style="font-size:13px;margin:4px 0 6px;white-space:pre-wrap;color:var(--ink,#222);">' + esc(x[1]) + '</div><button type="button" class="fcTCopy" data-i="' + i + '" style="' + btnOn + 'padding:6px 10px;font-size:12.5px;">📋 কপি</button><button type="button" class="fcTWa" data-i="' + i + '" style="' + btn + 'padding:6px 10px;font-size:12.5px;">💬 WhatsApp</button><button type="button" class="fcTEdit" data-i="' + i + '" style="' + btn + 'padding:6px 10px;font-size:12.5px;">✏️</button><button type="button" class="fcTDel" data-i="' + i + '" style="' + btn + 'padding:6px 10px;font-size:12.5px;color:#b3261e;border-color:#b3261e;">✕</button></div>').join('');
+    const cp = txt => { try{ if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt); }catch(_){} const ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(_){} ta.remove(); return Promise.resolve(); };
+    [].forEach.call(box.querySelectorAll('.fcTCopy'), b => b.onclick = () => cp(t[+b.dataset.i][1]).then(() => toast('📋 কপি হয়েছে', 'ok')));
+    [].forEach.call(box.querySelectorAll('.fcTWa'), b => b.onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(t[+b.dataset.i][1]), '_blank'));
+    [].forEach.call(box.querySelectorAll('.fcTEdit'), b => b.onclick = () => { const i = +b.dataset.i; const nt = prompt('বার্তা বদলান:', t[i][1]); if(nt && nt.trim()){ const a = getT().slice(); a[i] = [a[i][0], nt.trim()]; LS.set('replyTemplates', a); renderT(); } });
+    [].forEach.call(box.querySelectorAll('.fcTDel'), b => b.onclick = () => { if(!confirm('এই নমুনা মুছবেন?')) return; const a = getT().slice(); a.splice(+b.dataset.i, 1); LS.set('replyTemplates', a.length ? a : DEF_T); renderT(); });
+  }
+
+  // ---------- ৬. নিরাপত্তা ----------
+  function recLogin(){
+    try{
+      if(!sessionStorage.getItem('adminPw') || sessionStorage.getItem('fcLoginRec')) return;
+      sessionStorage.setItem('fcLoginRec','1'); const cur = LS.get('loginNow', 0); LS.set('loginPrev', cur); LS.set('loginNow', Date.now());
+    }catch(_){}
+  }
+  function watchFail(){
+    const e = document.getElementById('loginErr'); if(!e || e.__w) return; e.__w = true;
+    new MutationObserver(() => { if(getComputedStyle(e).display !== 'none' && /ভুল/.test(e.textContent)){ LS.set('failCount', LS.get('failCount',0) + 1); LS.set('failLast', Date.now()); } }).observe(e, {attributes:true, childList:true, characterData:true, subtree:true});
+  }
+  function secInfo(){
+    const box = document.getElementById('fcSecInfo'); if(!box) return;
+    const prev = LS.get('loginPrev', 0), fc = LS.get('failCount', 0), fl = LS.get('failLast', 0);
+    box.innerHTML = '<div>🕒 এই ডিভাইসে আগের লগইন: <b>' + (prev ? new Date(prev + 6*3600000).toISOString().slice(0,16).replace('T',' ') : 'তথ্য নেই') + '</b></div><div style="margin-top:4px;">❌ ভুল পাসওয়ার্ডের চেষ্টা (এই ডিভাইসে): <b>' + fc + '</b>' + (fl ? ' · শেষ: ' + new Date(fl + 6*3600000).toISOString().slice(0,16).replace('T',' ') : '') + '</div><div style="margin-top:4px;font-size:12px;color:var(--muted,#666);">লগইন টোকেন ১৪ দিন চলে। অন্য কেউ ঢুকেছে সন্দেহ হলে পাসওয়ার্ড বদলান আর নিচের "Activity Log" দেখুন।</div>';
+  }
+
+  // ---------- কার্ড বানানো ----------
+  function sec(id, title, inner, open){ return '<div class="fcSec" style="border-top:1px solid var(--line,#ddd);padding-top:8px;margin-top:8px;"><div class="fcHead" data-b="' + id + '" style="font-weight:800;color:var(--forest,#1f4d3a);cursor:pointer;padding:4px 0;"><span class="fcArr">' + (open ? '▾' : '▸') + '</span> ' + title + '</div><div id="' + id + '" style="display:' + (open ? 'block' : 'none') + ';padding:4px 0 6px;">' + inner + '</div></div>'; }
+  function build(){
+    if(document.getElementById('featureCenter')) return;
+    const m = document.querySelector('#panel main'); if(!m || !document.getElementById('adminTabs')) return;
+    const c = document.createElement('div'); c.id = 'featureCenter'; c.setAttribute('data-tab','set');
+    c.style.cssText = 'background:var(--card-bg,#fff);border:1px solid var(--line,#ddd);border-radius:12px;padding:14px;margin:14px 0;';
+    const today = new Date(Date.now() + 6*3600000).toISOString().slice(0,10);
+    c.innerHTML = '<div style="font-weight:800;font-size:16px;color:var(--forest,#1f4d3a);">🧰 সুবিধা কেন্দ্র</div><div style="font-size:12.5px;color:var(--muted,#666);margin-top:2px;">স্বাস্থ্য পরীক্ষা, শিডিউল, ব্যাকআপ, খাতা, উত্তরের নমুনা ও নিরাপত্তা</div>' +
+      sec('fcS1','🩺 সাইট স্বাস্থ্য পরীক্ষা','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">মিলে যাওয়া পোস্ট, ছবি ছাড়া ও ছোট পোস্ট খুঁজে দেবে।</div><button type="button" id="fcHealthBtn" style="' + btnOn + '">🩺 পরীক্ষা করুন</button><button type="button" id="fcImgBtn" style="' + btn + '">🖼 কভার ছবি খুলছে কিনা</button><div id="fcHealthOut"></div><div id="fcImgOut" style="margin-top:8px;"></div>', true) +
+      sec('fcS2','⏰ শিডিউল নিয়ন্ত্রণ','<div id="fcSchedInfo" style="font-size:13.5px;margin-bottom:8px;">লোড হচ্ছে…</div><button type="button" id="fcPause" style="' + btn + 'border-color:#b3261e;color:#b3261e;">⏸ সব শিডিউল বিরতি</button><button type="button" id="fcResched" style="' + btnOn + '">🔁 নতুন করে সাজান</button><div id="fcReschedBox" style="margin-top:8px;"></div>', false) +
+      sec('fcS3','💾 ব্যাকআপ','<div id="fcBackupInfo" style="font-size:13.5px;margin-bottom:8px;"></div><button type="button" id="fcBkPosts" style="' + btnOn + '">💾 পোস্ট ব্যাকআপ নিন</button><button type="button" id="fcBkApps" style="' + btn + '">📋 আবেদন CSV নিন</button>', false) +
+      sec('fcS4','📈 সাপ্তাহিক খাতা','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">Search Console-এর সংখ্যা সপ্তাহে একবার লিখে রাখুন। (শুধু এই ডিভাইসে জমা থাকে)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"><label style="font-size:12px;">তারিখ<input type="date" id="fcLDate" value="' + today + '" style="' + inp + '"></label><label style="font-size:12px;">ক্লিক<input type="number" id="fcLClicks" style="' + inp + '"></label><label style="font-size:12px;">ইমপ্রেশন<input type="number" id="fcLImp" style="' + inp + '"></label></div><input type="text" id="fcLNote" placeholder="নোট (ঐচ্ছিক)" style="' + inp + 'margin-top:6px;"><button type="button" id="fcLSave" style="' + btnOn + 'margin-top:8px;">➕ খাতায় লিখুন</button><div id="fcLogList" style="margin-top:8px;"></div>', false) +
+      sec('fcS5','💬 উত্তরের নমুনা','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">চাপ দিলেই কপি। প্রয়োজনমতো বদলাতে পারবেন।</div><div id="fcTList"></div><button type="button" id="fcTAdd" style="' + btn + '">➕ নতুন নমুনা</button>', false) +
+      sec('fcS6','🔐 নিরাপত্তা','<div id="fcSecInfo" style="font-size:13.5px;"></div><div style="margin-top:8px;"><button type="button" id="fcLogout" style="' + btn + '">🚪 এই ডিভাইস থেকে লগআউট</button></div>', false);
+    const anchor = document.getElementById('fileEditorCard') || document.getElementById('snapshotCard');
+    if(anchor && anchor.parentNode === m) m.insertBefore(c, anchor); else m.appendChild(c);
+    [].forEach.call(c.querySelectorAll('.fcHead'), h => { h.onclick = function(){ const b = document.getElementById(h.getAttribute('data-b')); const o = b.style.display === 'none'; b.style.display = o ? 'block' : 'none'; h.querySelector('.fcArr').textContent = o ? '▾' : '▸'; if(h.getAttribute('data-b') === 'fcS2') renderSched(); if(h.getAttribute('data-b') === 'fcS6') secInfo(); }; });
+    c.querySelector('#fcHealthBtn').onclick = runHealth; c.querySelector('#fcImgBtn').onclick = runImgCheck;
+    c.querySelector('#fcPause').onclick = pauseAll; c.querySelector('#fcResched').onclick = openResched;
+    c.querySelector('#fcBkPosts').onclick = () => { if(typeof window.__backupJson === 'function') window.__backupJson(); else toast('পোস্ট লোড হতে দিন', 'err'); };
+    c.querySelector('#fcBkApps').onclick = () => { if(typeof window.exportCsv === 'function') window.exportCsv(); else toast('আগে "আবেদন" ট্যাব খুলে লোড হতে দিন', 'err'); };
+    c.querySelector('#fcLSave').onclick = saveLog;
+    c.querySelector('#fcTAdd').onclick = () => { const n = prompt('নমুনার নাম:'); if(!n) return; const t = prompt('বার্তা লিখুন:'); if(!t) return; const a = getT().slice(); a.push([n.trim(), t.trim()]); LS.set('replyTemplates', a); renderT(); };
+    c.querySelector('#fcLogout').onclick = () => { if(!confirm('এই ডিভাইস থেকে লগআউট করবেন?')) return; try{ sessionStorage.removeItem('adminPw'); }catch(_){} location.reload(); };
+    renderLog(); renderT(); renderSched(); secInfo(); refreshBackupInfo();
+  }
+  setInterval(function(){ try{ build(); trackAll(); recLogin(); watchFail(); refreshBackupInfo(); }catch(e){} }, 1500);
+})();
+</script>
+
 </body>
 </html>
