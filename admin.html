@@ -5225,21 +5225,29 @@ function insertPostImage(id){
       if(!window.__adminPostsData[row]){ const f = L.filter(x => +x.rowIndex === +row)[0]; if(f) window.__adminPostsData[row] = f; }
       if(!window.__adminPostsData[row]) return toast('পোস্ট পাওয়া যায়নি, "পোস্ট" ট্যাবে একবার লোড করুন', 'err');
       const old = document.getElementById('fcEditModal'); if(old) old.remove();
-      if(document.querySelector('.postView' + row)){
+      const els = [].slice.call(document.querySelectorAll('.postView' + row));
+      const vis = els.filter(e => e.getClientRects().length > 0)[0];
+      if(vis){
         try{ window.__adminSetTab && window.__adminSetTab('posts', true); }catch(_){}
+        els.forEach(e => { if(e !== vis) e.classList.remove('postView' + row), e.setAttribute('data-pvhold', row); });
         startEditPost(row);
+        els.forEach(e => { if(e.getAttribute('data-pvhold')){ e.classList.add('postView' + row); e.removeAttribute('data-pvhold'); } });
         const t = document.getElementById('editTitle' + row); if(t){ t.scrollIntoView({block:'center'}); return; }
       }
+      // দৃশ্যমান কিছু নেই (তালিকা বন্ধ): লুকানো কপি সরিয়ে আলাদা জানালায় খুলি
+      const held = els.map(e => { e.classList.remove('postView' + row); return e; });
+      const restore = () => held.forEach(e => e.classList.add('postView' + row));
       const m = document.createElement('div'); m.id = 'fcEditModal';
       m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);overflow:auto;padding:12px;';
       m.innerHTML = '<div style="max-width:720px;margin:0 auto;background:var(--card-bg,#fff);border-radius:12px;padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b>✏️ পোস্ট এডিট</b><button type="button" id="fcEditClose" style="padding:6px 12px;border:1.5px solid #b3261e;border-radius:8px;background:transparent;color:#b3261e;font-weight:700;cursor:pointer;">✕ বন্ধ</button></div><div class="postView' + row + '"></div></div>';
       document.body.appendChild(m);
-      m.querySelector('#fcEditClose').onclick = function(){ m.remove(); };
+      m._restore = restore;
+      m.querySelector('#fcEditClose').onclick = function(){ m.remove(); restore(); };
       startEditPost(row);
-      if(!document.getElementById('editTitle' + row)){ m.remove(); toast('Edit খুলতে পারিনি', 'err'); }
+      if(!document.getElementById('editTitle' + row)){ m.remove(); restore(); toast('Edit খুলতে পারিনি', 'err'); }
     }catch(e){ toast('Edit খুলতে পারিনি', 'err'); }
   };
-  (function(){ const os = window.saveEditPost; if(typeof os === 'function') window.saveEditPost = function(){ const r = os.apply(this, arguments); setTimeout(function(){ const m = document.getElementById('fcEditModal'); if(m) m.remove(); }, 2500); return r; }; })();
+  (function(){ const os = window.saveEditPost; if(typeof os === 'function') window.saveEditPost = function(){ const r = os.apply(this, arguments); setTimeout(function(){ const m = document.getElementById('fcEditModal'); if(m){ const r = m._restore; m.remove(); if(r) r(); } }, 2500); return r; }; })();
 
   // ---------- ১. স্বাস্থ্য পরীক্ষা ----------
   const STOP = new Set(['facebook','instagram','whatsapp','meta','google','এর','এই','ও','কী','কি','করবেন','করবে','মানে','থেকে','হলে','এলে','না','যদি','কীভাবে','জন্য','the','a','an','to','your','you','is','of','and','in','on','for','this','that','not','be']);
