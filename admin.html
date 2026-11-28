@@ -5521,5 +5521,171 @@ function insertPostImage(id){
   setInterval(function(){ try{ install(); }catch(e){} }, 1500);
 })();
 </script>
+<script>
+/* ===== সুবিধা কেন্দ্র — অতিরিক্ত ৫টি সুবিধা ===== */
+(function(){
+  const F = () => window.__fc || {};
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const toast = (m,k) => { try{ __adminToast(m,k); }catch(_){} };
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  const btn = 'padding:7px 11px;border:1.5px solid var(--forest,#1f4d3a);border-radius:9px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;margin:0 6px 6px 0;';
+  const sbtn = 'padding:5px 9px;border:1.5px solid var(--forest,#1f4d3a);border-radius:8px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;margin:0;';
+  const plain = t => (F().plain ? F().plain(t) : String(t||'').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim());
+  const words = t => { const p = plain(t); return p ? p.split(' ').length : 0; };
+  const isSched = p => p.publishAt && p.published === false && !p.draft;
+  const pub = p => !p.draft && !p.private && !isSched(p);
+  const slug = p => String(p.id||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,8).toLowerCase();
+  const DISC = /প্রতিনিধি নই|প্রতিনিধি নয়|অফিসিয়াল নই|অফিসিয়াল (প্রতিনিধি )?নই|not (an )?official/i;
+  const DISC_LINE = '\n\n---\n*নোট: এটি একটি স্বাধীন সহায়িকা। আমরা মেটা, ফেসবুক, ইনস্টাগ্রাম বা হোয়াটসঅ্যাপের প্রতিনিধি নই।*';
+  const dstr = iso => { try{ return new Date(new Date(iso).getTime() + 6*3600000).toISOString().slice(0,10); }catch(_){ return ''; } };
+
+  // সারির ছক: শিরোনাম + তথ্য + বাটন
+  function rowHtml(p, info, extra){
+    return '<div style="padding:7px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;line-height:1.5;">' + (extra && extra.pre || '') + esc(String(p.title).slice(0,90)) + '<div style="font-size:12px;color:var(--muted,#666);">' + info + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
+      '<button type="button" class="xEdit" data-row="' + p.rowIndex + '" style="' + sbtn + '">✏️ Edit</button>' +
+      (pub(p) ? '<button type="button" class="xPriv" data-row="' + p.rowIndex + '" style="' + sbtn + '">🔒 প্রাইভেট করুন</button>' : '') +
+      (pub(p) && slug(p) ? '<a href="https://alamingazi533.github.io/p/' + slug(p) + '.html" target="_blank" rel="noopener" style="' + sbtn + 'text-decoration:none;display:inline-block;">👁 দেখুন</a>' : '') + '</div></div>';
+  }
+  function wire(box){
+    [].forEach.call(box.querySelectorAll('.xEdit'), b => { b.onclick = () => { if(window.__fcOpenEdit) window.__fcOpenEdit(+b.getAttribute('data-row')); }; });
+    [].forEach.call(box.querySelectorAll('.xPriv'), b => { b.onclick = async function(){
+      if(!confirm('এই পোস্টটি প্রাইভেট করবেন? পরে আবার প্রকাশ করা যাবে।')) return; b.disabled = true; b.textContent = '⏳…';
+      try{ const d = await (await fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + b.getAttribute('data-row') + '&status=private&publishAt=&silent=1&_=' + Date.now(), {cache:'no-store'})).json();
+        if(d && d.success){ b.textContent = '✅ প্রাইভেট হয়েছে'; try{ loadAdminPosts(); }catch(_){} } else { b.disabled = false; b.textContent = '🔒 প্রাইভেট করুন'; toast('হয়নি, আবার চেষ্টা করুন','err'); }
+      }catch(_){ b.disabled = false; b.textContent = '🔒 প্রাইভেট করুন'; toast('নেটওয়ার্ক সমস্যা','err'); } }; });
+  }
+  const needPosts = box => { if(!posts().length){ box.innerHTML = '<div style="color:#b3261e;font-size:13px;">আগে "পোস্ট" ট্যাবে পোস্ট লোড হতে দিন, তারপর আবার চাপুন।</div>'; return true; } return false; };
+
+  // ১. ভিউ র‍্যাংকিং
+  function runViews(){
+    const box = document.getElementById('xViewsOut'); if(needPosts(box)) return;
+    const L = posts().filter(pub).map(p => ({p, v:Number(p.views||0)})).sort((a,b) => b.v - a.v);
+    const zero = L.filter(x => x.v === 0), top = L.slice(0,15);
+    const total = L.reduce((s,x) => s + x.v, 0);
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--muted,#666);">প্রকাশিত ' + L.length + 'টি পোস্ট · মোট ভিউ ' + total + ' · ০ ভিউ: ' + zero.length + 'টি</div>' +
+      '<div style="margin:10px 0 2px;font-weight:800;color:#1e7a3c;">🏆 সবচেয়ে বেশি ভিউ (শীর্ষ ১৫)</div>' + top.map((x,i) => rowHtml(x.p, '#' + (i+1) + ' · <b>👁 ' + x.v + ' ভিউ</b> · ' + words(x.p.content) + ' শব্দ')).join('') +
+      '<div style="margin:12px 0 2px;font-weight:800;color:#b3261e;">😴 ০ ভিউ (প্রথম ২০টি)</div><div style="font-size:12px;color:var(--muted,#666);">নতুন পোস্টে ০ থাকা স্বাভাবিক। পুরনো ০ ভিউ পোস্ট মান বাড়ান বা প্রাইভেট করুন।</div>' + zero.slice(0,20).map(x => rowHtml(x.p, '👁 ০ ভিউ · ' + words(x.p.content) + ' শব্দ')).join('') + (zero.length > 20 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (zero.length-20) + 'টি</div>' : '');
+    wire(box);
+  }
+
+  // ২. ডিসক্লেইমার যোগ
+  function runDisc(){
+    const box = document.getElementById('xDiscOut'); if(needPosts(box)) return;
+    const L = posts().filter(p => pub(p) && !DISC.test(String(p.content||'')) && !DISC.test(String(p.title||'')));
+    if(!L.length){ box.innerHTML = '<div style="color:#1e7a3c;font-weight:800;">✅ সব প্রকাশিত পোস্টেই ডিসক্লেইমার আছে</div>'; return; }
+    const N = Math.max(1, Math.min(15, +document.getElementById('xDiscN').value || 5));
+    box.innerHTML = '<div style="font-size:12.5px;margin-bottom:6px;">ডিসক্লেইমার নেই: <b>' + L.length + 'টি</b>। নিচে প্রথম ' + Math.min(N, L.length) + 'টি দেখানো হলো। টিক দেওয়াগুলোতে শেষে এই লাইন যোগ হবে:</div><div style="font-size:12.5px;padding:8px;background:rgba(0,0,0,.05);border-radius:8px;margin-bottom:6px;">' + esc(DISC_LINE.replace(/[\n\-*]/g,'').trim()) + '</div>' +
+      L.slice(0,N).map(p => '<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;"><input type="checkbox" class="xDc" data-row="' + p.rowIndex + '" checked style="margin-top:4px;"><span>' + esc(String(p.title).slice(0,90)) + '</span></label>').join('') +
+      '<button type="button" id="xDiscGo" style="' + btn + 'margin-top:8px;background:var(--forest,#1f4d3a);color:#fff;">✅ টিক দেওয়াগুলোতে যোগ করুন</button><div id="xDiscMsg" style="font-size:12.5px;margin-top:4px;"></div>';
+    document.getElementById('xDiscGo').onclick = async function(){
+      const rows = [].map.call(box.querySelectorAll('.xDc:checked'), c => +c.getAttribute('data-row')); if(!rows.length) return toast('কিছু বাছুন','err');
+      if(!confirm(rows.length + 'টি পোস্টের শেষে ডিসক্লেইমার যোগ করবেন?\nআগের লেখার কপি এই ব্রাউজারে রাখা হবে।')) return;
+      this.disabled = true; let ok = 0, bad = 0; const msg = document.getElementById('xDiscMsg');
+      let bk = []; try{ bk = JSON.parse(localStorage.getItem('discBackup') || '[]'); }catch(_){}
+      for(let i = 0; i < rows.length; i++){
+        const p = posts().filter(x => +x.rowIndex === rows[i])[0]; if(!p){ bad++; continue; }
+        msg.textContent = '⏳ ' + (i+1) + '/' + rows.length + ' (পাতা বন্ধ করবেন না)';
+        try{ bk.push({id:p.id, title:p.title, content:p.content, t:Date.now()});
+          const d = await (await fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + p.rowIndex + '&title=' + encodeURIComponent(p.title) + '&content=' + encodeURIComponent(String(p.content||'').replace(/\s+$/,'') + DISC_LINE) + '&category=' + encodeURIComponent(p.category || 'সাধারণ আপডেট') + '&silent=1&nonotify=1&_=' + Date.now(), {cache:'no-store'})).json();
+          if(d && d.success) ok++; else bad++; }catch(_){ bad++; }
+      }
+      try{ localStorage.setItem('discBackup', JSON.stringify(bk.slice(-40))); }catch(_){}
+      msg.innerHTML = (bad ? '⚠️ ' : '✅ ') + ok + 'টি হয়েছে' + (bad ? ', ' + bad + 'টি হয়নি' : ''); toast((bad ? '⚠️ ' : '✅ ') + ok + 'টিতে যোগ হয়েছে', bad ? 'err' : 'ok'); try{ loadAdminPosts(); }catch(_){}
+    };
+  }
+
+  // ৩. মান-স্কোর
+  function score(p){
+    const c = String(p.content||''), w = words(c), bn = /[ঀ-৿]/.test(p.title||''), need = bn ? 400 : 500; let s = 0; const miss = [];
+    if(w >= need*1.5) s += 30; else if(w >= need) s += 24; else if(w >= need*0.7) s += 12; else miss.push('শব্দ কম');
+    if(String(p.imageUrl||'').trim() || /!\[[^\]]*\]\(https:/.test(c)) s += 15; else miss.push('ছবি নেই');
+    if(/(^|\n)\s*(\d+[.)]|ধাপ|\*\*ধাপ|[১-৯][.)])/.test(c)) s += 15; else miss.push('ধাপ নেই');
+    if(/সতর্ক|সাবধান|মনে রাখ|⚠/.test(c)) s += 10; else miss.push('সতর্কতা নেই');
+    if(/(^|\n)#{2,3}\s|\*\*[^*]{3,40}\*\*\s*\n/.test(c)) s += 10; else miss.push('উপশিরোনাম নেই');
+    if(DISC.test(c)) s += 10; else miss.push('ডিসক্লেইমার নেই');
+    if(String(p.title||'').length >= 25) s += 10; else miss.push('শিরোনাম ছোট');
+    return {s, miss};
+  }
+  function runScore(){
+    const box = document.getElementById('xScoreOut'); if(needPosts(box)) return;
+    const L = posts().filter(p => !p.draft).map(p => ({p, r:score(p)})).sort((a,b) => a.r.s - b.r.s);
+    const avg = Math.round(L.reduce((s,x) => s + x.r.s, 0) / L.length);
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--muted,#666);">গড় নম্বর: <b>' + avg + '/১০০</b> · ৫০-এর নিচে: ' + L.filter(x => x.r.s < 50).length + 'টি</div><div style="margin:8px 0 2px;font-weight:800;color:#b3261e;">সবচেয়ে কম নম্বর (প্রথম ১৫টি)</div>' +
+      L.slice(0,15).map(x => rowHtml(x.p, '<b>' + x.r.s + '/১০০</b> · ঘাটতি: ' + (x.r.miss.join(', ') || 'নেই'))).join('');
+    wire(box);
+  }
+
+  // ৪. গুগল ইনডেক্স
+  async function runGoogle(){
+    const box = document.getElementById('xGoogleOut'); if(needPosts(box)) return;
+    if(!window.__googleStatus){ box.textContent = '⏳ লোড হচ্ছে…'; try{ const d = await (await fetch(SCRIPT_URL + '?action=getGoogleStatus&password=' + encodeURIComponent(pwd()) + '&_=' + Date.now(), {cache:'no-store'})).json(); window.__googleStatus = (d && d.success && d.status) ? d.status : {}; }catch(_){ window.__googleStatus = {}; } }
+    const st = window.__googleStatus, L = posts().filter(p => pub(p) && plain(p.content).length >= 300);
+    const ind = L.filter(p => st[slug(p)] === 'indexed'), sub = L.filter(p => st[slug(p)] === 'submitted'), none = L.filter(p => !st[slug(p)]);
+    box.innerHTML = '<div style="font-size:13px;line-height:1.7;">✅ গুগলে আছে: <b>' + ind.length + '</b><br>⏳ জমা দেওয়া: <b>' + sub.length + '</b><br>⚪ চিহ্ন নেই: <b>' + none.length + '</b><br>মোট (৩০০+ অক্ষর): ' + L.length + '</div><div style="font-size:12px;color:var(--muted,#666);margin:4px 0;">এই সংখ্যা আপনার হাতে দেওয়া চিহ্ন অনুযায়ী। আসল ইনডেক্স Search Console-এ দেখুন। এখন নতুন করে জমা দেবেন না।</div>' +
+      '<div style="margin:8px 0 2px;font-weight:800;">চিহ্ন নেই এমন পোস্ট (প্রথম ১০টি)</div>' + none.slice(0,10).map(p => rowHtml(p, '👁 ' + Number(p.views||0) + ' ভিউ')).join('');
+    wire(box);
+  }
+
+  // ৫ক. শিডিউল ক্যালেন্ডার
+  function runCal(){
+    const box = document.getElementById('xCalOut'); if(needPosts(box)) return;
+    const m = {}; posts().filter(isSched).forEach(p => { const d = dstr(p.publishAt); (m[d] = m[d] || []).push(p); });
+    const days = Object.keys(m).sort();
+    if(!days.length){ box.textContent = 'কোনো শিডিউল করা পোস্ট নেই।'; return; }
+    box.innerHTML = days.map(d => { const n = m[d].length, bad = n > 3; return '<div style="padding:6px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;"><b style="color:' + (bad ? '#b3261e' : 'inherit') + ';">📅 ' + d + ' — ' + n + 'টি' + (bad ? ' ⚠️ বেশি' : '') + '</b>' + m[d].map(p => '<div style="font-size:12px;color:var(--muted,#666);">• ' + esc(String(p.title).slice(0,70)) + '</div>').join('') + '</div>'; }).join('');
+  }
+  // ৫খ. মোবাইল প্রিভিউ
+  function runPrev(){
+    const sel = document.getElementById('xPrevSel'); const L = posts().filter(p => pub(p) && slug(p));
+    if(!L.length) return toast('আগে পোস্ট লোড করুন','err');
+    if(!sel.options.length) sel.innerHTML = L.slice(0,60).map(p => '<option value="' + slug(p) + '">' + esc(String(p.title).slice(0,60)) + '</option>').join('');
+    const old = document.getElementById('xPrevModal'); if(old) old.remove();
+    const m = document.createElement('div'); m.id = 'xPrevModal'; m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;padding:10px;';
+    m.innerHTML = '<button type="button" id="xPrevX" style="' + btn + 'margin:0 0 8px;color:#b3261e;border-color:#b3261e;">✕ বন্ধ</button><iframe src="https://alamingazi533.github.io/p/' + sel.value + '.html" style="width:375px;max-width:100%;flex:1;border:6px solid #222;border-radius:18px;background:#fff;"></iframe>';
+    document.body.appendChild(m); m.querySelector('#xPrevX').onclick = () => m.remove();
+  }
+  // ৫গ. রিসাইকেল বিন (মোছার আগে কপি)
+  const binGet = () => { try{ return JSON.parse(localStorage.getItem('delBin') || '[]'); }catch(_){ return []; } };
+  function binSave(p){ try{ const b = binGet(); b.push({title:p.title, content:p.content, category:p.category||'', imageUrl:p.imageUrl||'', t:Date.now()}); localStorage.setItem('delBin', JSON.stringify(b.slice(-30))); }catch(_){} }
+  function hookDelete(){
+    if(window.__binHooked) return; window.__binHooked = true;
+    const od = window.deletePost; if(typeof od === 'function') window.deletePost = function(row){ try{ const p = (window.__adminPostsData||{})[row]; if(p) binSave(p); }catch(_){} return od.apply(this, arguments); };
+  }
+  function renderBin(){
+    const box = document.getElementById('xBinOut'); const b = binGet();
+    if(!b.length){ box.innerHTML = '<div style="font-size:13px;color:var(--muted,#666);">খালি। এখন থেকে ডিলিট করা পোস্ট এখানে জমা থাকবে (সর্বোচ্চ ৩০টি, শুধু এই ব্রাউজারে)।</div>'; return; }
+    box.innerHTML = b.slice().reverse().map((x,i) => { const idx = b.length - 1 - i; return '<div style="padding:7px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;">' + esc(String(x.title).slice(0,80)) + '<div style="font-size:12px;color:var(--muted,#666);">' + new Date(x.t + 6*3600000).toISOString().slice(0,16).replace('T',' ') + '</div><button type="button" class="xBinBack" data-i="' + idx + '" style="' + sbtn + '">↩️ প্রাইভেট হিসেবে ফেরান</button></div>'; }).join('');
+    [].forEach.call(box.querySelectorAll('.xBinBack'), el => { el.onclick = async function(){ const x = binGet()[+el.getAttribute('data-i')]; if(!x) return; if(!confirm('"' + String(x.title).slice(0,50) + '" প্রাইভেট পোস্ট হিসেবে ফেরাবেন?')) return; el.disabled = true; el.textContent = '⏳…';
+      try{ const d = await (await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({action:'addPost', password: pwd(), title:x.title, content:x.content, category:x.category||'সাধারণ আপডেট', publishAt:'', status:'private'})})).json();
+        if(d && d.success){ el.textContent = '✅ ফিরেছে (প্রাইভেট)'; try{ loadAdminPosts(); }catch(_){} } else { el.disabled = false; el.textContent = '↩️ প্রাইভেট হিসেবে ফেরান'; toast('হয়নি: ' + ((d && d.error) || 'আবার চেষ্টা করুন'), 'err'); }
+      }catch(_){ el.disabled = false; el.textContent = '↩️ প্রাইভেট হিসেবে ফেরান'; toast('নেটওয়ার্ক সমস্যা','err'); } }; });
+  }
+
+  // সুবিধা কেন্দ্রে বসানো
+  function sec(id, title, inner){ return '<div class="xSec" style="border-top:1px solid var(--line,#ddd);padding-top:8px;margin-top:8px;"><div class="xHead" data-b="' + id + '" style="font-weight:800;color:var(--forest,#1f4d3a);cursor:pointer;padding:4px 0;"><span>▸</span> ' + title + '</div><div id="' + id + '" style="display:none;padding:4px 0 6px;">' + inner + '</div></div>'; }
+  function install(){
+    const c = document.getElementById('featureCenter'); if(!c || document.getElementById('xExtras')) return;
+    const w = document.createElement('div'); w.id = 'xExtras';
+    w.innerHTML =
+      sec('xS1','📊 ভিউ র‍্যাংকিং','<button type="button" id="xViewsBtn" style="' + btn + '">📊 দেখুন</button><div id="xViewsOut"></div>') +
+      sec('xS2','📝 ডিসক্লেইমার যোগ (ধীরে ধীরে)','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">একবারে কতটি দেখবেন: <input id="xDiscN" type="number" min="1" max="15" value="5" style="width:60px;padding:5px;border:1.5px solid var(--line,#ccc);border-radius:7px;"> (দিনে ৫-১০টি যথেষ্ট)</div><button type="button" id="xDiscBtn" style="' + btn + '">📝 তালিকা দেখান</button><div id="xDiscOut"></div>') +
+      sec('xS3','🎯 পোস্টের মান-স্কোর','<button type="button" id="xScoreBtn" style="' + btn + '">🎯 নম্বর দেখুন</button><div id="xScoreOut"></div>') +
+      sec('xS4','🔍 গুগল ইনডেক্স হিসাব','<button type="button" id="xGoogleBtn" style="' + btn + '">🔍 দেখুন</button><div id="xGoogleOut"></div>') +
+      sec('xS5','📅 শিডিউল ক্যালেন্ডার','<button type="button" id="xCalBtn" style="' + btn + '">📅 দেখুন</button><div id="xCalOut"></div>') +
+      sec('xS6','📱 মোবাইল প্রিভিউ','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">প্রকাশিত পোস্ট ফোনের মাপে কেমন দেখায়:</div><select id="xPrevSel" style="width:100%;padding:7px;border:1.5px solid var(--line,#ccc);border-radius:8px;margin-bottom:6px;"></select><button type="button" id="xPrevLoad" style="' + btn + '">📋 পোস্টের তালিকা লোড</button><button type="button" id="xPrevBtn" style="' + btn + '">📱 প্রিভিউ খুলুন</button>') +
+      sec('xS7','🗑️ রিসাইকেল বিন','<div id="xBinOut"></div>');
+    const anchor = document.getElementById('fcS6'); const host = anchor ? anchor.parentNode : null;
+    if(host && host.parentNode === c) c.insertBefore(w, host); else c.appendChild(w);
+    [].forEach.call(w.querySelectorAll('.xHead'), h => { h.onclick = function(){ const b = document.getElementById(h.getAttribute('data-b')); const o = b.style.display === 'none'; b.style.display = o ? 'block' : 'none'; h.firstChild.textContent = o ? '▾' : '▸'; if(h.getAttribute('data-b') === 'xS7') renderBin(); }; });
+    document.getElementById('xViewsBtn').onclick = runViews; document.getElementById('xDiscBtn').onclick = runDisc; document.getElementById('xScoreBtn').onclick = runScore;
+    document.getElementById('xGoogleBtn').onclick = runGoogle; document.getElementById('xCalBtn').onclick = runCal; document.getElementById('xPrevBtn').onclick = runPrev;
+    document.getElementById('xPrevLoad').onclick = function(){ const L = posts().filter(p => pub(p) && slug(p)); if(!L.length) return toast('আগে পোস্ট লোড করুন','err'); document.getElementById('xPrevSel').innerHTML = L.slice(0,60).map(p => '<option value="' + slug(p) + '">' + esc(String(p.title).slice(0,60)) + '</option>').join(''); };
+    hookDelete();
+  }
+  setInterval(function(){ try{ install(); }catch(e){} }, 1200);
+  window.__xExtras = { score, binSave, DISC };
+})();
+</script>
 </body>
 </html>
