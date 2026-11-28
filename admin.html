@@ -5217,6 +5217,30 @@ function insertPostImage(id){
     if(!old && n) n.remove();
   }
 
+  // ---------- Edit খোলার নির্ভরযোগ্য সহায়ক ----------
+  window.__fcOpenEdit = function(row){
+    try{
+      const L = (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+      window.__adminPostsData = window.__adminPostsData || {};
+      if(!window.__adminPostsData[row]){ const f = L.filter(x => +x.rowIndex === +row)[0]; if(f) window.__adminPostsData[row] = f; }
+      if(!window.__adminPostsData[row]) return toast('পোস্ট পাওয়া যায়নি, "পোস্ট" ট্যাবে একবার লোড করুন', 'err');
+      const old = document.getElementById('fcEditModal'); if(old) old.remove();
+      if(document.querySelector('.postView' + row)){
+        try{ window.__adminSetTab && window.__adminSetTab('posts', true); }catch(_){}
+        startEditPost(row);
+        const t = document.getElementById('editTitle' + row); if(t){ t.scrollIntoView({block:'center'}); return; }
+      }
+      const m = document.createElement('div'); m.id = 'fcEditModal';
+      m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);overflow:auto;padding:12px;';
+      m.innerHTML = '<div style="max-width:720px;margin:0 auto;background:var(--card-bg,#fff);border-radius:12px;padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><b>✏️ পোস্ট এডিট</b><button type="button" id="fcEditClose" style="padding:6px 12px;border:1.5px solid #b3261e;border-radius:8px;background:transparent;color:#b3261e;font-weight:700;cursor:pointer;">✕ বন্ধ</button></div><div class="postView' + row + '"></div></div>';
+      document.body.appendChild(m);
+      m.querySelector('#fcEditClose').onclick = function(){ m.remove(); };
+      startEditPost(row);
+      if(!document.getElementById('editTitle' + row)){ m.remove(); toast('Edit খুলতে পারিনি', 'err'); }
+    }catch(e){ toast('Edit খুলতে পারিনি', 'err'); }
+  };
+  (function(){ const os = window.saveEditPost; if(typeof os === 'function') window.saveEditPost = function(){ const r = os.apply(this, arguments); setTimeout(function(){ const m = document.getElementById('fcEditModal'); if(m) m.remove(); }, 2500); return r; }; })();
+
   // ---------- ১. স্বাস্থ্য পরীক্ষা ----------
   const STOP = new Set(['facebook','instagram','whatsapp','meta','google','এর','এই','ও','কী','কি','করবেন','করবে','মানে','থেকে','হলে','এলে','না','যদি','কীভাবে','জন্য','the','a','an','to','your','you','is','of','and','in','on','for','this','that','not','be']);
   const toks = t => { const s = new Set(); String(t||'').toLowerCase().replace(/[^a-z0-9ঀ-৿\s]/g,' ').split(/\s+/).forEach(w => { if(w.length > 2 && !STOP.has(w)) s.add(w); }); return s; };
@@ -5248,7 +5272,7 @@ function insertPostImage(id){
       sec('কোনো ছবিই নেই', noImg.length, noImg.slice(0,15).map(row).join('') + (noImg.length > 15 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (noImg.length-15) + 'টি</div>' : '')) +
       sec('শব্দ কম (বাংলা ৪০০ / ইংরেজি ৫০০-র নিচে)', short.length, short.slice(0,15).map(row).join('') + (short.length > 15 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (short.length-15) + 'টি</div>' : ''));
     [].forEach.call(out.querySelectorAll('.fcPriv'), b => { b.onclick = async function(){ const row = b.getAttribute('data-row'); if(!confirm('এই পোস্টটি আনপাবলিক (প্রাইভেট) করবেন? পরে আবার প্রকাশ করা যাবে।')) return; b.disabled = true; b.textContent = '⏳…'; try{ const d = await (await fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + row + '&status=private&publishAt=&silent=1&_=' + Date.now(), {cache:'no-store'})).json(); if(d && d.success){ b.textContent = '✅ প্রাইভেট হয়েছে'; toast('✅ প্রাইভেট করা হয়েছে','ok'); try{ loadAdminPosts(); }catch(_){} } else { b.disabled = false; b.textContent = '🔒 প্রাইভেট করুন'; toast('হয়নি, আবার চেষ্টা করুন','err'); } }catch(e){ b.disabled = false; b.textContent = '🔒 প্রাইভেট করুন'; toast('নেটওয়ার্ক সমস্যা','err'); } }; });
-    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ try{ if(typeof window.__adminSetTab === 'function') window.__adminSetTab('posts', true); startEditPost(+b.getAttribute('data-row')); }catch(e){ toast('Edit খুলতে পারিনি, "পোস্ট" ট্যাবে গিয়ে খুলুন', 'err'); } }; });
+    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ window.__fcOpenEdit(+b.getAttribute('data-row')); }; });
   }
   async function runImgCheck(){
     const out = document.getElementById('fcImgOut'); const list = posts().filter(p => !p.draft && /^https:\/\//.test(String(p.imageUrl||'')));
@@ -5259,7 +5283,7 @@ function insertPostImage(id){
     async function worker(){ while(idx < list.length){ const p = list[idx++]; const ok = await test(p.imageUrl); if(!ok) bad.push(p); done++; out.textContent = '⏳ ছবি পরীক্ষা চলছে… ' + done + '/' + list.length; } }
     await Promise.all([worker(),worker(),worker(),worker(),worker()]);
     out.innerHTML = (bad.length ? '<div style="color:#b3261e;font-weight:800;">⚠️ ' + bad.length + 'টি পোস্টের কভার ছবি খুলছে না:</div>' : '<div style="color:#1e7a3c;font-weight:800;">✅ ' + list.length + 'টি কভার ছবিই ঠিক আছে</div>') + bad.slice(0,30).map(p => '<div style="padding:5px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;">' + esc(String(p.title).slice(0,80)) + '<div>' + editBtn(p) + '</div></div>').join('');
-    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ try{ if(typeof window.__adminSetTab === 'function') window.__adminSetTab('posts', true); startEditPost(+b.getAttribute('data-row')); }catch(e){} }; });
+    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ window.__fcOpenEdit(+b.getAttribute('data-row')); }; });
   }
 
   // ---------- ২. শিডিউল নিয়ন্ত্রণ ----------
@@ -5384,7 +5408,7 @@ function insertPostImage(id){
       (hits.length > 20 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (hits.length-20) + 'টি</div>' : '') +
       '<div style="margin:12px 0 4px;font-weight:800;color:' + (nodisc.length ? '#8a6100' : '#1e7a3c') + ';">' + (nodisc.length ? 'ℹ️ ' : '✅ ') + '"মেটার প্রতিনিধি নই" লেখা নেই: ' + nodisc.length + 'টি পোস্টে</div><div style="font-size:12px;color:var(--muted,#666);">(এটা নিয়ম নয়, শুধু সতর্কবার্তা থাকলে ভালো। চাইলে ধীরে ধীরে যোগ করুন।)</div>' +
       nodisc.slice(0,10).map(p => '<div style="padding:6px 0;border-bottom:1px solid var(--line,#ddd);">' + row(p) + '</div>').join('') + (nodisc.length > 10 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (nodisc.length-10) + 'টি</div>' : '');
-    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ try{ if(typeof window.__adminSetTab === 'function') window.__adminSetTab('posts', true); startEditPost(+b.getAttribute('data-row')); }catch(e){ toast('Edit খুলতে পারিনি', 'err'); } }; });
+    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ window.__fcOpenEdit(+b.getAttribute('data-row')); }; });
   }
   // ---------- 🙈 আমার ভিজিট গোনা বন্ধ ----------
   function trackState(){ try{ return localStorage.getItem('noTrack') === '1'; }catch(_){ return false; } }
