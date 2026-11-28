@@ -5824,5 +5824,67 @@ function insertPostImage(id){
   setInterval(function(){ try{ install(); }catch(e){} }, 1200);
 })();
 </script>
+<script>
+/* ===== ছবি যাচাই ও ইমপোর্ট ফাইল প্রিভিউ ===== */
+(function(){
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const toast = (m,k) => { try{ __adminToast(m,k); }catch(_){} };
+  const btn = 'padding:7px 11px;border:1.5px solid var(--forest,#1f4d3a);border-radius:9px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;margin:0 6px 6px 0;';
+  const sbtn = 'padding:5px 9px;border:1.5px solid var(--forest,#1f4d3a);border-radius:8px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;margin:0;';
+  const IMG_RE = /!\[[^\]\n]*\]\((https:\/\/[^\s)]+)\)/g;
+  const imgsOf = t => { const a = []; String(t||'').replace(IMG_RE, (m,u) => { a.push(u); return m; }); return a; };
+  const words = t => { const p = String(t||'').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/<[^>]*>/g,' ').replace(/[#*>`_-]/g,' ').replace(/\s+/g,' ').trim(); return p ? p.split(' ').length : 0; };
+  const testImg = url => new Promise(res => { const im = new Image(); let fin = false; const f = ok => { if(!fin){ fin = true; res(ok); } }; im.onload = () => f(im.naturalWidth > 1); im.onerror = () => f(false); setTimeout(() => f(false), 12000); im.src = url + (url.indexOf('?') > -1 ? '&' : '?') + '_c=' + Date.now(); });
+  async function pool(urls, onStep){ const out = {}; let i = 0; async function w(){ while(i < urls.length){ const u = urls[i++]; out[u] = await testImg(u); onStep(Object.keys(out).length); } } await Promise.all([w(),w(),w(),w(),w()]); return out; }
+
+  // ১. সব পোস্টের লেখার ভেতরের ছবি যাচাই
+  async function runInline(){
+    const box = document.getElementById('zImgOut');
+    if(!posts().length){ box.innerHTML = '<div style="color:#b3261e;font-size:13px;">আগে "পোস্ট" ট্যাবে পোস্ট লোড হতে দিন।</div>'; return; }
+    const map = new Map(); posts().filter(p => !p.draft).forEach(p => imgsOf(p.content).forEach(u => { if(!map.has(u)) map.set(u, []); map.get(u).push(p); }));
+    const urls = [...map.keys()]; if(!urls.length){ box.textContent = 'লেখার ভেতরে কোনো ছবির লিংক পাইনি।'; return; }
+    const res = await pool(urls, n => { box.textContent = '⏳ যাচাই চলছে… ' + n + '/' + urls.length + ' (পাতা বন্ধ করবেন না)'; });
+    const bad = urls.filter(u => !res[u]);
+    box.innerHTML = (bad.length ? '<div style="color:#b3261e;font-weight:800;">⚠️ ' + bad.length + 'টি ছবি খুলছে না (মোট ' + urls.length + 'টির মধ্যে)</div>' : '<div style="color:#1e7a3c;font-weight:800;">✅ ' + urls.length + 'টি ছবিই ঠিক আছে</div>') +
+      bad.slice(0,30).map(u => '<div style="padding:6px 0;border-bottom:1px solid var(--line,#ddd);font-size:12.5px;word-break:break-all;">🖼️ ' + esc(u) + '<div style="color:var(--muted,#666);">ব্যবহার হয়েছে: ' + map.get(u).map(p => esc(String(p.title).slice(0,50))).join(' · ') + '</div>' + map.get(u).slice(0,2).map(p => '<button type="button" class="zEdit" data-row="' + p.rowIndex + '" style="' + sbtn + 'margin-top:4px;margin-right:6px;">✏️ Edit</button>').join('') + '</div>').join('') +
+      (bad.length ? '<div style="font-size:12px;color:var(--muted,#666);margin-top:6px;">ছবির ফাইল GitHub-এর <b>post-img</b> ফোল্ডারে ঠিক নামে আপলোড আছে কি না দেখুন। নাম বড়-ছোট হাতের অক্ষর মিলতে হবে।</div>' : '');
+    [].forEach.call(box.querySelectorAll('.zEdit'), b => { b.onclick = () => { if(window.__fcOpenEdit) window.__fcOpenEdit(+b.getAttribute('data-row')); }; });
+  }
+
+  // ২. ইমপোর্ট ফাইল প্রিভিউ (ইমপোর্ট না করে)
+  function parseFile(txt){
+    const parts = String(txt).split(/^={5,}\s*\r?\nপোস্ট\s*\d+\s*\r?\n={5,}\s*$/m).slice(1), out = [];
+    parts.forEach(sec => { const m = /শিরোনাম:\s*\r?\n([^\r\n]+)/.exec(sec), c = /লেখা:\s*\r?\n([\s\S]*)$/.exec(sec); if(m && c) out.push({title:m[1].trim(), content:c[1].trim()}); });
+    return out;
+  }
+  async function previewFile(file){
+    const box = document.getElementById('zFileOut'); box.textContent = '⏳ পড়া হচ্ছে…';
+    let txt = ''; try{ txt = await file.text(); }catch(_){ box.textContent = 'ফাইল পড়া যায়নি।'; return; }
+    const L = parseFile(txt); if(!L.length){ box.innerHTML = '<div style="color:#b3261e;">এই ফাইলে "পোস্ট ১ / শিরোনাম: / লেখা:" ছাঁচের পোস্ট পাইনি।</div>'; return; }
+    const urls = [...new Set(L.flatMap(p => imgsOf(p.content)))];
+    const res = urls.length ? await pool(urls, n => { box.textContent = '⏳ ছবি যাচাই… ' + n + '/' + urls.length; }) : {};
+    const have = posts().map(p => String(p.title||'').trim().toLowerCase());
+    box.innerHTML = '<div style="font-size:12.5px;margin-bottom:4px;">ফাইলে <b>' + L.length + 'টি</b> পোস্ট, <b>' + urls.length + 'টি</b> ছবি। এটা শুধু প্রিভিউ, কিছু ইমপোর্ট হয়নি।</div>' +
+      L.map((p,i) => { const im = imgsOf(p.content), okN = im.filter(u => res[u]).length, bad = im.length - okN, dup = have.indexOf(p.title.trim().toLowerCase()) > -1, w = words(p.content), bn = /[ঀ-৿]/.test(p.title);
+        return '<div style="padding:7px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;line-height:1.5;"><b>' + (i+1) + '.</b> ' + esc(p.title.slice(0,90)) + '<div style="font-size:12px;color:var(--muted,#666);">' + w + ' শব্দ' + (w < (bn ? 400 : 500) ? ' <span style="color:#b3261e;">(কম)</span>' : '') + ' · ছবি ' + im.length + 'টি' + (im.length ? (bad ? ' <span style="color:#b3261e;">(' + bad + 'টি খুলছে না)</span>' : ' <span style="color:#1e7a3c;">(সব খুলছে)</span>') : ' <span style="color:#b3261e;">(ছবি নেই)</span>') + (dup ? ' · <span style="color:#b3261e;">⚠️ এই শিরোনামে পোস্ট আগেই আছে</span>' : '') + '</div></div>'; }).join('') +
+      (urls.some(u => !res[u]) ? '<div style="font-size:12px;color:#b3261e;margin-top:6px;">কিছু ছবি খুলছে না। আগে ছবি আপলোড ঠিক করুন, তারপর ইমপোর্ট করুন।</div>' : '');
+  }
+
+  function sec(id, title, inner){ return '<div class="xSec" style="border-top:1px solid var(--line,#ddd);padding-top:8px;margin-top:8px;"><div class="xHead" data-b="' + id + '" style="font-weight:800;color:var(--forest,#1f4d3a);cursor:pointer;padding:4px 0;"><span>▸</span> ' + title + '</div><div id="' + id + '" style="display:none;padding:4px 0 6px;">' + inner + '</div></div>'; }
+  function install(){
+    const y = document.getElementById('yExtras') || document.getElementById('xExtras'); if(!y || document.getElementById('zExtras')) return;
+    const z = document.createElement('div'); z.id = 'zExtras';
+    z.innerHTML =
+      sec('zS1','🖼️ লেখার ভেতরের ছবি যাচাই (সব পোস্ট)','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">সব পোস্টের লেখায় থাকা ছবি খোলে কি না দেখে। যেগুলো খোলে না সেগুলো তালিকায় আসবে।</div><button type="button" id="zImgBtn" style="' + btn + '">🖼️ যাচাই শুরু</button><div id="zImgOut"></div>') +
+      sec('zS2','📥 ইমপোর্ট ফাইল প্রিভিউ (ইমপোর্টের আগে দেখুন)','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">পোস্টের .txt ফাইল বাছুন। কিছু ইমপোর্ট হবে না, শুধু দেখাবে: কয়টি পোস্ট, শব্দ, ছবি খুলছে কি না, শিরোনাম আগে আছে কি না।</div><input type="file" id="zFile" accept=".txt,text/plain" style="font-size:13px;margin-bottom:6px;"><div id="zFileOut"></div>');
+    y.parentNode.insertBefore(z, y.nextSibling);
+    [].forEach.call(z.querySelectorAll('.xHead'), h => { h.onclick = function(){ const b = document.getElementById(h.getAttribute('data-b')); const o = b.style.display === 'none'; b.style.display = o ? 'block' : 'none'; h.firstChild.textContent = o ? '▾' : '▸'; }; });
+    document.getElementById('zImgBtn').onclick = runInline;
+    document.getElementById('zFile').onchange = function(){ if(this.files && this.files[0]) previewFile(this.files[0]); };
+  }
+  setInterval(function(){ try{ install(); }catch(e){} }, 1300);
+})();
+</script>
 </body>
 </html>
