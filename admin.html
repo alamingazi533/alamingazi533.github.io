@@ -5350,6 +5350,48 @@ function insertPostImage(id){
     box.innerHTML = '<div>🕒 এই ডিভাইসে আগের লগইন: <b>' + (prev ? new Date(prev + 6*3600000).toISOString().slice(0,16).replace('T',' ') : 'তথ্য নেই') + '</b></div><div style="margin-top:4px;">❌ ভুল পাসওয়ার্ডের চেষ্টা (এই ডিভাইসে): <b>' + fc + '</b>' + (fl ? ' · শেষ: ' + new Date(fl + 6*3600000).toISOString().slice(0,16).replace('T',' ') : '') + '</div><div style="margin-top:4px;font-size:12px;color:var(--muted,#666);">লগইন টোকেন ১৪ দিন চলে। অন্য কেউ ঢুকেছে সন্দেহ হলে পাসওয়ার্ড বদলান আর নিচের "Activity Log" দেখুন।</div>';
   }
 
+  // ---------- 🛡️ নীতি পরীক্ষা (ঝুঁকির কথা খোঁজা) ----------
+  const CUE = /কেউ|বললে|বলে|সতর্ক|ফাঁদ|বিশ্বাস করবেন না|নয়|না\b|নেই|যায় না|দেব না|দেওয়া যায় না|ভুয়া|প্রতারণা/;
+  const RULES = [
+    ['আয়ের নিশ্চয়তা', /(আয়|ইনকাম|টাকা)[^।\n]{0,10}(নিশ্চিত|গ্যারান্টি)/, true],
+    ['"গ্যারান্টি/১০০%" দাবি', /গ্যারান্টি দিচ্ছি|গ্যারান্টি দিই|গ্যারান্টিসহ|১০০\s?%\s?(সফল|নিশ্চিত|ফেরত)\s?(হবে|পাবেন|পাওয়া যাবে)/, true],
+    ['পাসওয়ার্ড/OTP চাওয়া', /(আমাকে|আমাদের|আমার)[^।\n]{0,14}(OTP|ওটিপি|পাসওয়ার্ড|কোড)[^।\n]{0,10}(পাঠান|দিন|শেয়ার)/, true],
+    ['মেটার প্রতিনিধি সাজা', /আমরা\s?(ফেসবুক|মেটা)(র|ের)?\s?(অফিসিয়াল|কর্মী|টিম)(?!\s?(প্রতিনিধি\s?)?(নই|নয়))|ফেসবুকের\s?(অফিসিয়াল\s?)?(কর্মী|প্রতিনিধি)\s?(আমি|আমরা)/, false],
+    ['হ্যাক করার নির্দেশ', /হ্যাক\s?(করার উপায়|করুন|শিখুন)/, false]
+  ];
+  const DISCL = /প্রতিনিধি নই|প্রতিনিধি নয়|অফিসিয়াল নই|অফিসিয়াল (প্রতিনিধি )?নই|not (an )?official/i;
+  function scanText(text){
+    const t = plain(text), out = [];
+    t.split(/(?<=[।!?])\s+|\n+/).forEach(sent => {
+      if(/\?/.test(sent)) return;
+      RULES.forEach(r => { if(r[1].test(sent) && !(r[2] && CUE.test(sent.replace(r[1], '')))) out.push({rule:r[0], snippet:sent.slice(0,110)}); });
+    });
+    return out;
+  }
+  window.__fc = { plain, wordsOf, hasBn, similar, scanText, DISCL, isSched };
+  function runPolicy(){
+    const out = document.getElementById('fcPolOut'); const all = posts().filter(p => !p.draft);
+    if(!all.length){ out.innerHTML = '<div style="color:#b3261e;">আগে "পোস্ট" ট্যাবে পোস্ট লোড হতে দিন।</div>'; return; }
+    const hits = [], nodisc = [];
+    all.forEach(p => { const h = scanText(p.content); if(h.length) hits.push([p,h]); if(!DISCL.test(plain(p.content))) nodisc.push(p); });
+    const row = p => '<div style="font-size:13px;line-height:1.5;">' + esc(String(p.title).slice(0,90)) + '<div style="font-size:11.5px;color:var(--muted,#666);">' + statusOf(p) + '</div>' + editBtn(p) + '</div>';
+    out.innerHTML = '<div style="font-size:12.5px;color:var(--muted,#666);">' + all.length + 'টি পোস্ট পরীক্ষা হয়েছে। "কেউ বললে সতর্ক থাকুন" ধরনের সতর্কবার্তার বাক্য ধরা হয়নি।</div>' +
+      '<div style="margin:10px 0 4px;font-weight:800;color:' + (hits.length ? '#b3261e' : '#1e7a3c') + ';">' + (hits.length ? '⚠️ ' : '✅ ') + 'ঝুঁকির কথা আছে: ' + hits.length + 'টি পোস্টে</div>' +
+      hits.slice(0,20).map(x => '<div style="padding:7px 0;border-bottom:1px solid var(--line,#ddd);">' + row(x[0]) + x[1].slice(0,3).map(h => '<div style="font-size:12px;color:#8a6100;margin-top:3px;">• ' + esc(h.rule) + ': “' + esc(h.snippet) + '”</div>').join('') + '</div>').join('') +
+      (hits.length > 20 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (hits.length-20) + 'টি</div>' : '') +
+      '<div style="margin:12px 0 4px;font-weight:800;color:' + (nodisc.length ? '#8a6100' : '#1e7a3c') + ';">' + (nodisc.length ? 'ℹ️ ' : '✅ ') + '"মেটার প্রতিনিধি নই" লেখা নেই: ' + nodisc.length + 'টি পোস্টে</div><div style="font-size:12px;color:var(--muted,#666);">(এটা নিয়ম নয়, শুধু সতর্কবার্তা থাকলে ভালো। চাইলে ধীরে ধীরে যোগ করুন।)</div>' +
+      nodisc.slice(0,10).map(p => '<div style="padding:6px 0;border-bottom:1px solid var(--line,#ddd);">' + row(p) + '</div>').join('') + (nodisc.length > 10 ? '<div style="font-size:12px;color:var(--muted);">…আরও ' + (nodisc.length-10) + 'টি</div>' : '');
+    [].forEach.call(out.querySelectorAll('.fcEdit'), b => { b.onclick = function(){ try{ if(typeof window.__adminSetTab === 'function') window.__adminSetTab('posts', true); startEditPost(+b.getAttribute('data-row')); }catch(e){ toast('Edit খুলতে পারিনি', 'err'); } }; });
+  }
+  // ---------- 🙈 আমার ভিজিট গোনা বন্ধ ----------
+  function trackState(){ try{ return localStorage.getItem('noTrack') === '1'; }catch(_){ return false; } }
+  function renderTrack(){
+    const el = document.getElementById('fcTrackInfo'); if(!el) return; const off = trackState();
+    el.innerHTML = '<div style="font-size:13.5px;">এই ডিভাইসে আপনার ভিজিট: <b style="color:' + (off ? '#1e7a3c' : '#b3261e') + ';">' + (off ? '✅ গোনা হচ্ছে না' : '⚠️ গোনা হচ্ছে') + '</b></div>';
+    const b = document.getElementById('fcTrackBtn'); if(b) b.textContent = off ? '👁 আবার গোনা চালু করুন' : '🙈 আমার ভিজিট গোনা বন্ধ করুন';
+  }
+  function toggleTrack(){ try{ if(trackState()) localStorage.removeItem('noTrack'); else localStorage.setItem('noTrack','1'); }catch(_){ return toast('ব্রাউজারে সেভ করা যায়নি', 'err'); } renderTrack(); toast(trackState() ? '✅ এই ডিভাইসের ভিজিট আর গোনা হবে না' : 'এই ডিভাইসের ভিজিট আবার গোনা হবে', 'ok'); }
+
   // ---------- কার্ড বানানো ----------
   function sec(id, title, inner, open){ return '<div class="fcSec" style="border-top:1px solid var(--line,#ddd);padding-top:8px;margin-top:8px;"><div class="fcHead" data-b="' + id + '" style="font-weight:800;color:var(--forest,#1f4d3a);cursor:pointer;padding:4px 0;"><span class="fcArr">' + (open ? '▾' : '▸') + '</span> ' + title + '</div><div id="' + id + '" style="display:' + (open ? 'block' : 'none') + ';padding:4px 0 6px;">' + inner + '</div></div>'; }
   function build(){
@@ -5364,6 +5406,8 @@ function insertPostImage(id){
       sec('fcS3','💾 ব্যাকআপ','<div id="fcBackupInfo" style="font-size:13.5px;margin-bottom:8px;"></div><button type="button" id="fcBkPosts" style="' + btnOn + '">💾 পোস্ট ব্যাকআপ নিন</button><button type="button" id="fcBkApps" style="' + btn + '">📋 আবেদন CSV নিন</button>', false) +
       sec('fcS4','📈 সাপ্তাহিক খাতা','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">Search Console-এর সংখ্যা সপ্তাহে একবার লিখে রাখুন। (শুধু এই ডিভাইসে জমা থাকে)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"><label style="font-size:12px;">তারিখ<input type="date" id="fcLDate" value="' + today + '" style="' + inp + '"></label><label style="font-size:12px;">ক্লিক<input type="number" id="fcLClicks" style="' + inp + '"></label><label style="font-size:12px;">ইমপ্রেশন<input type="number" id="fcLImp" style="' + inp + '"></label></div><input type="text" id="fcLNote" placeholder="নোট (ঐচ্ছিক)" style="' + inp + 'margin-top:6px;"><button type="button" id="fcLSave" style="' + btnOn + 'margin-top:8px;">➕ খাতায় লিখুন</button><div id="fcLogList" style="margin-top:8px;"></div>', false) +
       sec('fcS5','💬 উত্তরের নমুনা','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">চাপ দিলেই কপি। প্রয়োজনমতো বদলাতে পারবেন।</div><div id="fcTList"></div><button type="button" id="fcTAdd" style="' + btn + '">➕ নতুন নমুনা</button>', false) +
+      sec('fcS7','🛡️ নীতি পরীক্ষা','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">গ্যারান্টির দাবি, পাসওয়ার্ড/OTP চাওয়া, মেটার প্রতিনিধি সাজা ইত্যাদি ঝুঁকির কথা খুঁজে দেবে।</div><button type="button" id="fcPolBtn" style="' + btnOn + '">🛡️ সব পোস্ট পরীক্ষা করুন</button><div id="fcPolOut"></div>', false) +
+      sec('fcS8','🔗 দ্রুত লিংক ও আমার ভিজিট','<div id="fcTrackInfo" style="margin-bottom:6px;"></div><button type="button" id="fcTrackBtn" style="' + btn + '"></button><div style="margin-top:8px;font-size:12.5px;color:var(--muted,#666);">দ্রুত খুলুন:</div><div id="fcLinks"></div>', false) +
       sec('fcS6','🔐 নিরাপত্তা','<div id="fcSecInfo" style="font-size:13.5px;"></div><div style="margin-top:8px;"><button type="button" id="fcLogout" style="' + btn + '">🚪 এই ডিভাইস থেকে লগআউট</button></div>', false);
     const anchor = document.getElementById('fileEditorCard') || document.getElementById('snapshotCard');
     if(anchor && anchor.parentNode === m) m.insertBefore(c, anchor); else m.appendChild(c);
@@ -5373,6 +5417,9 @@ function insertPostImage(id){
     c.querySelector('#fcBkPosts').onclick = () => { if(typeof window.__backupJson === 'function') window.__backupJson(); else toast('পোস্ট লোড হতে দিন', 'err'); };
     c.querySelector('#fcBkApps').onclick = () => { if(typeof window.exportCsv === 'function') window.exportCsv(); else toast('আগে "আবেদন" ট্যাব খুলে লোড হতে দিন', 'err'); };
     c.querySelector('#fcLSave').onclick = saveLog;
+    c.querySelector('#fcPolBtn').onclick = runPolicy; c.querySelector('#fcTrackBtn').onclick = toggleTrack; renderTrack();
+    const LINKS = [['🔎 Search Console','https://search.google.com/search-console?resource_id=' + encodeURIComponent('https://alamingazi533.github.io/')],['💰 AdSense','https://adsense.google.com/'],['🗺 সাইটম্যাপ','https://alamingazi533.github.io/sitemap.xml'],['🌐 গুগলে সাইটের পেজ (site:)','https://www.google.com/search?q=site%3Aalamingazi533.github.io'],['📣 গুগল সার্চ স্ট্যাটাস','https://status.search.google.com/'],['🏠 আমার সাইট','https://alamingazi533.github.io/']];
+    document.getElementById('fcLinks').innerHTML = LINKS.map(l => '<a href="' + l[1] + '" target="_blank" rel="noopener" style="display:inline-block;' + btn + 'text-decoration:none;">' + l[0] + '</a>').join('');
     c.querySelector('#fcTAdd').onclick = () => { const n = prompt('নমুনার নাম:'); if(!n) return; const t = prompt('বার্তা লিখুন:'); if(!t) return; const a = getT().slice(); a.push([n.trim(), t.trim()]); LS.set('replyTemplates', a); renderT(); };
     c.querySelector('#fcLogout').onclick = () => { if(!confirm('এই ডিভাইস থেকে লগআউট করবেন?')) return; try{ sessionStorage.removeItem('adminPw'); }catch(_){} location.reload(); };
     renderLog(); renderT(); renderSched(); secInfo(); refreshBackupInfo();
@@ -5381,5 +5428,63 @@ function insertPostImage(id){
 })();
 </script>
 
+<script>
+// ============ ✅ প্রকাশের আগের চেকলিস্ট: পাবলিক/শিডিউল করার আগে ঝুঁকি থাকলে সতর্ক করে ============
+(function(){
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const rowPost = r => (window.__adminPostsData || {})[r];
+  function problems(title, content, imageUrl, selfRow, opts){
+    opts = opts || {}; const F = window.__fc; if(!F) return {hard:[], soft:[]};
+    const hard = [], soft = [];
+    const w = F.wordsOf(content), need = F.hasBn(title) ? 400 : 500;
+    if(w < need) hard.push('শব্দ কম: ' + w + ' (কমপক্ষে ' + need + ' চাই)');
+    if(!opts.skipDup){
+      const me = {title: title};
+      const dup = posts().filter(p => !p.draft && String(p.rowIndex) !== String(selfRow) && F.similar(me, p)).slice(0, 2);
+      dup.forEach(p => hard.push('মিলে যাচ্ছে: "' + String(p.title).slice(0, 60) + '"'));
+    }
+    F.scanText(content).slice(0, 3).forEach(h => hard.push(h.rule + ': “' + h.snippet.slice(0, 70) + '”'));
+    const hasImg = String(imageUrl || '').trim() || /!\[[^\]]*\]\(https:\/\/[^)\s]+\)/.test(String(content || ''));
+    if(!hasImg) soft.push('ছবি নেই');
+    if(!F.DISCL.test(F.plain(content))) soft.push('"মেটার প্রতিনিধি নই" সতর্কবার্তা নেই');
+    return {hard, soft};
+  }
+  function ask(label, pr){
+    if(!pr.hard.length) return true;
+    return confirm('⚠️ প্রকাশের আগে দেখুন' + (label ? ' — ' + label : '') + ':\n\n• ' + pr.hard.join('\n• ') + (pr.soft.length ? '\n\nআরও: ' + pr.soft.join(', ') : '') + '\n\nতবুও এগিয়ে যাবেন?');
+  }
+  function wrap(name, fn){ const orig = window[name]; if(typeof orig !== 'function' || orig.__pc) return false; const w = function(){ let go = true; try{ go = fn.apply(this, arguments); }catch(e){ go = true; } if(go === false) return; return orig.apply(this, arguments); }; w.__pc = true; window[name] = w; return true; }
+  function install(){
+    wrap('addPost', function(isDraft){
+      if(isDraft) return true; const v = document.getElementById('newPostVisibility'); if(v && v.value === 'private') return true;
+      const t = (document.getElementById('newPostTitle') || {}).value || '', c = (document.getElementById('newPostContent') || {}).value || '';
+      if(!t.trim() || !c.trim()) return true;
+      const img = document.getElementById('newPostImage'); const hasFile = !!(img && img.files && img.files.length);
+      return ask('নতুন পোস্ট', problems(t, c, hasFile ? 'file' : '', -1));
+    });
+    wrap('saveEditPost', function(row){
+      const p = rowPost(row); if(!p || p.private || p.draft) return true;
+      const t = (document.getElementById('editTitle' + row) || {}).value || '', c = (document.getElementById('editContent' + row) || {}).value || '';
+      return ask('এডিট', problems(t, c, p.imageUrl, row, {skipDup:true}));
+    });
+    wrap('__setPostStatus', function(row, status){
+      if(status !== '') return true; const p = rowPost(row); if(!p) return true;
+      return ask('পাবলিক করা', problems(p.title, p.content, p.imageUrl, row));
+    });
+    wrap('publishDraftNow', function(row){
+      const p = rowPost(row); if(!p) return true;
+      return ask('খসড়া প্রকাশ', problems(p.title, p.content, p.imageUrl, row));
+    });
+    wrap('__bulkRun', function(kind){
+      if(kind === 'delete' || kind === 'private') return true;
+      const rows = Array.from(window.__bulkSel || []); let bad = [];
+      rows.forEach(r => { const p = rowPost(r); if(!p) return; const pr = problems(p.title, p.content, p.imageUrl, r); if(pr.hard.length) bad.push(String(p.title).slice(0, 45) + ' — ' + pr.hard[0]); });
+      if(!bad.length) return true;
+      return confirm('⚠️ ' + rows.length + 'টির মধ্যে ' + bad.length + 'টিতে সমস্যা আছে:\n\n• ' + bad.slice(0, 6).join('\n• ') + (bad.length > 6 ? '\n• …আরও ' + (bad.length - 6) + 'টি' : '') + '\n\nতবুও পাবলিক করবেন?');
+    });
+  }
+  setInterval(function(){ try{ install(); }catch(e){} }, 1500);
+})();
+</script>
 </body>
 </html>
