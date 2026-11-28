@@ -5687,5 +5687,142 @@ function insertPostImage(id){
   window.__xExtras = { score, binSave, DISC };
 })();
 </script>
+<script>
+/* ===== সুবিধা কেন্দ্র — আরও ৫টি সুবিধা ===== */
+(function(){
+  const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const posts = () => (window.__adminPostsLast && window.__adminPostsLast.posts) || [];
+  const toast = (m,k) => { try{ __adminToast(m,k); }catch(_){} };
+  const pwd = () => sessionStorage.getItem('adminPw') || '';
+  const LS = { get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(_){ return d; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){} } };
+  const btn = 'padding:7px 11px;border:1.5px solid var(--forest,#1f4d3a);border-radius:9px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;margin:0 6px 6px 0;';
+  const sbtn = 'padding:5px 9px;border:1.5px solid var(--forest,#1f4d3a);border-radius:8px;background:var(--card-bg,#fff);color:var(--forest,#1f4d3a);font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;margin:0;';
+  const isSched = p => p.publishAt && p.published === false && !p.draft;
+  const pub = p => !p.draft && !p.private && !isSched(p);
+  const slug = p => String(p.id||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,8).toLowerCase();
+  const today = () => new Date(Date.now() + 6*3600000).toISOString().slice(0,10);
+  const SITE = 'https://alamingazi533.github.io/';
+  const DISC_LINE = '\n\n---\n*নোট: এটি একটি স্বাধীন সহায়িকা। আমরা মেটা, ফেসবুক, ইনস্টাগ্রাম বা হোয়াটসঅ্যাপের প্রতিনিধি নই।*';
+  const X = () => window.__xExtras || {};
+  const STOP = new Set(['facebook','instagram','whatsapp','meta','google','এর','এই','ও','কী','কি','করবেন','করবে','মানে','থেকে','হলে','এলে','না','যদি','কীভাবে','জন্য','the','a','an','to','your','you','is','of','and','in','on','for','this','that','not','be','how','what','করার','নিয়ম','ধাপে','ধাপ']);
+  const toks = t => { const s = new Set(); String(t||'').toLowerCase().replace(/[^a-z0-9ঀ-৿\s]/g,' ').split(/\s+/).forEach(w => { if(w.length > 2 && !STOP.has(w)) s.add(w); }); return s; };
+  const jac = (a,b) => { let i = 0; a.forEach(w => { if(b.has(w)) i++; }); return i / Math.max(1, a.size + b.size - i); };
+
+  function rowHtml(p, info, extra){
+    return '<div style="padding:7px 0;border-bottom:1px solid var(--line,#ddd);font-size:13px;line-height:1.5;">' + esc(String(p.title).slice(0,90)) + '<div style="font-size:12px;color:var(--muted,#666);">' + info + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
+      '<button type="button" class="yEdit" data-row="' + p.rowIndex + '" style="' + sbtn + '">✏️ Edit</button>' + (extra || '') +
+      (pub(p) && slug(p) ? '<a href="' + SITE + 'p/' + slug(p) + '.html" target="_blank" rel="noopener" style="' + sbtn + 'text-decoration:none;display:inline-block;">👁 দেখুন</a>' : '') + '</div></div>';
+  }
+  const wire = box => [].forEach.call(box.querySelectorAll('.yEdit'), b => { b.onclick = () => { if(window.__fcOpenEdit) window.__fcOpenEdit(+b.getAttribute('data-row')); }; });
+  const needPosts = box => { if(!posts().length){ box.innerHTML = '<div style="color:#b3261e;font-size:13px;">আগে "পোস্ট" ট্যাবে পোস্ট লোড হতে দিন, তারপর আবার চাপুন।</div>'; return true; } return false; };
+  const copy = (t, m) => { try{ navigator.clipboard.writeText(t).then(() => toast(m || '📋 কপি হয়েছে','ok'), () => prompt('কপি করুন:', t)); }catch(_){ prompt('কপি করুন:', t); } };
+
+  // ১. লেখার ছাঁচ
+  const TEMPLATE = '## সমস্যাটা কী\n(এখানে সমস্যাটা নিজের ভাষায় লিখুন, ফেসবুক বা অ্যাপে ঠিক কী মেসেজ এসেছিল)\n\n## কেন হয়\n(সম্ভাব্য কারণ লিখুন)\n\n## সমাধানের ধাপ\n1. (প্রথম ধাপ)\n2. (দ্বিতীয় ধাপ)\n3. (তৃতীয় ধাপ)\n\n## সতর্কতা\nপাসওয়ার্ড, OTP বা কোড কাউকে দেবেন না। কেউ "ফেরত দেব" বললে টাকা চাইলে সাবধান থাকুন।' + DISC_LINE;
+  function installTemplate(){
+    const ta = document.getElementById('newPostContent'); if(!ta || document.getElementById('yTplBtn')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'yTplBtn'; b.style.cssText = btn + 'margin:6px 6px 6px 0;'; b.textContent = '📄 লেখার ছাঁচ বসান';
+    b.onclick = function(){ if(ta.value.trim() && !confirm('লেখার ঘরে আগে থেকে লেখা আছে। ছাঁচটা শেষে যোগ করবেন?')) return; ta.value = (ta.value.trim() ? ta.value.replace(/\s+$/,'') + '\n\n' : '') + TEMPLATE; try{ ta.dispatchEvent(new Event('input', {bubbles:true})); }catch(_){} ta.focus(); toast('✅ ছাঁচ বসেছে, ব্র্যাকেটের লেখাগুলো বদলে নিজের লেখা দিন','ok'); };
+    ta.parentNode.insertBefore(b, ta);
+  }
+
+  // ২. আজকের ঠিক করার তালিকা
+  function runFix(){
+    const box = document.getElementById('yFixOut'); if(needPosts(box)) return;
+    const done = LS.get('fixDone', {}); const sc = X().score; if(!sc) return box.textContent = 'একটু পরে আবার চাপুন';
+    const all = posts().filter(pub), sim = new Map();
+    const T = all.map(p => toks(p.title));
+    for(let i = 0; i < all.length; i++) for(let j = i+1; j < all.length; j++) if(jac(T[i],T[j]) >= 0.6){ sim.set(all[i].id,1); sim.set(all[j].id,1); }
+    const L = all.filter(p => !done[p.id]).map(p => { const r = sc(p); const v = Number(p.views||0); return {p, r, v, pr: (100 - r.s) + (v === 0 ? 10 : 0) + (sim.get(p.id) ? 20 : 0)}; }).sort((a,b) => b.pr - a.pr).slice(0,3);
+    if(!L.length){ box.innerHTML = '<div style="color:#1e7a3c;font-weight:800;">✅ সব হয়ে গেছে!</div>'; return; }
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:4px;">আজ শুধু এই ৩টি ঠিক করুন। ঠিক হলে "✅ হয়েছে" চাপুন, নতুন তালিকা আসবে। (ডিসক্লেইমার যোগ হলে নম্বর বাড়ে।)</div>' +
+      L.map((x,i) => rowHtml(x.p, '<b>' + (i+1) + '.</b> নম্বর ' + x.r.s + '/১০০ · 👁 ' + x.v + ' ভিউ' + (sim.get(x.p.id) ? ' · ⚠️ সদৃশ' : '') + '<br>ঘাটতি: ' + (x.r.miss.join(', ') || 'নেই'), '<button type="button" class="yFixDone" data-id="' + esc(x.p.id) + '" style="' + sbtn + '">✅ হয়েছে</button>')).join('');
+    wire(box); [].forEach.call(box.querySelectorAll('.yFixDone'), b => { b.onclick = () => { const d = LS.get('fixDone', {}); d[b.getAttribute('data-id')] = today(); LS.set('fixDone', d); runFix(); renderAllDaily(); }; });
+  }
+
+  // ৩. Search Console সংখ্যা
+  function drawChart(arr){
+    if(arr.length < 2) return '<div style="font-size:12.5px;color:var(--muted,#666);">চার্ট দেখতে অন্তত ২টি তারিখের সংখ্যা সেভ করুন।</div>';
+    const W = 300, H = 110, P = 14, mx = k => Math.max(1, ...arr.map(a => a[k]));
+    const line = (k,c) => { const m = mx(k); return '<polyline fill="none" stroke="' + c + '" stroke-width="2" points="' + arr.map((a,i) => (P + i*(W-2*P)/(arr.length-1)).toFixed(1) + ',' + (H-P - (a[k]/m)*(H-2*P)).toFixed(1)).join(' ') + '"/>'; };
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:420px;background:rgba(0,0,0,.03);border-radius:8px;">' + line('imp','#6a3fb5') + line('clk','#2b6fd6') + '</svg><div style="font-size:12px;"><span style="color:#6a3fb5;">■ ইম্প্রেশন</span> &nbsp; <span style="color:#2b6fd6;">■ ক্লিক</span> (প্রতিটি লাইন নিজের সর্বোচ্চ মানের সাপেক্ষে)</div>';
+  }
+  function renderSC(){
+    const box = document.getElementById('yScOut'); if(!box) return; const log = LS.get('scLog', []).sort((a,b) => a.d < b.d ? -1 : 1);
+    box.innerHTML = drawChart(log.slice(-30)) + (log.length ? '<div style="margin-top:6px;font-size:12.5px;">' + log.slice(-8).reverse().map(a => '📅 ' + a.d + ' · ক্লিক <b>' + a.clk + '</b> · ইম্প্রেশন <b>' + a.imp + '</b>' + (a.note ? ' · ' + esc(a.note) : '')).join('<br>') + '</div><button type="button" id="yScDel" style="' + sbtn + 'margin-top:6px;">↩️ শেষ এন্ট্রি মুছুন</button> <button type="button" id="yScCopy" style="' + sbtn + 'margin-top:6px;">📋 সব কপি</button>' : '');
+    const dl = document.getElementById('yScDel'); if(dl) dl.onclick = () => { const l = LS.get('scLog', []).sort((a,b) => a.d < b.d ? -1 : 1); l.pop(); LS.set('scLog', l); renderSC(); };
+    const cp = document.getElementById('yScCopy'); if(cp) cp.onclick = () => copy(log.map(a => a.d + ',' + a.clk + ',' + a.imp).join('\n'), '📋 কপি হয়েছে');
+  }
+  function saveSC(){
+    const d = document.getElementById('yScD').value, c = document.getElementById('yScC').value, i = document.getElementById('yScI').value, n = document.getElementById('yScN').value.trim();
+    if(!d || c === '' || i === '') return toast('তারিখ, ক্লিক ও ইম্প্রেশন তিনটাই দিন','err');
+    const l = LS.get('scLog', []).filter(a => a.d !== d); l.push({d, clk:+c, imp:+i, note:n.slice(0,60)}); LS.set('scLog', l); document.getElementById('yScC').value = ''; document.getElementById('yScI').value = ''; document.getElementById('yScN').value = ''; toast('✅ সেভ হয়েছে','ok'); renderSC();
+  }
+
+  // ৪. ভেতরের লিংক
+  function loadLinkSel(){
+    const sel = document.getElementById('yLnkSel'); const L = posts().filter(p => pub(p) && slug(p));
+    if(!L.length) return toast('আগে পোস্ট লোড করুন','err');
+    sel.innerHTML = L.slice(0,80).map(p => '<option value="' + p.rowIndex + '">' + esc(String(p.title).slice(0,60)) + '</option>').join('');
+  }
+  function suggestLinks(){
+    const box = document.getElementById('yLnkOut'), sel = document.getElementById('yLnkSel'); if(!sel.value) return loadLinkSel();
+    const cur = posts().filter(p => +p.rowIndex === +sel.value)[0]; if(!cur) return;
+    const T = toks(cur.title + ' ' + String(cur.content||'').slice(0,300));
+    const rel = posts().filter(p => pub(p) && slug(p) && p.id !== cur.id).map(p => ({p, s: jac(T, toks(p.title))})).sort((a,b) => b.s - a.s).slice(0,3).filter(x => x.s > 0);
+    if(!rel.length){ box.textContent = 'মিলে যাওয়া পোস্ট পাইনি।'; return; }
+    const md = '\n\n**আরও পড়ুন:**\n' + rel.map(x => '- [' + String(x.p.title).replace(/[\[\]]/g,'') + '](' + SITE + 'p/' + slug(x.p) + '.html)').join('\n');
+    const has = /আরও পড়ুন/.test(String(cur.content||''));
+    box.innerHTML = rel.map(x => '<div style="font-size:13px;padding:3px 0;">🔗 ' + esc(String(x.p.title).slice(0,80)) + '</div>').join('') + (has ? '<div style="font-size:12px;color:#b3261e;">⚠️ এই পোস্টে "আরও পড়ুন" আগে থেকেই আছে।</div>' : '') + '<button type="button" id="yLnkCopy" style="' + btn + '">📋 কপি করুন</button><button type="button" id="yLnkAdd" style="' + btn + '"' + (has ? ' disabled' : '') + '>➕ পোস্টের শেষে যোগ করুন</button><div id="yLnkMsg" style="font-size:12.5px;"></div>';
+    document.getElementById('yLnkCopy').onclick = () => copy(md.trim());
+    document.getElementById('yLnkAdd').onclick = async function(){
+      if(!confirm('"' + String(cur.title).slice(0,50) + '" পোস্টের শেষে ' + rel.length + 'টি লিংক যোগ করবেন?')) return; this.disabled = true;
+      try{ const d = await (await fetch(SCRIPT_URL + '?action=editPost&password=' + encodeURIComponent(pwd()) + '&row=' + cur.rowIndex + '&title=' + encodeURIComponent(cur.title) + '&content=' + encodeURIComponent(String(cur.content||'').replace(/\s+$/,'') + md) + '&category=' + encodeURIComponent(cur.category || 'সাধারণ আপডেট') + '&silent=1&nonotify=1&_=' + Date.now(), {cache:'no-store'})).json();
+        document.getElementById('yLnkMsg').textContent = d && d.success ? '✅ যোগ হয়েছে' : '⚠️ হয়নি, আবার চেষ্টা করুন'; if(d && d.success){ try{ loadAdminPosts(); }catch(_){} } else this.disabled = false;
+      }catch(_){ this.disabled = false; document.getElementById('yLnkMsg').textContent = '⚠️ নেটওয়ার্ক সমস্যা'; } };
+  }
+
+  // ৫. প্রতিদিনের টিক-তালিকা
+  function dailyItems(){
+    const lastBk = (() => { try{ return +localStorage.getItem('lastPostsBackup') || 0; }catch(_){ return 0; } })();
+    const items = [['disc','📝 ৫টি পোস্টে ডিসক্লেইমার যোগ'],['fix','🔁 "আজকের ৩টি" থেকে ১টি পোস্ট ঠিক'],['sched','📅 শিডিউল ক্যালেন্ডার দেখা (দিনে ৩টির বেশি নয়)']];
+    if(!lastBk || (Date.now() - lastBk) > 7*86400000) items.push(['bk','💾 পোস্টের ব্যাকআপ নেওয়া']);
+    items.push(['sc','📈 Search Console-এর সংখ্যা সেভ (২-৩ দিনে একবার)']);
+    return items;
+  }
+  function renderDaily(el){
+    const key = 'dailyDone_' + today(), done = LS.get(key, {});
+    el.innerHTML = '<div style="font-weight:800;color:var(--forest,#1f4d3a);margin-bottom:4px;">✅ আজকের কাজ</div>' + dailyItems().map(it => '<label style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:13.5px;"><input type="checkbox" class="yDl" data-k="' + it[0] + '"' + (done[it[0]] ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;"><span style="' + (done[it[0]] ? 'text-decoration:line-through;color:var(--muted,#888);' : '') + '">' + it[1] + '</span></label>').join('');
+    [].forEach.call(el.querySelectorAll('.yDl'), c => { c.onchange = () => { const d = LS.get(key, {}); d[c.getAttribute('data-k')] = c.checked ? 1 : 0; LS.set(key, d); renderAllDaily(); }; });
+  }
+  function renderAllDaily(){ [].forEach.call(document.querySelectorAll('.yDaily'), renderDaily); }
+  function installHome(){
+    const h = document.getElementById('simpleHome'); if(!h || h.querySelector('.yDaily')) return;
+    const d = document.createElement('div'); d.className = 'yDaily'; d.style.cssText = 'margin:0 0 12px;padding:10px 12px;border:1.5px solid var(--line,#ddd);background:var(--card-bg,#fff);border-radius:12px;';
+    const sub = h.querySelector('.sub'); const warn = document.getElementById('homeBackupWarn'); const anchor = warn || sub;
+    if(anchor) anchor.after(d); else h.prepend(d); renderDaily(d);
+  }
+
+  // সুবিধা কেন্দ্রে বসানো
+  function sec(id, title, inner){ return '<div class="xSec" style="border-top:1px solid var(--line,#ddd);padding-top:8px;margin-top:8px;"><div class="xHead" data-b="' + id + '" style="font-weight:800;color:var(--forest,#1f4d3a);cursor:pointer;padding:4px 0;"><span>▸</span> ' + title + '</div><div id="' + id + '" style="display:none;padding:4px 0 6px;">' + inner + '</div></div>'; }
+  function install(){
+    installTemplate(); installHome();
+    const w = document.getElementById('xExtras'); if(!w || document.getElementById('yExtras')) return;
+    const y = document.createElement('div'); y.id = 'yExtras';
+    const inp = 'padding:7px;border:1.5px solid var(--line,#ccc);border-radius:8px;font-family:inherit;margin:0 6px 6px 0;';
+    y.innerHTML =
+      sec('yS1','✅ আজকের কাজের তালিকা','<div class="yDaily" style="padding:4px 0;"></div>') +
+      sec('yS2','🔁 আজ কোন ৩টি পোস্ট ঠিক করবেন','<button type="button" id="yFixBtn" style="' + btn + '">🔁 তালিকা দেখান</button><div id="yFixOut"></div>') +
+      sec('yS3','📈 Search Console সংখ্যা (তারিখসহ সেভ)','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">Performance পেজ থেকে ক্লিক ও ইম্প্রেশন দেখে এখানে লিখুন। শুধু এই ব্রাউজারে সেভ থাকে।</div><input type="date" id="yScD" value="' + today() + '" style="' + inp + '"><input type="number" id="yScC" placeholder="ক্লিক" style="' + inp + 'width:90px;"><input type="number" id="yScI" placeholder="ইম্প্রেশন" style="' + inp + 'width:110px;"><input type="text" id="yScN" placeholder="নোট (ঐচ্ছিক)" style="' + inp + 'width:100%;"><button type="button" id="yScSave" style="' + btn + '">💾 সেভ</button><div id="yScOut"></div>') +
+      sec('yS4','🔗 সম্পর্কিত পোস্টের লিংক (আরও পড়ুন)','<div style="font-size:12.5px;color:var(--muted,#666);margin-bottom:6px;">একটা পোস্ট বাছুন, মিল থাকা ৩টি পোস্টের লিংক বানিয়ে দেবে।</div><select id="yLnkSel" style="width:100%;' + inp + '"></select><button type="button" id="yLnkLoad" style="' + btn + '">📋 তালিকা লোড</button><button type="button" id="yLnkGo" style="' + btn + '">🔗 লিংক বানান</button><div id="yLnkOut"></div>') +
+      sec('yS5','📄 লেখার ছাঁচ','<div style="font-size:12.5px;line-height:1.6;">"পোস্ট" ট্যাবে নতুন পোস্টের লেখার ঘরের ওপরে <b>📄 লেখার ছাঁচ বসান</b> বাটন আছে। চাপলে সমস্যা → কারণ → ধাপ → সতর্কতা → ডিসক্লেইমার সাজানো ছাঁচ বসবে।</div>');
+    w.parentNode.insertBefore(y, w.nextSibling);
+    [].forEach.call(y.querySelectorAll('.xHead'), h => { h.onclick = function(){ const b = document.getElementById(h.getAttribute('data-b')); const o = b.style.display === 'none'; b.style.display = o ? 'block' : 'none'; h.firstChild.textContent = o ? '▾' : '▸'; if(h.getAttribute('data-b') === 'yS3') renderSC(); }; });
+    document.getElementById('yFixBtn').onclick = runFix; document.getElementById('yScSave').onclick = saveSC;
+    document.getElementById('yLnkLoad').onclick = loadLinkSel; document.getElementById('yLnkGo').onclick = suggestLinks; renderAllDaily();
+  }
+  setInterval(function(){ try{ install(); }catch(e){} }, 1200);
+})();
+</script>
 </body>
 </html>
